@@ -1,0 +1,49 @@
+{
+  "artifacts": [
+    {
+      "artifact_id": "MISSION_SPEC",
+      "hash": "sha256:017efbb768171bc93e8a7f1926da613a421d1f77b3a40504275c505b7d211b4c",
+      "path": "mission_spec.canonical.json",
+      "required_for_replay": true,
+      "type": "mission_spec"
+    },
+    {
+      "artifact_id": "VALIDATION_REPORT",
+      "hash": "sha256:cc8a8ffc2e28539b43b301aa9dc924ca832e8bccb0be2cbfb8da565ab318ea52",
+      "path": "validation_report.json",
+      "required_for_replay": true,
+      "type": "validation_report"
+    },
+    {
+      "artifact_id": "COMPILE_RESULT",
+      "hash": "sha256:e9ce8b8b46fb3a3e6d91d712533b27c227911471d37c6c423484557282d2169c",
+      "path": "compile_result.json",
+      "required_for_replay": true,
+      "type": "compile_result"
+    },
+    {
+      "artifact_id": "PYTHON_SCRIPT",
+      "backend": "gmat",
+      "hash": "sha256:1ae2b91a299a53082f745f107dd093a7ff934a13684831e60f2d5b6074cbf903",
+      "path": "generated_mission.py",
+      "required_for_replay": true,
+      "type": "python_script"
+    },
+    {
+      "artifact_id": "GMAT_SCRIPT",
+      "backend": "gmat",
+      "hash": "sha256:47cfb3e6ce63340dd960067c1ccce7b4de4cf97365a1b77323a8b1d86bd1904c",
+      "path": "generated_mission.script",
+      "required_for_replay": false,
+      "type": "native_script"
+    }
+  ],
+  "bundle_id": "cislunar_demo_bundle",
+  "created_at": "2026-06-15T18:02:48.764729+00:00",
+  "mission_id": "cislunar_demo",
+  "provenance": {
+    "compiler_version": "0.1.0",
+    "generated_by": "mission-mvp"
+  },
+  "schema_version": "1.0.0"
+}

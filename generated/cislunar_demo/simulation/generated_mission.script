@@ -1,0 +1,342 @@
+% Generated GMAT script
+% MissionSpec: cislunar_demo
+% This file is deterministic replay output from the MVP compiler.
+% Full ephemeris/state history is produced by native GMAT ReportFile subscribers.
+% Sparse checkpoints are produced only at explicit mission_spec.json checkpoint steps.
+
+
+%----------------------------------------
+%---------- SPICE / External Dependencies
+%----------------------------------------
+
+
+
+%----------------------------------------
+%---------- CoordinateSystems
+%----------------------------------------
+
+Create CoordinateSystem LunaMJ2000Eq;
+GMAT LunaMJ2000Eq.Origin = Luna;
+GMAT LunaMJ2000Eq.Axes = MJ2000Eq;
+Create CoordinateSystem EarthLunaRotating;
+GMAT EarthLunaRotating.Origin = Earth;
+GMAT EarthLunaRotating.Axes = ObjectReferenced;
+GMAT EarthLunaRotating.Primary = Earth;
+GMAT EarthLunaRotating.Secondary = Luna;
+GMAT EarthLunaRotating.XAxis = R;
+GMAT EarthLunaRotating.ZAxis = N;
+Create CoordinateSystem LunaEarthRotating;
+GMAT LunaEarthRotating.Origin = Luna;
+GMAT LunaEarthRotating.Axes = ObjectReferenced;
+GMAT LunaEarthRotating.Primary = Luna;
+GMAT LunaEarthRotating.Secondary = Earth;
+GMAT LunaEarthRotating.XAxis = R;
+GMAT LunaEarthRotating.ZAxis = N;
+%----------------------------------------
+%---------- Spacecraft
+%----------------------------------------
+
+Create Spacecraft CislunarSat;
+CislunarSat.DateFormat = UTCGregorian;
+CislunarSat.Epoch = '01 Jun 2026 00:00:00.000';
+CislunarSat.CoordinateSystem = EarthMJ2000Eq;
+CislunarSat.DisplayStateType = Cartesian;
+CislunarSat.X = -4947.9535435061525;
+CislunarSat.Y = 4053.0644613947075;
+CislunarSat.Z = 1920.398043235261;
+CislunarSat.VX = -5.1791178775370375;
+CislunarSat.VY = -4.963716277224432;
+CislunarSat.VZ = -2.868036985421945;
+CislunarSat.DryMass = 1000.0;
+CislunarSat.Cd = 2.2;
+CislunarSat.Cr = 1.8;
+CislunarSat.DragArea = 8.0;
+CislunarSat.SRPArea = 12.0;
+
+%----------------------------------------
+%---------- ForceModels
+%----------------------------------------
+
+Create ForceModel EarthLuna8x8;
+EarthLuna8x8.CentralBody = Earth;
+EarthLuna8x8.PrimaryBodies = { Earth };
+EarthLuna8x8.PointMasses = { Sun, Luna };
+EarthLuna8x8.Drag = None;
+EarthLuna8x8.SRP = Off;
+EarthLuna8x8.RelativisticCorrection = Off;
+EarthLuna8x8.ErrorControl = RSSStep;
+EarthLuna8x8.GravityField.Earth.Degree = 8;
+EarthLuna8x8.GravityField.Earth.Order = 8;
+EarthLuna8x8.GravityField.Earth.StmLimit = 100;
+EarthLuna8x8.GravityField.Earth.PotentialFile = 'JGM2.cof';
+EarthLuna8x8.GravityField.Earth.TideModel = 'None';
+
+%----------------------------------------
+%---------- Propagators
+%----------------------------------------
+
+Create Propagator CislunarProp;
+CislunarProp.FM = EarthLuna8x8;
+CislunarProp.Type = RungeKutta89;
+CislunarProp.InitialStepSize = 60.0;
+CislunarProp.Accuracy = 1e-09;
+CislunarProp.MinStep = 0.1;
+CislunarProp.MaxStep = 1800.0;
+CislunarProp.MaxStepAttempts = 50;
+CislunarProp.StopIfAccuracyIsViolated = true;
+
+%----------------------------------------
+%---------- Burns
+%----------------------------------------
+
+Create ImpulsiveBurn LOICircularizeSeed;
+LOICircularizeSeed.CoordinateSystem = Local;
+LOICircularizeSeed.Origin = Luna;
+LOICircularizeSeed.Axes = VNB;
+LOICircularizeSeed.Element1 = -0.85;
+LOICircularizeSeed.Element2 = 0.0;
+LOICircularizeSeed.Element3 = 0.0;
+LOICircularizeSeed.DecrementMass = false;
+LOICircularizeSeed.Isp = 300;
+LOICircularizeSeed.GravitationalAccel = 9.81;
+
+Create ImpulsiveBurn TLISeed;
+TLISeed.CoordinateSystem = Local;
+TLISeed.Origin = Earth;
+TLISeed.Axes = VNB;
+TLISeed.Element1 = 3.092757101421149;
+TLISeed.Element2 = -7.610334121841048e-16;
+TLISeed.Element3 = -0.5976864128033639;
+TLISeed.DecrementMass = false;
+TLISeed.Isp = 300;
+TLISeed.GravitationalAccel = 9.81;
+
+%----------------------------------------
+%---------- ReportFiles / Outputs
+%----------------------------------------
+
+Create ReportFile RF_CislunarSat_EarthMJ2000Eq_cislunar_frames_1;
+GMAT RF_CislunarSat_EarthMJ2000Eq_cislunar_frames_1.Add = { CislunarSat.UTCGregorian, CislunarSat.ElapsedSecs, CislunarSat.EarthMJ2000Eq.X, CislunarSat.EarthMJ2000Eq.Y, CislunarSat.EarthMJ2000Eq.Z, CislunarSat.EarthMJ2000Eq.VX, CislunarSat.EarthMJ2000Eq.VY, CislunarSat.EarthMJ2000Eq.VZ, CislunarSat.Earth.SMA, CislunarSat.Earth.ECC, CislunarSat.EarthMJ2000Eq.INC, CislunarSat.EarthMJ2000Eq.RAAN, CislunarSat.EarthMJ2000Eq.AOP, CislunarSat.Earth.TA };
+GMAT RF_CislunarSat_EarthMJ2000Eq_cislunar_frames_1.SolverIterations = Current;
+GMAT RF_CislunarSat_EarthMJ2000Eq_cislunar_frames_1.Filename = 'D:/Documents and stuff/Random stuff/Pet Projects/Agnetic GMAT/AMAT/generated/cislunar_demo/simulation/outputs/_Ephemeris_CislunarSat_EarthMJ2000Eq.csv';
+GMAT RF_CislunarSat_EarthMJ2000Eq_cislunar_frames_1.Precision = 16;
+GMAT RF_CislunarSat_EarthMJ2000Eq_cislunar_frames_1.WriteHeaders = true;
+GMAT RF_CislunarSat_EarthMJ2000Eq_cislunar_frames_1.LeftJustify = On;
+GMAT RF_CislunarSat_EarthMJ2000Eq_cislunar_frames_1.ZeroFill = Off;
+GMAT RF_CislunarSat_EarthMJ2000Eq_cislunar_frames_1.FixedWidth = true;
+GMAT RF_CislunarSat_EarthMJ2000Eq_cislunar_frames_1.Delimiter = ',';
+GMAT RF_CislunarSat_EarthMJ2000Eq_cislunar_frames_1.ColumnWidth = 23;
+GMAT RF_CislunarSat_EarthMJ2000Eq_cislunar_frames_1.WriteReport = true;
+
+Create ReportFile RF_CislunarSat_LunaMJ2000Eq_cislunar_frames_2;
+GMAT RF_CislunarSat_LunaMJ2000Eq_cislunar_frames_2.Add = { CislunarSat.UTCGregorian, CislunarSat.ElapsedSecs, CislunarSat.LunaMJ2000Eq.X, CislunarSat.LunaMJ2000Eq.Y, CislunarSat.LunaMJ2000Eq.Z, CislunarSat.LunaMJ2000Eq.VX, CislunarSat.LunaMJ2000Eq.VY, CislunarSat.LunaMJ2000Eq.VZ, CislunarSat.Luna.SMA, CislunarSat.Luna.ECC, CislunarSat.LunaMJ2000Eq.INC, CislunarSat.LunaMJ2000Eq.RAAN, CislunarSat.LunaMJ2000Eq.AOP, CislunarSat.Luna.TA };
+GMAT RF_CislunarSat_LunaMJ2000Eq_cislunar_frames_2.SolverIterations = Current;
+GMAT RF_CislunarSat_LunaMJ2000Eq_cislunar_frames_2.Filename = 'D:/Documents and stuff/Random stuff/Pet Projects/Agnetic GMAT/AMAT/generated/cislunar_demo/simulation/outputs/_Ephemeris_CislunarSat_LunaMJ2000Eq.csv';
+GMAT RF_CislunarSat_LunaMJ2000Eq_cislunar_frames_2.Precision = 16;
+GMAT RF_CislunarSat_LunaMJ2000Eq_cislunar_frames_2.WriteHeaders = true;
+GMAT RF_CislunarSat_LunaMJ2000Eq_cislunar_frames_2.LeftJustify = On;
+GMAT RF_CislunarSat_LunaMJ2000Eq_cislunar_frames_2.ZeroFill = Off;
+GMAT RF_CislunarSat_LunaMJ2000Eq_cislunar_frames_2.FixedWidth = true;
+GMAT RF_CislunarSat_LunaMJ2000Eq_cislunar_frames_2.Delimiter = ',';
+GMAT RF_CislunarSat_LunaMJ2000Eq_cislunar_frames_2.ColumnWidth = 23;
+GMAT RF_CislunarSat_LunaMJ2000Eq_cislunar_frames_2.WriteReport = true;
+
+Create ReportFile RF_CislunarSat_EarthLunaRotating_cislunar_frames_3;
+GMAT RF_CislunarSat_EarthLunaRotating_cislunar_frames_3.Add = { CislunarSat.UTCGregorian, CislunarSat.ElapsedSecs, CislunarSat.EarthLunaRotating.X, CislunarSat.EarthLunaRotating.Y, CislunarSat.EarthLunaRotating.Z, CislunarSat.EarthLunaRotating.VX, CislunarSat.EarthLunaRotating.VY, CislunarSat.EarthLunaRotating.VZ, CislunarSat.Earth.SMA, CislunarSat.Earth.ECC, CislunarSat.EarthMJ2000Eq.INC, CislunarSat.EarthMJ2000Eq.RAAN, CislunarSat.EarthMJ2000Eq.AOP, CislunarSat.Earth.TA };
+GMAT RF_CislunarSat_EarthLunaRotating_cislunar_frames_3.SolverIterations = Current;
+GMAT RF_CislunarSat_EarthLunaRotating_cislunar_frames_3.Filename = 'D:/Documents and stuff/Random stuff/Pet Projects/Agnetic GMAT/AMAT/generated/cislunar_demo/simulation/outputs/_Ephemeris_CislunarSat_EarthLunaRotating.csv';
+GMAT RF_CislunarSat_EarthLunaRotating_cislunar_frames_3.Precision = 16;
+GMAT RF_CislunarSat_EarthLunaRotating_cislunar_frames_3.WriteHeaders = true;
+GMAT RF_CislunarSat_EarthLunaRotating_cislunar_frames_3.LeftJustify = On;
+GMAT RF_CislunarSat_EarthLunaRotating_cislunar_frames_3.ZeroFill = Off;
+GMAT RF_CislunarSat_EarthLunaRotating_cislunar_frames_3.FixedWidth = true;
+GMAT RF_CislunarSat_EarthLunaRotating_cislunar_frames_3.Delimiter = ',';
+GMAT RF_CislunarSat_EarthLunaRotating_cislunar_frames_3.ColumnWidth = 23;
+GMAT RF_CislunarSat_EarthLunaRotating_cislunar_frames_3.WriteReport = true;
+
+Create ReportFile RF_CislunarSat_LunaEarthRotating_cislunar_frames_4;
+GMAT RF_CislunarSat_LunaEarthRotating_cislunar_frames_4.Add = { CislunarSat.UTCGregorian, CislunarSat.ElapsedSecs, CislunarSat.LunaEarthRotating.X, CislunarSat.LunaEarthRotating.Y, CislunarSat.LunaEarthRotating.Z, CislunarSat.LunaEarthRotating.VX, CislunarSat.LunaEarthRotating.VY, CislunarSat.LunaEarthRotating.VZ, CislunarSat.Luna.SMA, CislunarSat.Luna.ECC, CislunarSat.LunaMJ2000Eq.INC, CislunarSat.LunaMJ2000Eq.RAAN, CislunarSat.LunaMJ2000Eq.AOP, CislunarSat.Luna.TA };
+GMAT RF_CislunarSat_LunaEarthRotating_cislunar_frames_4.SolverIterations = Current;
+GMAT RF_CislunarSat_LunaEarthRotating_cislunar_frames_4.Filename = 'D:/Documents and stuff/Random stuff/Pet Projects/Agnetic GMAT/AMAT/generated/cislunar_demo/simulation/outputs/_Ephemeris_CislunarSat_LunaEarthRotating.csv';
+GMAT RF_CislunarSat_LunaEarthRotating_cislunar_frames_4.Precision = 16;
+GMAT RF_CislunarSat_LunaEarthRotating_cislunar_frames_4.WriteHeaders = true;
+GMAT RF_CislunarSat_LunaEarthRotating_cislunar_frames_4.LeftJustify = On;
+GMAT RF_CislunarSat_LunaEarthRotating_cislunar_frames_4.ZeroFill = Off;
+GMAT RF_CislunarSat_LunaEarthRotating_cislunar_frames_4.FixedWidth = true;
+GMAT RF_CislunarSat_LunaEarthRotating_cislunar_frames_4.Delimiter = ',';
+GMAT RF_CislunarSat_LunaEarthRotating_cislunar_frames_4.ColumnWidth = 23;
+GMAT RF_CislunarSat_LunaEarthRotating_cislunar_frames_4.WriteReport = true;
+
+Create ReportFile BRF_Luna_EarthMJ2000Eq_luna_body_ephemeris_1;
+% Viewer body ephemeris fallback. SPICE export will overwrite this file when
+% resolved SPICE data is available; otherwise this GMAT-generated body state
+% file keeps the visualization layer usable.
+GMAT BRF_Luna_EarthMJ2000Eq_luna_body_ephemeris_1.Add = { CislunarSat.UTCGregorian, CislunarSat.ElapsedSecs, CislunarSat.A1ModJulian, Luna.EarthMJ2000Eq.X, Luna.EarthMJ2000Eq.Y, Luna.EarthMJ2000Eq.Z, Luna.EarthMJ2000Eq.VX, Luna.EarthMJ2000Eq.VY, Luna.EarthMJ2000Eq.VZ };
+GMAT BRF_Luna_EarthMJ2000Eq_luna_body_ephemeris_1.SolverIterations = Current;
+GMAT BRF_Luna_EarthMJ2000Eq_luna_body_ephemeris_1.Filename = 'D:/Documents and stuff/Random stuff/Pet Projects/Agnetic GMAT/AMAT/generated/cislunar_demo/simulation/outputs/_BodyEphemeris_Luna_EarthMJ2000Eq.csv';
+GMAT BRF_Luna_EarthMJ2000Eq_luna_body_ephemeris_1.Precision = 16;
+GMAT BRF_Luna_EarthMJ2000Eq_luna_body_ephemeris_1.WriteHeaders = true;
+GMAT BRF_Luna_EarthMJ2000Eq_luna_body_ephemeris_1.LeftJustify = On;
+GMAT BRF_Luna_EarthMJ2000Eq_luna_body_ephemeris_1.ZeroFill = Off;
+GMAT BRF_Luna_EarthMJ2000Eq_luna_body_ephemeris_1.FixedWidth = true;
+GMAT BRF_Luna_EarthMJ2000Eq_luna_body_ephemeris_1.Delimiter = ',';
+GMAT BRF_Luna_EarthMJ2000Eq_luna_body_ephemeris_1.ColumnWidth = 23;
+GMAT BRF_Luna_EarthMJ2000Eq_luna_body_ephemeris_1.WriteReport = true;
+
+Create ReportFile BRF_Sun_EarthMJ2000Eq_force_model_Sun_EarthMJ2000Eq_ephemeris_2;
+% Viewer body ephemeris fallback. SPICE export will overwrite this file when
+% resolved SPICE data is available; otherwise this GMAT-generated body state
+% file keeps the visualization layer usable.
+GMAT BRF_Sun_EarthMJ2000Eq_force_model_Sun_EarthMJ2000Eq_ephemeris_2.Add = { CislunarSat.UTCGregorian, CislunarSat.ElapsedSecs, CislunarSat.A1ModJulian, Sun.EarthMJ2000Eq.X, Sun.EarthMJ2000Eq.Y, Sun.EarthMJ2000Eq.Z, Sun.EarthMJ2000Eq.VX, Sun.EarthMJ2000Eq.VY, Sun.EarthMJ2000Eq.VZ };
+GMAT BRF_Sun_EarthMJ2000Eq_force_model_Sun_EarthMJ2000Eq_ephemeris_2.SolverIterations = Current;
+GMAT BRF_Sun_EarthMJ2000Eq_force_model_Sun_EarthMJ2000Eq_ephemeris_2.Filename = 'D:/Documents and stuff/Random stuff/Pet Projects/Agnetic GMAT/AMAT/generated/cislunar_demo/simulation/outputs/_BodyEphemeris_Sun_EarthMJ2000Eq.csv';
+GMAT BRF_Sun_EarthMJ2000Eq_force_model_Sun_EarthMJ2000Eq_ephemeris_2.Precision = 16;
+GMAT BRF_Sun_EarthMJ2000Eq_force_model_Sun_EarthMJ2000Eq_ephemeris_2.WriteHeaders = true;
+GMAT BRF_Sun_EarthMJ2000Eq_force_model_Sun_EarthMJ2000Eq_ephemeris_2.LeftJustify = On;
+GMAT BRF_Sun_EarthMJ2000Eq_force_model_Sun_EarthMJ2000Eq_ephemeris_2.ZeroFill = Off;
+GMAT BRF_Sun_EarthMJ2000Eq_force_model_Sun_EarthMJ2000Eq_ephemeris_2.FixedWidth = true;
+GMAT BRF_Sun_EarthMJ2000Eq_force_model_Sun_EarthMJ2000Eq_ephemeris_2.Delimiter = ',';
+GMAT BRF_Sun_EarthMJ2000Eq_force_model_Sun_EarthMJ2000Eq_ephemeris_2.ColumnWidth = 23;
+GMAT BRF_Sun_EarthMJ2000Eq_force_model_Sun_EarthMJ2000Eq_ephemeris_2.WriteReport = true;
+
+Create ReportFile BRF_Earth_LunaMJ2000Eq_force_model_Earth_LunaMJ2000Eq_ephemeris_3;
+% Viewer body ephemeris fallback. SPICE export will overwrite this file when
+% resolved SPICE data is available; otherwise this GMAT-generated body state
+% file keeps the visualization layer usable.
+GMAT BRF_Earth_LunaMJ2000Eq_force_model_Earth_LunaMJ2000Eq_ephemeris_3.Add = { CislunarSat.UTCGregorian, CislunarSat.ElapsedSecs, CislunarSat.A1ModJulian, Earth.LunaMJ2000Eq.X, Earth.LunaMJ2000Eq.Y, Earth.LunaMJ2000Eq.Z, Earth.LunaMJ2000Eq.VX, Earth.LunaMJ2000Eq.VY, Earth.LunaMJ2000Eq.VZ };
+GMAT BRF_Earth_LunaMJ2000Eq_force_model_Earth_LunaMJ2000Eq_ephemeris_3.SolverIterations = Current;
+GMAT BRF_Earth_LunaMJ2000Eq_force_model_Earth_LunaMJ2000Eq_ephemeris_3.Filename = 'D:/Documents and stuff/Random stuff/Pet Projects/Agnetic GMAT/AMAT/generated/cislunar_demo/simulation/outputs/_BodyEphemeris_Earth_LunaMJ2000Eq.csv';
+GMAT BRF_Earth_LunaMJ2000Eq_force_model_Earth_LunaMJ2000Eq_ephemeris_3.Precision = 16;
+GMAT BRF_Earth_LunaMJ2000Eq_force_model_Earth_LunaMJ2000Eq_ephemeris_3.WriteHeaders = true;
+GMAT BRF_Earth_LunaMJ2000Eq_force_model_Earth_LunaMJ2000Eq_ephemeris_3.LeftJustify = On;
+GMAT BRF_Earth_LunaMJ2000Eq_force_model_Earth_LunaMJ2000Eq_ephemeris_3.ZeroFill = Off;
+GMAT BRF_Earth_LunaMJ2000Eq_force_model_Earth_LunaMJ2000Eq_ephemeris_3.FixedWidth = true;
+GMAT BRF_Earth_LunaMJ2000Eq_force_model_Earth_LunaMJ2000Eq_ephemeris_3.Delimiter = ',';
+GMAT BRF_Earth_LunaMJ2000Eq_force_model_Earth_LunaMJ2000Eq_ephemeris_3.ColumnWidth = 23;
+GMAT BRF_Earth_LunaMJ2000Eq_force_model_Earth_LunaMJ2000Eq_ephemeris_3.WriteReport = true;
+
+Create ReportFile BRF_Sun_LunaMJ2000Eq_force_model_Sun_LunaMJ2000Eq_ephemeris_4;
+% Viewer body ephemeris fallback. SPICE export will overwrite this file when
+% resolved SPICE data is available; otherwise this GMAT-generated body state
+% file keeps the visualization layer usable.
+GMAT BRF_Sun_LunaMJ2000Eq_force_model_Sun_LunaMJ2000Eq_ephemeris_4.Add = { CislunarSat.UTCGregorian, CislunarSat.ElapsedSecs, CislunarSat.A1ModJulian, Sun.LunaMJ2000Eq.X, Sun.LunaMJ2000Eq.Y, Sun.LunaMJ2000Eq.Z, Sun.LunaMJ2000Eq.VX, Sun.LunaMJ2000Eq.VY, Sun.LunaMJ2000Eq.VZ };
+GMAT BRF_Sun_LunaMJ2000Eq_force_model_Sun_LunaMJ2000Eq_ephemeris_4.SolverIterations = Current;
+GMAT BRF_Sun_LunaMJ2000Eq_force_model_Sun_LunaMJ2000Eq_ephemeris_4.Filename = 'D:/Documents and stuff/Random stuff/Pet Projects/Agnetic GMAT/AMAT/generated/cislunar_demo/simulation/outputs/_BodyEphemeris_Sun_LunaMJ2000Eq.csv';
+GMAT BRF_Sun_LunaMJ2000Eq_force_model_Sun_LunaMJ2000Eq_ephemeris_4.Precision = 16;
+GMAT BRF_Sun_LunaMJ2000Eq_force_model_Sun_LunaMJ2000Eq_ephemeris_4.WriteHeaders = true;
+GMAT BRF_Sun_LunaMJ2000Eq_force_model_Sun_LunaMJ2000Eq_ephemeris_4.LeftJustify = On;
+GMAT BRF_Sun_LunaMJ2000Eq_force_model_Sun_LunaMJ2000Eq_ephemeris_4.ZeroFill = Off;
+GMAT BRF_Sun_LunaMJ2000Eq_force_model_Sun_LunaMJ2000Eq_ephemeris_4.FixedWidth = true;
+GMAT BRF_Sun_LunaMJ2000Eq_force_model_Sun_LunaMJ2000Eq_ephemeris_4.Delimiter = ',';
+GMAT BRF_Sun_LunaMJ2000Eq_force_model_Sun_LunaMJ2000Eq_ephemeris_4.ColumnWidth = 23;
+GMAT BRF_Sun_LunaMJ2000Eq_force_model_Sun_LunaMJ2000Eq_ephemeris_4.WriteReport = true;
+
+Create ReportFile BRF_Sun_EarthLunaRotating_force_model_Sun_EarthLunaRotating_ephemeris_5;
+% Viewer body ephemeris fallback. SPICE export will overwrite this file when
+% resolved SPICE data is available; otherwise this GMAT-generated body state
+% file keeps the visualization layer usable.
+GMAT BRF_Sun_EarthLunaRotating_force_model_Sun_EarthLunaRotating_ephemeris_5.Add = { CislunarSat.UTCGregorian, CislunarSat.ElapsedSecs, CislunarSat.A1ModJulian, Sun.EarthLunaRotating.X, Sun.EarthLunaRotating.Y, Sun.EarthLunaRotating.Z, Sun.EarthLunaRotating.VX, Sun.EarthLunaRotating.VY, Sun.EarthLunaRotating.VZ };
+GMAT BRF_Sun_EarthLunaRotating_force_model_Sun_EarthLunaRotating_ephemeris_5.SolverIterations = Current;
+GMAT BRF_Sun_EarthLunaRotating_force_model_Sun_EarthLunaRotating_ephemeris_5.Filename = 'D:/Documents and stuff/Random stuff/Pet Projects/Agnetic GMAT/AMAT/generated/cislunar_demo/simulation/outputs/_BodyEphemeris_Sun_EarthLunaRotating.csv';
+GMAT BRF_Sun_EarthLunaRotating_force_model_Sun_EarthLunaRotating_ephemeris_5.Precision = 16;
+GMAT BRF_Sun_EarthLunaRotating_force_model_Sun_EarthLunaRotating_ephemeris_5.WriteHeaders = true;
+GMAT BRF_Sun_EarthLunaRotating_force_model_Sun_EarthLunaRotating_ephemeris_5.LeftJustify = On;
+GMAT BRF_Sun_EarthLunaRotating_force_model_Sun_EarthLunaRotating_ephemeris_5.ZeroFill = Off;
+GMAT BRF_Sun_EarthLunaRotating_force_model_Sun_EarthLunaRotating_ephemeris_5.FixedWidth = true;
+GMAT BRF_Sun_EarthLunaRotating_force_model_Sun_EarthLunaRotating_ephemeris_5.Delimiter = ',';
+GMAT BRF_Sun_EarthLunaRotating_force_model_Sun_EarthLunaRotating_ephemeris_5.ColumnWidth = 23;
+GMAT BRF_Sun_EarthLunaRotating_force_model_Sun_EarthLunaRotating_ephemeris_5.WriteReport = true;
+
+Create ReportFile BRF_Luna_EarthLunaRotating_force_model_Luna_EarthLunaRotating_ephemeris_6;
+% Viewer body ephemeris fallback. SPICE export will overwrite this file when
+% resolved SPICE data is available; otherwise this GMAT-generated body state
+% file keeps the visualization layer usable.
+GMAT BRF_Luna_EarthLunaRotating_force_model_Luna_EarthLunaRotating_ephemeris_6.Add = { CislunarSat.UTCGregorian, CislunarSat.ElapsedSecs, CislunarSat.A1ModJulian, Luna.EarthLunaRotating.X, Luna.EarthLunaRotating.Y, Luna.EarthLunaRotating.Z, Luna.EarthLunaRotating.VX, Luna.EarthLunaRotating.VY, Luna.EarthLunaRotating.VZ };
+GMAT BRF_Luna_EarthLunaRotating_force_model_Luna_EarthLunaRotating_ephemeris_6.SolverIterations = Current;
+GMAT BRF_Luna_EarthLunaRotating_force_model_Luna_EarthLunaRotating_ephemeris_6.Filename = 'D:/Documents and stuff/Random stuff/Pet Projects/Agnetic GMAT/AMAT/generated/cislunar_demo/simulation/outputs/_BodyEphemeris_Luna_EarthLunaRotating.csv';
+GMAT BRF_Luna_EarthLunaRotating_force_model_Luna_EarthLunaRotating_ephemeris_6.Precision = 16;
+GMAT BRF_Luna_EarthLunaRotating_force_model_Luna_EarthLunaRotating_ephemeris_6.WriteHeaders = true;
+GMAT BRF_Luna_EarthLunaRotating_force_model_Luna_EarthLunaRotating_ephemeris_6.LeftJustify = On;
+GMAT BRF_Luna_EarthLunaRotating_force_model_Luna_EarthLunaRotating_ephemeris_6.ZeroFill = Off;
+GMAT BRF_Luna_EarthLunaRotating_force_model_Luna_EarthLunaRotating_ephemeris_6.FixedWidth = true;
+GMAT BRF_Luna_EarthLunaRotating_force_model_Luna_EarthLunaRotating_ephemeris_6.Delimiter = ',';
+GMAT BRF_Luna_EarthLunaRotating_force_model_Luna_EarthLunaRotating_ephemeris_6.ColumnWidth = 23;
+GMAT BRF_Luna_EarthLunaRotating_force_model_Luna_EarthLunaRotating_ephemeris_6.WriteReport = true;
+
+Create ReportFile BRF_Earth_LunaEarthRotating_force_model_Earth_LunaEarthRotating_ephemeris_7;
+% Viewer body ephemeris fallback. SPICE export will overwrite this file when
+% resolved SPICE data is available; otherwise this GMAT-generated body state
+% file keeps the visualization layer usable.
+GMAT BRF_Earth_LunaEarthRotating_force_model_Earth_LunaEarthRotating_ephemeris_7.Add = { CislunarSat.UTCGregorian, CislunarSat.ElapsedSecs, CislunarSat.A1ModJulian, Earth.LunaEarthRotating.X, Earth.LunaEarthRotating.Y, Earth.LunaEarthRotating.Z, Earth.LunaEarthRotating.VX, Earth.LunaEarthRotating.VY, Earth.LunaEarthRotating.VZ };
+GMAT BRF_Earth_LunaEarthRotating_force_model_Earth_LunaEarthRotating_ephemeris_7.SolverIterations = Current;
+GMAT BRF_Earth_LunaEarthRotating_force_model_Earth_LunaEarthRotating_ephemeris_7.Filename = 'D:/Documents and stuff/Random stuff/Pet Projects/Agnetic GMAT/AMAT/generated/cislunar_demo/simulation/outputs/_BodyEphemeris_Earth_LunaEarthRotating.csv';
+GMAT BRF_Earth_LunaEarthRotating_force_model_Earth_LunaEarthRotating_ephemeris_7.Precision = 16;
+GMAT BRF_Earth_LunaEarthRotating_force_model_Earth_LunaEarthRotating_ephemeris_7.WriteHeaders = true;
+GMAT BRF_Earth_LunaEarthRotating_force_model_Earth_LunaEarthRotating_ephemeris_7.LeftJustify = On;
+GMAT BRF_Earth_LunaEarthRotating_force_model_Earth_LunaEarthRotating_ephemeris_7.ZeroFill = Off;
+GMAT BRF_Earth_LunaEarthRotating_force_model_Earth_LunaEarthRotating_ephemeris_7.FixedWidth = true;
+GMAT BRF_Earth_LunaEarthRotating_force_model_Earth_LunaEarthRotating_ephemeris_7.Delimiter = ',';
+GMAT BRF_Earth_LunaEarthRotating_force_model_Earth_LunaEarthRotating_ephemeris_7.ColumnWidth = 23;
+GMAT BRF_Earth_LunaEarthRotating_force_model_Earth_LunaEarthRotating_ephemeris_7.WriteReport = true;
+
+Create ReportFile BRF_Sun_LunaEarthRotating_force_model_Sun_LunaEarthRotating_ephemeris_8;
+% Viewer body ephemeris fallback. SPICE export will overwrite this file when
+% resolved SPICE data is available; otherwise this GMAT-generated body state
+% file keeps the visualization layer usable.
+GMAT BRF_Sun_LunaEarthRotating_force_model_Sun_LunaEarthRotating_ephemeris_8.Add = { CislunarSat.UTCGregorian, CislunarSat.ElapsedSecs, CislunarSat.A1ModJulian, Sun.LunaEarthRotating.X, Sun.LunaEarthRotating.Y, Sun.LunaEarthRotating.Z, Sun.LunaEarthRotating.VX, Sun.LunaEarthRotating.VY, Sun.LunaEarthRotating.VZ };
+GMAT BRF_Sun_LunaEarthRotating_force_model_Sun_LunaEarthRotating_ephemeris_8.SolverIterations = Current;
+GMAT BRF_Sun_LunaEarthRotating_force_model_Sun_LunaEarthRotating_ephemeris_8.Filename = 'D:/Documents and stuff/Random stuff/Pet Projects/Agnetic GMAT/AMAT/generated/cislunar_demo/simulation/outputs/_BodyEphemeris_Sun_LunaEarthRotating.csv';
+GMAT BRF_Sun_LunaEarthRotating_force_model_Sun_LunaEarthRotating_ephemeris_8.Precision = 16;
+GMAT BRF_Sun_LunaEarthRotating_force_model_Sun_LunaEarthRotating_ephemeris_8.WriteHeaders = true;
+GMAT BRF_Sun_LunaEarthRotating_force_model_Sun_LunaEarthRotating_ephemeris_8.LeftJustify = On;
+GMAT BRF_Sun_LunaEarthRotating_force_model_Sun_LunaEarthRotating_ephemeris_8.ZeroFill = Off;
+GMAT BRF_Sun_LunaEarthRotating_force_model_Sun_LunaEarthRotating_ephemeris_8.FixedWidth = true;
+GMAT BRF_Sun_LunaEarthRotating_force_model_Sun_LunaEarthRotating_ephemeris_8.Delimiter = ',';
+GMAT BRF_Sun_LunaEarthRotating_force_model_Sun_LunaEarthRotating_ephemeris_8.ColumnWidth = 23;
+GMAT BRF_Sun_LunaEarthRotating_force_model_Sun_LunaEarthRotating_ephemeris_8.WriteReport = true;
+
+Create ReportFile RF_post_tli;
+% Sparse checkpoint snapshot file. This ReportFile is intentionally not an
+% active trajectory subscriber; it is written only by explicit Report commands.
+GMAT RF_post_tli.SolverIterations = Current;
+GMAT RF_post_tli.Filename = 'D:/Documents and stuff/Random stuff/Pet Projects/Agnetic GMAT/AMAT/generated/cislunar_demo/simulation/outputs/post_tli.csv';
+GMAT RF_post_tli.Precision = 16;
+GMAT RF_post_tli.WriteHeaders = false;
+GMAT RF_post_tli.LeftJustify = On;
+GMAT RF_post_tli.ZeroFill = Off;
+GMAT RF_post_tli.FixedWidth = true;
+GMAT RF_post_tli.Delimiter = ',';
+GMAT RF_post_tli.ColumnWidth = 23;
+GMAT RF_post_tli.WriteReport = false;
+
+Create ReportFile RF_post_loi_report_post_loi;
+% Sparse checkpoint snapshot file. This ReportFile is intentionally not an
+% active trajectory subscriber; it is written only by explicit Report commands.
+GMAT RF_post_loi_report_post_loi.SolverIterations = Current;
+GMAT RF_post_loi_report_post_loi.Filename = 'D:/Documents and stuff/Random stuff/Pet Projects/Agnetic GMAT/AMAT/generated/cislunar_demo/simulation/outputs/post_loi.csv';
+GMAT RF_post_loi_report_post_loi.Precision = 16;
+GMAT RF_post_loi_report_post_loi.WriteHeaders = false;
+GMAT RF_post_loi_report_post_loi.LeftJustify = On;
+GMAT RF_post_loi_report_post_loi.ZeroFill = Off;
+GMAT RF_post_loi_report_post_loi.FixedWidth = true;
+GMAT RF_post_loi_report_post_loi.Delimiter = ',';
+GMAT RF_post_loi_report_post_loi.ColumnWidth = 23;
+GMAT RF_post_loi_report_post_loi.WriteReport = false;
+
+%----------------------------------------
+%---------- Mission Sequence
+%----------------------------------------
+
+BeginMissionSequence;
+
+% ============================================================================
+% Phase: cislunar_transfer - Impulsive cislunar transfer
+% ============================================================================
+Maneuver TLISeed(CislunarSat);
+Report RF_post_tli CislunarSat.UTCGregorian CislunarSat.ElapsedSecs CislunarSat.EarthMJ2000Eq.X CislunarSat.EarthMJ2000Eq.Y CislunarSat.EarthMJ2000Eq.Z CislunarSat.EarthMJ2000Eq.VX CislunarSat.EarthMJ2000Eq.VY CislunarSat.EarthMJ2000Eq.VZ CislunarSat.Earth.SMA CislunarSat.Earth.ECC CislunarSat.EarthMJ2000Eq.INC CislunarSat.EarthMJ2000Eq.RAAN CislunarSat.EarthMJ2000Eq.AOP CislunarSat.Earth.TA;
+% Event: lunar_perilune_capture
+% orbital_event:periapsis; compiled_as:true_anomaly
+Propagate CislunarProp(CislunarSat) { CislunarSat.Luna.TA = 0 };
+Maneuver LOICircularizeSeed(CislunarSat);
+Report RF_post_loi_report_post_loi CislunarSat.UTCGregorian CislunarSat.ElapsedSecs CislunarSat.LunaMJ2000Eq.X CislunarSat.LunaMJ2000Eq.Y CislunarSat.LunaMJ2000Eq.Z CislunarSat.LunaMJ2000Eq.VX CislunarSat.LunaMJ2000Eq.VY CislunarSat.LunaMJ2000Eq.VZ CislunarSat.Luna.SMA CislunarSat.Luna.ECC CislunarSat.LunaMJ2000Eq.INC CislunarSat.LunaMJ2000Eq.RAAN CislunarSat.LunaMJ2000Eq.AOP CislunarSat.Luna.TA;
+Propagate CislunarProp(CislunarSat) { CislunarSat.ElapsedSecs = 172800.0 };

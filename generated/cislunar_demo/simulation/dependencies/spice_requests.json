@@ -1,0 +1,45 @@
+{
+  "mission_id": "cislunar_demo",
+  "provider": "spice",
+  "requests": [
+    {
+      "dependency_id": "luna_ephem_20260601",
+      "kernels": {},
+      "observer": {
+        "naif_id": 399,
+        "name": "Earth"
+      },
+      "output": {
+        "format": "normalized_json",
+        "path": "dependencies/resolved/luna_ephem_20260601_ephemeris.json",
+        "position_unit": "km",
+        "velocity_unit": "km/s"
+      },
+      "provider": "spice",
+      "purpose": "ephemeris",
+      "reference": {
+        "aberration_correction": "NONE",
+        "frame": "J2000"
+      },
+      "reproducibility": {
+        "require_hash": true,
+        "store_normalized": true,
+        "store_raw": false
+      },
+      "request_id": "SPICE_REQ_luna_ephem_20260601",
+      "schema_version": "1.0.0",
+      "target": {
+        "naif_id": 301,
+        "name": "Luna"
+      },
+      "time_range": {
+        "input_time_scale": "UTC",
+        "output_time_scale": "TDB",
+        "start": "2026-06-01T00:00:00Z",
+        "step_s": 3600.0,
+        "stop": "2026-06-12T00:00:00Z"
+      }
+    }
+  ],
+  "schema_version": "1.0.0"
+}

@@ -1,0 +1,101 @@
+{
+  "analytic_assessment": {
+    "arrival_radius_km": 42164.1696,
+    "arrival_true_anomaly_deg": 180.0,
+    "departure_phase_wait_deg": 150.0,
+    "departure_phasing_applied": true,
+    "departure_radius_km": 6678.1363,
+    "departure_true_anomaly_deg": 150.0,
+    "merge_maneuver_angle_tolerance_deg": 2.0,
+    "model": "two_body_impulsive_node_aware_plane_change",
+    "plane_change_arrival_deg": 22.999999999999993,
+    "plane_change_departure_deg": 0.0,
+    "plane_change_merge_target": "arrival",
+    "plane_change_node_deg": 0.0,
+    "plane_change_node_true_anomaly_deg": 180.0,
+    "plane_change_total_deg": 22.999999999999993,
+    "status": "analytically_feasible",
+    "total_delta_v_km_s": 4.139661134152377,
+    "transfer_eccentricity": 0.7265429558681012,
+    "transfer_sma_km": 24421.15295
+  },
+  "candidate_id": "analytic_node_aware_impulsive_001",
+  "generation_status": "candidate_generated",
+  "limit_violations": [],
+  "maneuvers": [
+    {
+      "components_km_s": [
+        2.425732900357465,
+        0.0,
+        0.0
+      ],
+      "concurrent_effects": [
+        "energy_change"
+      ],
+      "departure_phase_wait_deg": 150.0,
+      "event": "phased_departure_node",
+      "event_type": "parameter_reaches",
+      "frame": "VNB",
+      "magnitude_km_s": 2.425732900357465,
+      "maneuver_id": "transfer_injection",
+      "maneuver_type": "tangential_impulsive",
+      "plane_change_deg": 0.0,
+      "signed_vnb_normal_rotation_deg": 0.0,
+      "true_anomaly_deg": 150.0
+    },
+    {
+      "components_km_s": [
+        1.2224038368956331,
+        -1.2013654107481946,
+        -1.3212314513309441e-15
+      ],
+      "concurrent_effects": [
+        "energy_change",
+        "plane_change"
+      ],
+      "event": "apoapsis",
+      "event_type": "orbital_event",
+      "frame": "VNB",
+      "magnitude_km_s": 1.713928233794911,
+      "maneuver_id": "orbit_insertion",
+      "maneuver_type": "combined_impulsive",
+      "plane_change_deg": 22.999999999999993,
+      "signed_vnb_normal_rotation_deg": -22.999999999999993,
+      "true_anomaly_deg": 180.0
+    }
+  ],
+  "mission_id": "elliptical_LEO_to_GEO",
+  "problem_id": "elliptical_LEO_to_GEO",
+  "schema_version": "1.1.0",
+  "simulation_status": "not_run",
+  "solver": {
+    "initial_guess_backend": "analytic_two_impulse_apsidal",
+    "pre_correction_refinement": "soi_hyperbola_bplane_matching",
+    "reason": "Use patched conics and hyperbola/B-plane matching as the cheap path; invoke STM correction only when high-fidelity final orbital-state residuals exceed tolerance.",
+    "target_solver": "stm_correction_on_vector_miss"
+  },
+  "summary_status": "analytically_feasible",
+  "targeting_status": "not_run",
+  "termination_reason": "analytic_initial_guess_generated",
+  "transfer_strategy": {
+    "arrival_apsis": "apoapsis",
+    "central_body": "Earth",
+    "departure_apsis": "periapsis",
+    "maneuver_model": "impulsive",
+    "merge_maneuver_angle_tolerance_deg": 2.0,
+    "plane_change_policy": "valid_node_low_speed",
+    "plane_change_policy_config": {
+      "allow_departure_phasing": true,
+      "fallback": "split_at_nearest_valid_node",
+      "prefer_apsis_alignment": true,
+      "type": "valid_node_low_speed"
+    },
+    "type": "two_impulse_apsidal_transfer"
+  },
+  "verification_status": "not_run",
+  "warnings": [
+    "This result is assessed only under a two-body impulsive model.",
+    "Concurrent plane-change estimates assume compatible apsidal/node geometry.",
+    "Run the generated MissionSpec before claiming simulation feasibility."
+  ]
+}

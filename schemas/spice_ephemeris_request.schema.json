@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/spice_ephemeris_request.schema.json",
+  "title": "SPICE Ephemeris Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "request_id", "dependency_id", "provider", "kernels", "target", "observer", "time_range", "reference", "output"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "request_id": {"type": "string"},
+    "dependency_id": {"type": "string"},
+    "provider": {"const": "spice"},
+    "purpose": {"type": "string"},
+    "kernels": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "metakernel_path": {"type": ["string", "null"]},
+        "kernel_paths": {"type": "array", "items": {"type": "string"}},
+        "required_kernel_types": {"type": "array", "items": {"enum": ["SPK", "LSK", "PCK", "FK", "CK", "SCLK"]}}
+      }
+    },
+    "target": {"type": "object", "additionalProperties": true},
+    "observer": {"type": "object", "additionalProperties": true},
+    "time_range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "stop", "step_s"],
+      "properties": {
+        "start": {"type": "string"},
+        "stop": {"type": "string"},
+        "step_s": {"type": "number", "exclusiveMinimum": 0},
+        "input_time_scale": {"enum": ["UTC", "TDB", "TT", "ET"]},
+        "output_time_scale": {"enum": ["UTC", "TDB", "TT", "ET"]}
+      }
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frame"],
+      "properties": {
+        "frame": {"type": "string"},
+        "aberration_correction": {"enum": ["NONE", "LT", "LT+S", "CN", "CN+S", "XLT", "XLT+S", "XCN", "XCN+S"]}
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "format", "position_unit", "velocity_unit"],
+      "properties": {
+        "path": {"type": "string"},
+        "format": {"enum": ["normalized_json"]},
+        "position_unit": {"const": "km"},
+        "velocity_unit": {"const": "km/s"}
+      }
+    },
+    "reproducibility": {"type": "object", "additionalProperties": true}
+  }
+}

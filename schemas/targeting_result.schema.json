@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/targeting_result.schema.json",
+  "title": "AMAT TargetingResult v0",
+  "type": "object",
+  "required": ["schema_version", "target_id", "mission_id", "status", "strategy", "maneuvers", "totals"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {"type": "string"},
+    "target_id": {"type": "string"},
+    "mission_id": {"type": "string"},
+    "status": {"enum": ["feasible", "limit_violation", "failed"]},
+    "strategy": {"type": "string"},
+    "maneuvers": {"type": "array"},
+    "totals": {"type": "object"},
+    "warnings": {"type": "array", "items": {"type": "string"}}
+  }
+}

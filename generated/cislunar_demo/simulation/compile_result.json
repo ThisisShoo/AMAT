@@ -1,0 +1,198 @@
+{
+  "backend_id": "gmat",
+  "errors": [],
+  "generated_artifacts": [
+    {
+      "artifact_id": "PYTHON_SCRIPT",
+      "backend": "gmat",
+      "hash": "sha256:1ae2b91a299a53082f745f107dd093a7ff934a13684831e60f2d5b6074cbf903",
+      "language": "python",
+      "path": "generated_mission.py",
+      "type": "python_script"
+    },
+    {
+      "artifact_id": "GMAT_SCRIPT",
+      "backend": "gmat",
+      "hash": "sha256:47cfb3e6ce63340dd960067c1ccce7b4de4cf97365a1b77323a8b1d86bd1904c",
+      "language": "gmat_script",
+      "path": "generated_mission.script",
+      "type": "native_script"
+    },
+    {
+      "artifact_id": "SPICE_REQUESTS",
+      "backend": "spice",
+      "hash": "sha256:916aeaffff875e93c66f920b87e22cbd6039d977c96cbf260f313c6a09cc760b",
+      "language": "json",
+      "path": "dependencies/spice_requests.json",
+      "type": "spice_requests"
+    },
+    {
+      "artifact_id": "REPORT_RF_CislunarSat_EarthMJ2000Eq_cislunar_frames_1",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_Ephemeris_CislunarSat_EarthMJ2000Eq.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_RF_CislunarSat_LunaMJ2000Eq_cislunar_frames_2",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_Ephemeris_CislunarSat_LunaMJ2000Eq.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_RF_CislunarSat_EarthLunaRotating_cislunar_frames_3",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_Ephemeris_CislunarSat_EarthLunaRotating.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_RF_CislunarSat_LunaEarthRotating_cislunar_frames_4",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_Ephemeris_CislunarSat_LunaEarthRotating.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_BRF_Luna_EarthMJ2000Eq_luna_body_ephemeris_1",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_BodyEphemeris_Luna_EarthMJ2000Eq.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_BRF_Sun_EarthMJ2000Eq_force_model_Sun_EarthMJ2000Eq_ephemeris_2",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_BodyEphemeris_Sun_EarthMJ2000Eq.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_BRF_Earth_LunaMJ2000Eq_force_model_Earth_LunaMJ2000Eq_ephemeris_3",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_BodyEphemeris_Earth_LunaMJ2000Eq.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_BRF_Sun_LunaMJ2000Eq_force_model_Sun_LunaMJ2000Eq_ephemeris_4",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_BodyEphemeris_Sun_LunaMJ2000Eq.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_BRF_Sun_EarthLunaRotating_force_model_Sun_EarthLunaRotating_ephemeris_5",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_BodyEphemeris_Sun_EarthLunaRotating.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_BRF_Luna_EarthLunaRotating_force_model_Luna_EarthLunaRotating_ephemeris_6",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_BodyEphemeris_Luna_EarthLunaRotating.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_BRF_Earth_LunaEarthRotating_force_model_Earth_LunaEarthRotating_ephemeris_7",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_BodyEphemeris_Earth_LunaEarthRotating.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_BRF_Sun_LunaEarthRotating_force_model_Sun_LunaEarthRotating_ephemeris_8",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_BodyEphemeris_Sun_LunaEarthRotating.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_RF_post_tli",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/post_tli.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_RF_post_loi_report_post_loi",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/post_loi.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "VISUALIZATION_MANIFEST",
+      "backend": "simulation_layer",
+      "hash": "sha256:6babc287d543458febb7f7cef0e34796edc9d5dded5d0ca7c3b423619a29303f",
+      "language": "json",
+      "path": "visualization_manifest.json",
+      "type": "visualization_manifest"
+    },
+    {
+      "artifact_id": "BODY_EPHEMERIS_Luna_EarthMJ2000Eq",
+      "backend": "gmat_reportfile_fallback",
+      "language": "csv",
+      "path": "outputs/_BodyEphemeris_Luna_EarthMJ2000Eq.csv",
+      "type": "expected_body_ephemeris"
+    },
+    {
+      "artifact_id": "BODY_EPHEMERIS_Sun_EarthMJ2000Eq",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_BodyEphemeris_Sun_EarthMJ2000Eq.csv",
+      "type": "expected_body_ephemeris"
+    },
+    {
+      "artifact_id": "BODY_EPHEMERIS_Earth_LunaMJ2000Eq",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_BodyEphemeris_Earth_LunaMJ2000Eq.csv",
+      "type": "expected_body_ephemeris"
+    },
+    {
+      "artifact_id": "BODY_EPHEMERIS_Sun_LunaMJ2000Eq",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_BodyEphemeris_Sun_LunaMJ2000Eq.csv",
+      "type": "expected_body_ephemeris"
+    },
+    {
+      "artifact_id": "BODY_EPHEMERIS_Sun_EarthLunaRotating",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_BodyEphemeris_Sun_EarthLunaRotating.csv",
+      "type": "expected_body_ephemeris"
+    },
+    {
+      "artifact_id": "BODY_EPHEMERIS_Luna_EarthLunaRotating",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_BodyEphemeris_Luna_EarthLunaRotating.csv",
+      "type": "expected_body_ephemeris"
+    },
+    {
+      "artifact_id": "BODY_EPHEMERIS_Earth_LunaEarthRotating",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_BodyEphemeris_Earth_LunaEarthRotating.csv",
+      "type": "expected_body_ephemeris"
+    },
+    {
+      "artifact_id": "BODY_EPHEMERIS_Sun_LunaEarthRotating",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_BodyEphemeris_Sun_LunaEarthRotating.csv",
+      "type": "expected_body_ephemeris"
+    }
+  ],
+  "mission_id": "cislunar_demo",
+  "schema_version": "1.0.0",
+  "status": "success",
+  "warnings": [
+    "SPICE dependency requests were generated. Kernel metadata is included in generated GMAT scripts as reproducibility comments; GMAT execution consumes built-in GMAT bodies directly unless explicit backend overrides are validated."
+  ]
+}

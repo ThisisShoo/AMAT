@@ -1,0 +1,228 @@
+{
+  "bodies": [],
+  "burns": [
+    {
+      "decrement_mass": false,
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "duty_cycle": 1.0,
+      "frame": "VNB",
+      "id": "finite_circularize",
+      "isp_s": 320.0,
+      "name": "FiniteCircularize",
+      "origin": "Earth",
+      "thrust_N": 490.3325,
+      "type": "finite"
+    },
+    {
+      "decrement_mass": false,
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "duty_cycle": 1.0,
+      "frame": "VNB",
+      "id": "finite_raise_apogee",
+      "isp_s": 320.0,
+      "name": "FiniteRaiseApogee",
+      "origin": "Earth",
+      "thrust_N": 490.3325,
+      "type": "finite"
+    }
+  ],
+  "checkpoints": [],
+  "conventions": {
+    "angle_unit": "deg",
+    "distance_unit": "km",
+    "mass_unit": "kg",
+    "time_format": "ISO-8601",
+    "time_scale": "UTC",
+    "velocity_unit": "km/s"
+  },
+  "description": "Demonstrative finite-burn raise from a 500 km circular 60 deg LEO to a 2000 km circular target orbit. TWR is 0.05 with constant mass; burn durations are analytic seeds.",
+  "events": [
+    {
+      "actions": [
+        {
+          "action_id": "burn_circularize",
+          "burn": "finite_circularize",
+          "duration_s": 708.0,
+          "propagator": "earth_prop",
+          "spacecraft": "meo_demo_sat",
+          "type": "maneuver"
+        }
+      ],
+      "central_body": "Earth",
+      "event": "apoapsis",
+      "id": "meo_apogee_circularize",
+      "propagator": "earth_prop",
+      "spacecraft": "meo_demo_sat",
+      "type": "orbital_event"
+    }
+  ],
+  "execution": {
+    "mode": "auto"
+  },
+  "external_dependencies": [],
+  "force_models": [
+    {
+      "backend_overrides": {
+        "gmat": {
+          "body_name_map": {},
+          "error_control": "RSSStep",
+          "potential_file": "JGM2.cof",
+          "stm_limit": 100,
+          "tide_model": "None"
+        }
+      },
+      "central_body": "Earth",
+      "gravity": {
+        "body": "Earth",
+        "degree": 8,
+        "order": 8,
+        "potential_file": "JGM2.cof",
+        "type": "spherical_harmonic"
+      },
+      "id": "earth_8x8",
+      "name": "Earth8x8",
+      "point_masses": [
+        "Sun",
+        "Luna"
+      ],
+      "third_body_gravity": {
+        "bodies": [
+          "Sun",
+          "Luna"
+        ],
+        "enabled": true
+      }
+    }
+  ],
+  "frames": [],
+  "mission_id": "MEO_demo",
+  "mission_name": "Finite-Burn MEO Demonstration",
+  "mission_sequence": [
+    {
+      "name": "Finite-burn orbit raise",
+      "phase_id": "finite_raise",
+      "steps": [
+        {
+          "burn": "finite_raise_apogee",
+          "duration_s": 745.0,
+          "propagator": "earth_prop",
+          "spacecraft": "meo_demo_sat",
+          "step_id": "raise_apogee",
+          "type": "maneuver"
+        },
+        {
+          "event_id": "meo_apogee_circularize",
+          "step_id": "circularize_at_apogee",
+          "type": "event_action"
+        },
+        {
+          "duration_s": 1036800.0,
+          "propagator": "earth_prop",
+          "spacecraft": "meo_demo_sat",
+          "step_id": "propagate_12_days",
+          "type": "propagate"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "enabled": true,
+      "fields": [],
+      "frames": [
+        "EarthMJ2000Eq",
+        "EarthFixed"
+      ],
+      "id": "eci_and_fixed_ephemeris",
+      "include_header": true,
+      "parameters": [],
+      "path_template": "outputs/_Ephemeris_{spacecraft}_{frame}.csv",
+      "spacecraft": "meo_demo_sat",
+      "state_groups": [
+        "elapsed_time",
+        "cartesian",
+        "keplerian"
+      ],
+      "type": "spacecraft_ephemeris"
+    },
+    {
+      "body": "Earth",
+      "enabled": true,
+      "fields": [],
+      "id": "earth_ground_track",
+      "include_header": true,
+      "parameters": [],
+      "path": "outputs/_GroundTrack_{spacecraft}_{body}.csv",
+      "spacecraft": "meo_demo_sat",
+      "step_s": 60.0,
+      "type": "ground_track"
+    }
+  ],
+  "propagators": [
+    {
+      "accuracy": 1e-09,
+      "force_model": "earth_8x8",
+      "id": "earth_prop",
+      "initial_step_s": 30.0,
+      "integrator": "RungeKutta89",
+      "max_step_s": 300.0,
+      "min_step_s": 0.1,
+      "name": "EarthProp"
+    }
+  ],
+  "reference_frame_sets": [],
+  "reference_frames": [
+    {
+      "axes": "MJ2000Eq",
+      "backend_overrides": {
+        "gmat": {
+          "axes": "MJ2000Eq",
+          "create_coordinate_system": true,
+          "name": "EarthMJ2000Eq",
+          "origin": "Earth"
+        }
+      },
+      "description": "Earth-centered frame using GMAT MJ2000Eq axes.",
+      "id": "Earth_mj2000eq",
+      "name": "EarthMJ2000Eq",
+      "orientation": "MJ2000Eq",
+      "origin": "Earth",
+      "type": "body_inertial_equatorial"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "spacecraft": [
+    {
+      "aop_deg": 0.0,
+      "cd": 2.2,
+      "cr": 1.8,
+      "drag_area_m2": 8.0,
+      "dry_mass_kg": 1000.0,
+      "ecc": 0.0,
+      "epoch": "2026-01-01T00:00:00.000Z",
+      "frame": "EarthMJ2000Eq",
+      "id": "meo_demo_sat",
+      "inc_deg": 60.0,
+      "name": "MeoDemoSat",
+      "raan_deg": 0.0,
+      "sma_km": 6878.1363,
+      "srp_area_m2": 12.0,
+      "state_type": "keplerian",
+      "ta_deg": 0.0
+    }
+  ],
+  "visualization": {
+    "auto_export_after_run": true,
+    "enabled": true,
+    "include_spice_body_ephemerides": true,
+    "write_manifest": true
+  }
+}

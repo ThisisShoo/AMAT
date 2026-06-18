@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://amat.local/schemas/target_problem.schema.json",
+  "title": "AMAT TargetProblem",
+  "type": "object",
+  "required": ["schema_version", "problem_id", "transfer_strategy", "initial_state", "target"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "problem_id": {"type": "string", "minLength": 1},
+    "mission_id": {"type": "string", "minLength": 1},
+    "transfer_strategy": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {"enum": ["hohmann_transfer", "two_impulse_apsidal_transfer"]},
+        "central_body": {"const": "Earth"},
+        "maneuver_model": {"enum": ["impulsive", "finite"]},
+        "departure_apsis": {"enum": ["periapsis", "apoapsis"]},
+        "arrival_apsis": {"enum": ["periapsis", "apoapsis"]},
+        "plane_change_policy": {
+          "oneOf": [
+            {"enum": ["valid_node_low_speed", "node_near_apoapsis", "concurrent_minimum_delta_v", "arrival_only", "departure_only"]},
+            {
+              "type": "object",
+              "required": ["type"],
+              "properties": {
+                "type": {"enum": ["valid_node_low_speed", "node_near_apoapsis", "concurrent_minimum_delta_v", "arrival_only", "departure_only"]},
+                "allow_departure_phasing": {"type": "boolean"},
+                "prefer_apsis_alignment": {"type": "boolean"},
+                "fallback": {"enum": ["split_at_nearest_valid_node"]}
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "merge_maneuver_angle_tolerance_deg": {"type": "number", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "initial_state": {
+      "type": "object",
+      "required": ["representation"],
+      "properties": {
+        "representation": {"enum": ["circular_orbit", "keplerian"]},
+        "central_body": {"const": "Earth"},
+        "altitude": {"$ref": "#/$defs/quantity"},
+        "sma": {"$ref": "#/$defs/quantity"},
+        "eccentricity": {"type": "number", "minimum": 0, "exclusiveMaximum": 1},
+        "inclination": {"$ref": "#/$defs/quantity"},
+        "raan": {"$ref": "#/$defs/quantity"},
+        "aop": {"$ref": "#/$defs/quantity"},
+        "true_anomaly": {"$ref": "#/$defs/quantity"},
+        "epoch": {"type": "string"},
+        "frame": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "target": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {"enum": ["geostationary_orbit", "circular_orbit", "keplerian_orbit"]},
+        "radius": {"$ref": "#/$defs/quantity"},
+        "sma": {"$ref": "#/$defs/quantity"},
+        "eccentricity": {"type": "number", "minimum": 0, "exclusiveMaximum": 1},
+        "eccentricity_max": {"type": "number", "minimum": 0},
+        "inclination": {"$ref": "#/$defs/quantity"},
+        "inclination_max": {"$ref": "#/$defs/quantity"},
+        "raan": {"$ref": "#/$defs/quantity"},
+        "aop": {"$ref": "#/$defs/quantity"}
+      },
+      "additionalProperties": false
+    },
+    "limits": {"type": "object"},
+    "execution": {"type": "object"},
+    "verification": {"type": "object"},
+    "metadata": {"type": "object"}
+  },
+  "$defs": {
+    "quantity": {
+      "type": "object",
+      "required": ["value", "unit"],
+      "properties": {"value": {"type": "number"}, "unit": {"type": "string", "minLength": 1}},
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

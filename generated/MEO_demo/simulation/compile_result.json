@@ -1,0 +1,55 @@
+{
+  "backend_id": "gmat",
+  "errors": [],
+  "generated_artifacts": [
+    {
+      "artifact_id": "PYTHON_SCRIPT",
+      "backend": "gmat",
+      "hash": "sha256:f7f40e3f29bc61f16b03bd587b0d79867e721f14b81732ae55f81858b4d11660",
+      "language": "python",
+      "path": "generated_mission.py",
+      "type": "python_script"
+    },
+    {
+      "artifact_id": "GMAT_SCRIPT",
+      "backend": "gmat",
+      "hash": "sha256:611025031f7f69e86f12a7d4d1d06b4ac7aed712bbb3ca0cebb2f3d6fac63570",
+      "language": "gmat_script",
+      "path": "generated_mission.script",
+      "type": "native_script"
+    },
+    {
+      "artifact_id": "REPORT_RF_MeoDemoSat_EarthMJ2000Eq_eci_and_fixed_ephemeris_1",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_Ephemeris_MeoDemoSat_EarthMJ2000Eq.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_RF_MeoDemoSat_EarthFixed_eci_and_fixed_ephemeris_2",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_Ephemeris_MeoDemoSat_EarthFixed.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_RF_MeoDemoSat_Earth_earth_ground_track_3",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_GroundTrack_MeoDemoSat_Earth.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "VISUALIZATION_MANIFEST",
+      "backend": "simulation_layer",
+      "hash": "sha256:d9581a8c061f2a09049f58bf0b0c1f58fdb37775f17f8dd406362ffb327699c3",
+      "language": "json",
+      "path": "visualization_manifest.json",
+      "type": "visualization_manifest"
+    }
+  ],
+  "mission_id": "MEO_demo",
+  "schema_version": "1.0.0",
+  "status": "success",
+  "warnings": []
+}

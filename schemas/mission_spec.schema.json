@@ -1,0 +1,1965 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/mission_spec.schema.json",
+  "title": "MVP MissionSpec",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mission_id",
+    "mission_name",
+    "conventions",
+    "spacecraft",
+    "force_models",
+    "propagators",
+    "mission_sequence",
+    "outputs"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "mission_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_\\-]+$"
+    },
+    "mission_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "conventions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "time_scale",
+        "distance_unit",
+        "velocity_unit",
+        "angle_unit",
+        "mass_unit"
+      ],
+      "properties": {
+        "time_scale": {
+          "enum": [
+            "UTC"
+          ]
+        },
+        "distance_unit": {
+          "enum": [
+            "km"
+          ]
+        },
+        "velocity_unit": {
+          "enum": [
+            "km/s"
+          ]
+        },
+        "angle_unit": {
+          "enum": [
+            "deg"
+          ]
+        },
+        "mass_unit": {
+          "enum": [
+            "kg"
+          ]
+        },
+        "time_format": {
+          "enum": [
+            "ISO-8601"
+          ]
+        }
+      }
+    },
+    "spacecraft": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "epoch",
+          "frame",
+          "state_type",
+          "dry_mass_kg"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_\\-]+$"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+          },
+          "epoch": {
+            "type": "string"
+          },
+          "frame": {
+            "type": "string"
+          },
+          "state_type": {
+            "enum": [
+              "cartesian",
+              "keplerian"
+            ]
+          },
+          "position_km": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "number"
+            }
+          },
+          "velocity_km_s": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "number"
+            }
+          },
+          "dry_mass_kg": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "drag_area_m2": {
+            "type": "number",
+            "minimum": 0
+          },
+          "srp_area_m2": {
+            "type": "number",
+            "minimum": 0
+          },
+          "cd": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "cr": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "sma_km": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "ecc": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMaximum": 1
+          },
+          "inc_deg": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 180
+          },
+          "raan_deg": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 360
+          },
+          "aop_deg": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 360
+          },
+          "ta_deg": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 360
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "state_type": {
+                  "const": "cartesian"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "position_km",
+                "velocity_km_s"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "state_type": {
+                  "const": "keplerian"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "sma_km",
+                "ecc",
+                "inc_deg",
+                "raan_deg",
+                "aop_deg",
+                "ta_deg"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "force_models": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "gravity"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_\\-]+$"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+          },
+          "central_body": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*$",
+            "default": "Earth"
+          },
+          "gravity": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "enum": [
+                  "point_mass",
+                  "spherical_harmonic",
+                  "basic_earth_gravity"
+                ]
+              },
+              "degree": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 20
+              },
+              "order": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 20
+              },
+              "potential_file": {
+                "type": "string",
+                "minLength": 1
+              },
+              "body": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+              }
+            }
+          },
+          "point_masses": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+            },
+            "uniqueItems": true
+          },
+          "third_body_gravity": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "enabled"
+            ],
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "bodies": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+                },
+                "uniqueItems": true
+              },
+              "preset": {
+                "enum": [
+                  "none",
+                  "earth_near_space",
+                  "inner_solar_system",
+                  "all_major_bodies",
+                  "custom"
+                ]
+              }
+            }
+          },
+          "backend_overrides": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "gmat": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "potential_file": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "tide_model": {
+                    "type": "string"
+                  },
+                  "stm_limit": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "error_control": {
+                    "enum": [
+                      "RSSStep",
+                      "None"
+                    ]
+                  },
+                  "body_name_map": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "propagators": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "force_model",
+          "integrator",
+          "accuracy",
+          "initial_step_s",
+          "min_step_s",
+          "max_step_s"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_\\-]+$"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+          },
+          "force_model": {
+            "type": "string"
+          },
+          "integrator": {
+            "enum": [
+              "RungeKutta89"
+            ]
+          },
+          "accuracy": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "initial_step_s": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "min_step_s": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "max_step_s": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        }
+      }
+    },
+    "burns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "type",
+          "frame"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_\\-]+$"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+          },
+          "type": {
+            "enum": [
+              "impulsive",
+              "finite"
+            ]
+          },
+          "frame": {
+            "type": "string",
+            "minLength": 1
+          },
+          "origin": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+          },
+          "delta_v_km_s": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "number"
+            }
+          },
+          "thrust_N": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "isp_s": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "direction": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "number"
+            }
+          },
+          "decrement_mass": {
+            "type": "boolean"
+          },
+          "duty_cycle": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "impulsive"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "delta_v_km_s"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "finite"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "thrust_N",
+                "isp_s",
+                "direction"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "mission_sequence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "phase_id",
+              "name",
+              "steps"
+            ],
+            "properties": {
+              "phase_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_\\-]+$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": {
+                "type": "string"
+              },
+              "steps": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "step_id",
+                        "type",
+                        "spacecraft",
+                        "propagator",
+                        "duration_s"
+                      ],
+                      "properties": {
+                        "step_id": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_\\-]+$"
+                        },
+                        "type": {
+                          "const": "propagate"
+                        },
+                        "spacecraft": {
+                          "type": "string"
+                        },
+                        "propagator": {
+                          "type": "string"
+                        },
+                        "duration_s": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "step_id",
+                        "type",
+                        "spacecraft",
+                        "burn"
+                      ],
+                      "properties": {
+                        "step_id": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_\\-]+$"
+                        },
+                        "type": {
+                          "const": "maneuver"
+                        },
+                        "spacecraft": {
+                          "type": "string"
+                        },
+                        "burn": {
+                          "type": "string"
+                        },
+                        "propagator": {
+                          "type": "string"
+                        },
+                        "duration_s": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "step_id",
+                        "type",
+                        "checkpoint_id"
+                      ],
+                      "properties": {
+                        "step_id": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_\\-]+$"
+                        },
+                        "type": {
+                          "const": "checkpoint"
+                        },
+                        "checkpoint_id": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "step_id",
+                        "type",
+                        "event_id"
+                      ],
+                      "properties": {
+                        "step_id": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_\\-]+$"
+                        },
+                        "type": {
+                          "const": "event_action"
+                        },
+                        "event_id": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "spacecraft",
+              "propagator",
+              "duration_s"
+            ],
+            "properties": {
+              "type": {
+                "const": "propagate"
+              },
+              "spacecraft": {
+                "type": "string"
+              },
+              "propagator": {
+                "type": "string"
+              },
+              "duration_s": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
+          }
+        ]
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_\\-]+$"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "type": {
+            "enum": [
+              "final_state",
+              "state_history",
+              "spacecraft_ephemeris",
+              "full_ephemeris",
+              "ground_track",
+              "body_ephemeris",
+              "body_ephemeris_group"
+            ]
+          },
+          "spacecraft": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "path_template": {
+            "type": "string"
+          },
+          "step_s": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "frames": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "state_groups": {
+            "type": "array",
+            "minItems": 0,
+            "items": {
+              "enum": [
+                "cartesian",
+                "keplerian",
+                "mass",
+                "elapsed_time"
+              ]
+            }
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "include_header": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "bodies": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "frame": {
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "spice",
+              "gmat",
+              "manual",
+              "external"
+            ]
+          },
+          "dependency_id": {
+            "type": "string"
+          },
+          "include_radius_km": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "auto",
+            "direct_python",
+            "script_replay"
+          ]
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "checkpoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "spacecraft",
+          "parameters"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_\\-]+$"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "after_command_index": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "spacecraft": {
+            "type": "string"
+          },
+          "frame": {
+            "type": "string"
+          },
+          "parameters": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "state_groups": {
+            "type": "array",
+            "minItems": 0,
+            "items": {
+              "enum": [
+                "cartesian",
+                "keplerian",
+                "mass",
+                "elapsed_time"
+              ]
+            }
+          },
+          "path": {
+            "type": "string"
+          },
+          "include_header": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "bodies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_\\-]+$"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+          },
+          "type": {
+            "enum": [
+              "star",
+              "planet",
+              "moon",
+              "asteroid",
+              "comet",
+              "barycenter",
+              "custom",
+              "fictitious"
+            ]
+          },
+          "mu_km3_s2": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "radius_km": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "ephemeris": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "source": {
+                "enum": [
+                  "gmat_builtin",
+                  "spice",
+                  "horizons",
+                  "static",
+                  "analytic",
+                  "custom",
+                  "unknown"
+                ]
+              },
+              "dependency_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "assume_backend_available": {
+                "type": "boolean"
+              },
+              "resolved_path": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "request_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "backend_overrides": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "gmat": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+                  },
+                  "assume_preloaded": {
+                    "type": "boolean"
+                  },
+                  "supported_as_point_mass": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          },
+          "default_inertial_frame": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "default_fixed_frame": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "uniqueItems": false
+    },
+    "external_dependencies": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "type",
+              "provider",
+              "kernels"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_\\-]+$"
+              },
+              "type": {
+                "const": "spice_kernel_set"
+              },
+              "provider": {
+                "const": "spice"
+              },
+              "kernels": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "metakernel_path": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "kernel_paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "required_kernel_types": {
+                    "type": "array",
+                    "items": {
+                      "enum": [
+                        "SPK",
+                        "LSK",
+                        "PCK",
+                        "FK",
+                        "CK",
+                        "SCLK"
+                      ]
+                    }
+                  }
+                }
+              },
+              "description": {
+                "type": "string"
+              },
+              "gmat_integration": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "mode": {
+                    "enum": [
+                      "comment_only",
+                      "spice_kernel_object",
+                      "solar_system_ephemeris_source"
+                    ]
+                  },
+                  "script_comments": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "type",
+              "provider",
+              "target",
+              "observer",
+              "time_range"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_\\-]+$"
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "type": {
+                "const": "spice_ephemeris"
+              },
+              "provider": {
+                "const": "spice"
+              },
+              "purpose": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "kernels": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "metakernel_path": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "kernel_paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "required_kernel_types": {
+                    "type": "array",
+                    "items": {
+                      "enum": [
+                        "SPK",
+                        "LSK",
+                        "PCK",
+                        "FK",
+                        "CK",
+                        "SCLK"
+                      ]
+                    }
+                  }
+                }
+              },
+              "target": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "observer": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "time_range": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "start",
+                  "stop",
+                  "step_s"
+                ],
+                "properties": {
+                  "start": {
+                    "type": "string"
+                  },
+                  "stop": {
+                    "type": "string"
+                  },
+                  "step_s": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "input_time_scale": {
+                    "enum": [
+                      "UTC",
+                      "TDB",
+                      "TT",
+                      "ET"
+                    ]
+                  },
+                  "output_time_scale": {
+                    "enum": [
+                      "UTC",
+                      "TDB",
+                      "TT",
+                      "ET"
+                    ]
+                  }
+                }
+              },
+              "frame": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                ]
+              },
+              "aberration_correction": {
+                "enum": [
+                  "NONE",
+                  "LT",
+                  "LT+S",
+                  "CN",
+                  "CN+S",
+                  "XLT",
+                  "XLT+S",
+                  "XCN",
+                  "XCN+S"
+                ]
+              },
+              "output": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "format": {
+                    "enum": [
+                      "normalized_json"
+                    ]
+                  }
+                }
+              },
+              "reproducibility": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "resolved_response": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "enum": [
+                      "required",
+                      "optional",
+                      "deferred"
+                    ]
+                  }
+                }
+              },
+              "gmat_integration": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "mode": {
+                    "enum": [
+                      "initial_state_from_resolved",
+                      "body_ephemeris_reference",
+                      "comment_only"
+                    ]
+                  },
+                  "target_spacecraft": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "frames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type",
+          "origin",
+          "orientation"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_\\-]+$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "body_inertial_equatorial",
+              "body_inertial_ecliptic",
+              "body_fixed",
+              "barycentric_inertial",
+              "barycentric_rotating",
+              "two_body_rotating",
+              "local_orbital",
+              "gmat_builtin",
+              "custom",
+              "body_inertial",
+              "object_referenced",
+              "body_orbit_referenced",
+              "spacecraft_orbit_referenced",
+              "topocentric"
+            ]
+          },
+          "origin": {
+            "type": "string",
+            "minLength": 1
+          },
+          "primary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "secondary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "orientation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "plane": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "backend_overrides": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "gmat": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+                  },
+                  "create_coordinate_system": {
+                    "type": "boolean"
+                  },
+                  "axes": {
+                    "type": "string"
+                  },
+                  "origin": {
+                    "type": "string"
+                  },
+                  "primary": {
+                    "type": "string"
+                  },
+                  "secondary": {
+                    "type": "string"
+                  },
+                  "x_axis": {
+                    "type": "string"
+                  },
+                  "y_axis": {
+                    "type": "string"
+                  },
+                  "z_axis": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "axes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "x_axis": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "y_axis": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "z_axis": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "reference_frames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type",
+          "origin",
+          "orientation"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_\\-]+$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "barycentric_inertial",
+              "barycentric_rotating",
+              "body_fixed",
+              "body_inertial",
+              "body_inertial_ecliptic",
+              "body_inertial_equatorial",
+              "body_orbit_referenced",
+              "body_spin_sun",
+              "custom",
+              "equator",
+              "gmat_builtin",
+              "gse",
+              "gsm",
+              "icrf",
+              "local_aligned_constrained",
+              "local_orbital",
+              "mod_ecliptic",
+              "mod_equatorial",
+              "moe_ecliptic",
+              "moe_equatorial",
+              "object_referenced",
+              "spacecraft_orbit_referenced",
+              "spice",
+              "teme",
+              "tod_ecliptic",
+              "tod_equatorial",
+              "toe_ecliptic",
+              "toe_equatorial",
+              "topocentric",
+              "two_body_rotating"
+            ]
+          },
+          "origin": {
+            "type": "string",
+            "minLength": 1
+          },
+          "primary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "secondary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "orientation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "plane": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "backend_overrides": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "gmat": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+                  },
+                  "create_coordinate_system": {
+                    "type": "boolean"
+                  },
+                  "axes": {
+                    "type": "string"
+                  },
+                  "origin": {
+                    "type": "string"
+                  },
+                  "primary": {
+                    "type": "string"
+                  },
+                  "secondary": {
+                    "type": "string"
+                  },
+                  "x_axis": {
+                    "type": "string"
+                  },
+                  "y_axis": {
+                    "type": "string"
+                  },
+                  "z_axis": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "axes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "x_axis": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "y_axis": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "z_axis": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "spice": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "frame_name": {
+                "type": "string"
+              },
+              "kernel_set": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "definition": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "options": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "reference_frame_sets": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "enum": [
+              "all_common_gmat",
+              "all_gmat_axis_types",
+              "earth_luna_rotating",
+              "earth_special",
+              "major_body_basic",
+              "major_body_full_gmat_axes",
+              "major_body_parent_orbit",
+              "major_body_standard",
+              "sun_earth_rotating"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "preset"
+            ],
+            "properties": {
+              "preset": {
+                "enum": [
+                  "all_common_gmat",
+                  "all_gmat_axis_types",
+                  "custom",
+                  "earth_luna_rotating",
+                  "earth_special",
+                  "major_body_basic",
+                  "major_body_full_gmat_axes",
+                  "major_body_parent_orbit",
+                  "major_body_standard",
+                  "sun_earth_rotating"
+                ]
+              },
+              "bodies": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
+              },
+              "pairs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "primary",
+                    "secondary"
+                  ],
+                  "properties": {
+                    "primary": {
+                      "type": "string"
+                    },
+                    "secondary": {
+                      "type": "string"
+                    },
+                    "origin": {
+                      "type": "string"
+                    },
+                    "x_axis": {
+                      "type": "string"
+                    },
+                    "z_axis": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type",
+          "spacecraft",
+          "propagator",
+          "actions"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_\\-]+$"
+          },
+          "type": {
+            "enum": [
+              "parameter_reaches",
+              "orbital_event",
+              "node_crossing"
+            ]
+          },
+          "spacecraft": {
+            "type": "string"
+          },
+          "propagator": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "stop_condition": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "parameter",
+              "value"
+            ],
+            "properties": {
+              "parameter": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "actions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action_id",
+                "type"
+              ],
+              "properties": {
+                "action_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_\\-]+$"
+                },
+                "type": {
+                  "enum": [
+                    "maneuver",
+                    "checkpoint",
+                    "report",
+                    "custom_gmat"
+                  ]
+                },
+                "spacecraft": {
+                  "type": "string"
+                },
+                "burn": {
+                  "type": "string"
+                },
+                "propagator": {
+                  "type": "string"
+                },
+                "duration_s": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "checkpoint_id": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "parameters": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "state_groups": {
+                  "type": "array",
+                  "minItems": 0,
+                  "items": {
+                    "enum": [
+                      "cartesian",
+                      "keplerian",
+                      "mass",
+                      "elapsed_time"
+                    ]
+                  }
+                },
+                "frame": {
+                  "type": "string"
+                },
+                "include_header": {
+                  "type": "boolean"
+                },
+                "commands": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "type": {
+                        "const": "maneuver"
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "spacecraft",
+                      "burn"
+                    ]
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "type": {
+                        "const": "checkpoint"
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "checkpoint_id"
+                    ]
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "type": {
+                        "const": "report"
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "spacecraft",
+                      "path",
+                      "parameters"
+                    ]
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "type": {
+                        "const": "custom_gmat"
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "commands"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "event": {
+            "enum": [
+              "periapsis",
+              "apoapsis"
+            ]
+          },
+          "central_body": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reference_frame": {
+            "type": "string",
+            "minLength": 1
+          },
+          "node": {
+            "enum": [
+              "ascending",
+              "descending",
+              "either",
+              "both"
+            ]
+          },
+          "max_duration_s": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "direction": {
+            "enum": [
+              "increasing",
+              "decreasing",
+              "either"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "parameter_reaches"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "stop_condition"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "orbital_event"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "event",
+                "central_body"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "node_crossing"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "reference_frame",
+                "node"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "visualization": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "auto_export_after_run": {
+          "type": "boolean",
+          "default": true
+        },
+        "clean_csv": {
+          "type": "boolean",
+          "default": true
+        },
+        "write_manifest": {
+          "type": "boolean",
+          "default": true
+        },
+        "include_spice_body_ephemerides": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    }
+  }
+}

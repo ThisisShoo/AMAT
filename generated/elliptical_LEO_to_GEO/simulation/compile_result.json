@@ -1,0 +1,90 @@
+{
+  "backend_id": "gmat",
+  "errors": [],
+  "generated_artifacts": [
+    {
+      "artifact_id": "PYTHON_SCRIPT",
+      "backend": "gmat",
+      "hash": "sha256:8edf99de0d9a59aa8e63999da88bc02911c33879ca3b9c38080e9d5becff3157",
+      "language": "python",
+      "path": "generated_mission.py",
+      "type": "python_script"
+    },
+    {
+      "artifact_id": "GMAT_SCRIPT",
+      "backend": "gmat",
+      "hash": "sha256:559de66f4f3c8b50661c0e8cca2a359d84d6ffeb16a59f961364dbcf86fa8285",
+      "language": "gmat_script",
+      "path": "generated_mission.script",
+      "type": "native_script"
+    },
+    {
+      "artifact_id": "REPORT_RF_TargetSat_EarthMJ2000Eq_targeted_ephemeris_1",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_Ephemeris_TargetSat_EarthMJ2000Eq.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_RF_TargetSat_EarthFixed_targeted_ephemeris_2",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_Ephemeris_TargetSat_EarthFixed.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_RF_TargetSat_Earth_earth_ground_track_3",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/_GroundTrack_TargetSat_Earth.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_RF_initial_state",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/initial_state.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_RF_post_initial_coast_report_post_initial_coast",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/post_initial_coast.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_RF_post_transfer_injection_report_post_transfer_injection",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/post_transfer_injection.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_RF_post_orbit_insertion_report_post_orbit_insertion",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/post_orbit_insertion.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "REPORT_RF_final_state_checkpoint",
+      "backend": "gmat",
+      "language": "csv",
+      "path": "outputs/final_state_checkpoint.csv",
+      "type": "expected_output"
+    },
+    {
+      "artifact_id": "VISUALIZATION_MANIFEST",
+      "backend": "simulation_layer",
+      "hash": "sha256:05e55016a53a492de8803a09e34b5a854e970a43c36711a913414cdf6b337120",
+      "language": "json",
+      "path": "visualization_manifest.json",
+      "type": "visualization_manifest"
+    }
+  ],
+  "mission_id": "elliptical_LEO_to_GEO",
+  "schema_version": "1.0.0",
+  "status": "success",
+  "warnings": []
+}

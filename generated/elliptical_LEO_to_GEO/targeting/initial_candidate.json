@@ -1,0 +1,91 @@
+{
+  "analytic_assessment": {
+    "arrival_radius_km": 42164.1696,
+    "arrival_true_anomaly_deg": 180.0,
+    "departure_phase_wait_deg": 150.0,
+    "departure_phasing_applied": true,
+    "departure_radius_km": 6678.1363,
+    "departure_true_anomaly_deg": 150.0,
+    "merge_maneuver_angle_tolerance_deg": 2.0,
+    "model": "two_body_impulsive_node_aware_plane_change",
+    "plane_change_arrival_deg": 22.999999999999993,
+    "plane_change_departure_deg": 0.0,
+    "plane_change_merge_target": "arrival",
+    "plane_change_node_deg": 0.0,
+    "plane_change_node_true_anomaly_deg": 180.0,
+    "plane_change_total_deg": 22.999999999999993,
+    "status": "analytically_feasible",
+    "total_delta_v_km_s": 4.139661134152377,
+    "transfer_eccentricity": 0.7265429558681012,
+    "transfer_sma_km": 24421.15295
+  },
+  "candidate_id": "analytic_node_aware_impulsive_001",
+  "generation_backend": "analytic_node_aware_apsidal",
+  "generation_status": "candidate_generated",
+  "maneuvers": [
+    {
+      "components_km_s": [
+        2.425732900357465,
+        0.0,
+        0.0
+      ],
+      "concurrent_effects": [
+        "energy_change"
+      ],
+      "departure_phase_wait_deg": 150.0,
+      "event": "phased_departure_node",
+      "event_type": "parameter_reaches",
+      "frame": "VNB",
+      "magnitude_km_s": 2.425732900357465,
+      "maneuver_id": "transfer_injection",
+      "maneuver_type": "tangential_impulsive",
+      "plane_change_deg": 0.0,
+      "signed_vnb_normal_rotation_deg": 0.0,
+      "true_anomaly_deg": 150.0
+    },
+    {
+      "components_km_s": [
+        1.2224038368956331,
+        -1.2013654107481946,
+        -1.3212314513309441e-15
+      ],
+      "concurrent_effects": [
+        "energy_change",
+        "plane_change"
+      ],
+      "event": "apoapsis",
+      "event_type": "orbital_event",
+      "frame": "VNB",
+      "magnitude_km_s": 1.713928233794911,
+      "maneuver_id": "orbit_insertion",
+      "maneuver_type": "combined_impulsive",
+      "plane_change_deg": 22.999999999999993,
+      "signed_vnb_normal_rotation_deg": -22.999999999999993,
+      "true_anomaly_deg": 180.0
+    }
+  ],
+  "problem_id": "elliptical_LEO_to_GEO",
+  "schema_version": "1.1.0",
+  "variable_values": {
+    "orbit_insertion.delta_v_n": {
+      "unit": "km/s",
+      "value": -1.2013654107481946
+    },
+    "orbit_insertion.delta_v_v": {
+      "unit": "km/s",
+      "value": 1.2224038368956331
+    },
+    "transfer.coast_time": {
+      "unit": "s",
+      "value": 18990.23024229214
+    },
+    "transfer_injection.delta_v_n": {
+      "unit": "km/s",
+      "value": 0.0
+    },
+    "transfer_injection.delta_v_v": {
+      "unit": "km/s",
+      "value": 2.425732900357465
+    }
+  }
+}

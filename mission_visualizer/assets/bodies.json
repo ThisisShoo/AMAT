@@ -1,0 +1,36 @@
+{
+  "Sun": {"radius_km": 695700, "texture": "sun", "color": "#facc15", "orbit_color": "#f59e0b"},
+  "Mercury": {"radius_km": 2439.7, "texture": "plain", "color": "#9ca3af", "orbit_color": "#6b7280"},
+  "Venus": {"radius_km": 6051.8, "texture": "plain", "color": "#eab308", "orbit_color": "#ca8a04"},
+  "Earth": {
+    "radius_km": 6378.1363,
+    "texture": "earth",
+    "texture_url": "https://eoimages.gsfc.nasa.gov/images/imagerecords/57000/57730/land_ocean_ice_2048.jpg",
+    "texture_credit": "NASA Earth Observatory Blue Marble",
+    "color": "#2563eb",
+    "orbit_color": "#1d4ed8"
+  },
+  "Luna": {
+    "radius_km": 1737.4,
+    "texture": "luna",
+    "texture_url": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg",
+    "texture_credit": "NASA SVS CGI Moon Kit LROC color map",
+    "color": "#a3a3a3",
+    "orbit_color": "#737373",
+    "aliases": ["Moon"]
+  },
+  "Moon": {
+    "radius_km": 1737.4,
+    "texture": "moon",
+    "texture_url": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg",
+    "texture_credit": "NASA SVS CGI Moon Kit LROC color map",
+    "color": "#a3a3a3",
+    "orbit_color": "#737373",
+    "aliases": ["Luna"]
+  },
+  "Mars": {"radius_km": 3396.19, "texture": "plain", "color": "#c2410c", "orbit_color": "#9a3412"},
+  "Jupiter": {"radius_km": 71492, "texture": "bands", "color": "#d6b48c", "band_dark": "#9c6644", "band_light": "#f3d19c", "orbit_color": "#a16207"},
+  "Saturn": {"radius_km": 60268, "texture": "bands", "color": "#dcc58a", "band_dark": "#b08d57", "band_light": "#f6e3a1", "orbit_color": "#b45309"},
+  "Uranus": {"radius_km": 25559, "texture": "plain", "color": "#67e8f9", "orbit_color": "#0891b2"},
+  "Neptune": {"radius_km": 24764, "texture": "plain", "color": "#2563eb", "orbit_color": "#1e40af"}
+}

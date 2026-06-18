@@ -1,0 +1,11 @@
+{
+  "candidate_hash": "837d86694bfe91217756e148368619cd3258489841f682c76ef70830bef32d02",
+  "formulation_hash": "1e0f664aa48a54c55102f59356d11bf3d8996d272c1a46859c5c8ebe6e3ecaf0",
+  "mission_spec_hash": "0d03dedad1ad9b59ece32e268a1cb95899a90cac4ee5eb56442bc932261f3a45",
+  "problem_hash": "a13f86c1672e45109e13177accb8ed8408234c5387e2761595e8de7041eb75e2",
+  "python_version": "3.14.4",
+  "schema_version": "1.0.0",
+  "warnings": [
+    "Impulsive plane change will be seeded at the orbital-plane intersection nearest apoapsis; STM/high-fidelity correction should refine the final state."
+  ]
+}

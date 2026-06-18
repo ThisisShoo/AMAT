@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/normalized_ephemeris_response.schema.json",
+  "title": "Normalized Ephemeris Response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "request_id", "provider", "status", "target", "observer", "frame", "time", "units", "states", "warnings", "errors"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "request_id": {"type": ["string", "null"]},
+    "dependency_id": {"type": ["string", "null"]},
+    "provider": {"enum": ["spice", "horizons", "backend_builtin", "custom"]},
+    "status": {"enum": ["ok", "partial", "failed"]},
+    "source_metadata": {"type": "object", "additionalProperties": true},
+    "target": {"type": "object", "additionalProperties": true},
+    "observer": {"type": "object", "additionalProperties": true},
+    "frame": {"type": "object", "additionalProperties": true},
+    "time": {"type": "object", "additionalProperties": true},
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position", "velocity"],
+      "properties": {"position": {"const": "km"}, "velocity": {"const": "km/s"}}
+    },
+    "states": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["epoch", "position", "velocity"],
+        "properties": {
+          "epoch": {"type": "string"},
+          "et_seconds_past_j2000": {"type": "number"},
+          "position": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+          "velocity": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+          "covariance": {},
+          "quality": {"type": "object", "additionalProperties": true}
+        }
+      }
+    },
+    "coverage": {"type": "object", "additionalProperties": true},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "errors": {"type": "array", "items": {"type": "string"}}
+  }
+}

@@ -1,0 +1,3210 @@
+{
+  "schema_version": "1.1.0",
+  "description": "Standard portable/GMAT reference frame declarations. Includes every GMAT CoordinateSystem axis type shown in the GMAT Type drop-down where that axis can be represented generically by a MissionSpec frame. Frames are explicitly created when used or when called by reference_frame_sets.",
+  "gmat_axis_types": [
+    "MJ2000Eq",
+    "MJ2000Ec",
+    "TOEEq",
+    "TOEEc",
+    "MOEEq",
+    "MOEEc",
+    "TODEq",
+    "TODEc",
+    "MODEq",
+    "MODEc",
+    "ObjectReferenced",
+    "Equator",
+    "BodyFixed",
+    "BodyInertial",
+    "GSE",
+    "GSM",
+    "Topocentric",
+    "LocalAlignedConstrained",
+    "SPICE",
+    "ICRF",
+    "BodySpinSun",
+    "TEME"
+  ],
+  "frames": [
+    {
+      "id": "Sun_mj2000eq",
+      "name": "SunMJ2000Eq",
+      "type": "body_inertial_equatorial",
+      "origin": "Sun",
+      "orientation": "MJ2000Eq",
+      "axes": "MJ2000Eq",
+      "description": "Sun-centered frame using GMAT MJ2000Eq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SunMJ2000Eq",
+          "create_coordinate_system": true,
+          "origin": "Sun",
+          "axes": "MJ2000Eq"
+        }
+      }
+    },
+    {
+      "id": "Sun_mj2000ec",
+      "name": "SunMJ2000Ec",
+      "type": "body_inertial_ecliptic",
+      "origin": "Sun",
+      "orientation": "MJ2000Ec",
+      "axes": "MJ2000Ec",
+      "description": "Sun-centered frame using GMAT MJ2000Ec axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SunMJ2000Ec",
+          "create_coordinate_system": true,
+          "origin": "Sun",
+          "axes": "MJ2000Ec"
+        }
+      }
+    },
+    {
+      "id": "Sun_toeeq",
+      "name": "SunTOEEq",
+      "type": "gmat_builtin",
+      "origin": "Sun",
+      "orientation": "TOEEq",
+      "axes": "TOEEq",
+      "description": "Sun-centered frame using GMAT TOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SunTOEEq",
+          "create_coordinate_system": true,
+          "origin": "Sun",
+          "axes": "TOEEq"
+        }
+      }
+    },
+    {
+      "id": "Sun_toeec",
+      "name": "SunTOEEc",
+      "type": "gmat_builtin",
+      "origin": "Sun",
+      "orientation": "TOEEc",
+      "axes": "TOEEc",
+      "description": "Sun-centered frame using GMAT TOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SunTOEEc",
+          "create_coordinate_system": true,
+          "origin": "Sun",
+          "axes": "TOEEc"
+        }
+      }
+    },
+    {
+      "id": "Sun_moeeq",
+      "name": "SunMOEEq",
+      "type": "gmat_builtin",
+      "origin": "Sun",
+      "orientation": "MOEEq",
+      "axes": "MOEEq",
+      "description": "Sun-centered frame using GMAT MOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SunMOEEq",
+          "create_coordinate_system": true,
+          "origin": "Sun",
+          "axes": "MOEEq"
+        }
+      }
+    },
+    {
+      "id": "Sun_moeec",
+      "name": "SunMOEEc",
+      "type": "gmat_builtin",
+      "origin": "Sun",
+      "orientation": "MOEEc",
+      "axes": "MOEEc",
+      "description": "Sun-centered frame using GMAT MOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SunMOEEc",
+          "create_coordinate_system": true,
+          "origin": "Sun",
+          "axes": "MOEEc"
+        }
+      }
+    },
+    {
+      "id": "Sun_todeq",
+      "name": "SunTODEq",
+      "type": "gmat_builtin",
+      "origin": "Sun",
+      "orientation": "TODEq",
+      "axes": "TODEq",
+      "description": "Sun-centered frame using GMAT TODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SunTODEq",
+          "create_coordinate_system": true,
+          "origin": "Sun",
+          "axes": "TODEq"
+        }
+      }
+    },
+    {
+      "id": "Sun_todec",
+      "name": "SunTODEc",
+      "type": "gmat_builtin",
+      "origin": "Sun",
+      "orientation": "TODEc",
+      "axes": "TODEc",
+      "description": "Sun-centered frame using GMAT TODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SunTODEc",
+          "create_coordinate_system": true,
+          "origin": "Sun",
+          "axes": "TODEc"
+        }
+      }
+    },
+    {
+      "id": "Sun_modeq",
+      "name": "SunMODEq",
+      "type": "gmat_builtin",
+      "origin": "Sun",
+      "orientation": "MODEq",
+      "axes": "MODEq",
+      "description": "Sun-centered frame using GMAT MODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SunMODEq",
+          "create_coordinate_system": true,
+          "origin": "Sun",
+          "axes": "MODEq"
+        }
+      }
+    },
+    {
+      "id": "Sun_modec",
+      "name": "SunMODEc",
+      "type": "gmat_builtin",
+      "origin": "Sun",
+      "orientation": "MODEc",
+      "axes": "MODEc",
+      "description": "Sun-centered frame using GMAT MODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SunMODEc",
+          "create_coordinate_system": true,
+          "origin": "Sun",
+          "axes": "MODEc"
+        }
+      }
+    },
+    {
+      "id": "Sun_equator",
+      "name": "SunEquator",
+      "type": "equator",
+      "origin": "Sun",
+      "orientation": "Equator",
+      "axes": "Equator",
+      "description": "Sun-centered frame using GMAT Equator axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SunEquator",
+          "create_coordinate_system": true,
+          "origin": "Sun",
+          "axes": "Equator"
+        }
+      }
+    },
+    {
+      "id": "Sun_bodyfixed",
+      "name": "SunFixed",
+      "type": "body_fixed",
+      "origin": "Sun",
+      "orientation": "BodyFixed",
+      "axes": "BodyFixed",
+      "description": "Sun-centered frame using GMAT BodyFixed axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SunFixed",
+          "create_coordinate_system": true,
+          "origin": "Sun",
+          "axes": "BodyFixed"
+        }
+      }
+    },
+    {
+      "id": "Sun_bodyinertial",
+      "name": "SunBodyInertial",
+      "type": "body_inertial",
+      "origin": "Sun",
+      "orientation": "BodyInertial",
+      "axes": "BodyInertial",
+      "description": "Sun-centered frame using GMAT BodyInertial axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SunBodyInertial",
+          "create_coordinate_system": true,
+          "origin": "Sun",
+          "axes": "BodyInertial"
+        }
+      }
+    },
+    {
+      "id": "Sun_icrf",
+      "name": "SunICRF",
+      "type": "icrf",
+      "origin": "Sun",
+      "orientation": "ICRF",
+      "axes": "ICRF",
+      "description": "Sun-centered frame using GMAT ICRF axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SunICRF",
+          "create_coordinate_system": true,
+          "origin": "Sun",
+          "axes": "ICRF"
+        }
+      }
+    },
+    {
+      "id": "Sun_bodyspinsun",
+      "name": "SunBodySpinSun",
+      "type": "body_spin_sun",
+      "origin": "Sun",
+      "orientation": "BodySpinSun",
+      "axes": "BodySpinSun",
+      "description": "Sun-centered frame using GMAT BodySpinSun axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SunBodySpinSun",
+          "create_coordinate_system": true,
+          "origin": "Sun",
+          "axes": "BodySpinSun"
+        }
+      }
+    },
+    {
+      "id": "Mercury_mj2000eq",
+      "name": "MercuryMJ2000Eq",
+      "type": "body_inertial_equatorial",
+      "origin": "Mercury",
+      "orientation": "MJ2000Eq",
+      "axes": "MJ2000Eq",
+      "description": "Mercury-centered frame using GMAT MJ2000Eq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MercuryMJ2000Eq",
+          "create_coordinate_system": true,
+          "origin": "Mercury",
+          "axes": "MJ2000Eq"
+        }
+      }
+    },
+    {
+      "id": "Mercury_mj2000ec",
+      "name": "MercuryMJ2000Ec",
+      "type": "body_inertial_ecliptic",
+      "origin": "Mercury",
+      "orientation": "MJ2000Ec",
+      "axes": "MJ2000Ec",
+      "description": "Mercury-centered frame using GMAT MJ2000Ec axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MercuryMJ2000Ec",
+          "create_coordinate_system": true,
+          "origin": "Mercury",
+          "axes": "MJ2000Ec"
+        }
+      }
+    },
+    {
+      "id": "Mercury_toeeq",
+      "name": "MercuryTOEEq",
+      "type": "gmat_builtin",
+      "origin": "Mercury",
+      "orientation": "TOEEq",
+      "axes": "TOEEq",
+      "description": "Mercury-centered frame using GMAT TOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MercuryTOEEq",
+          "create_coordinate_system": true,
+          "origin": "Mercury",
+          "axes": "TOEEq"
+        }
+      }
+    },
+    {
+      "id": "Mercury_toeec",
+      "name": "MercuryTOEEc",
+      "type": "gmat_builtin",
+      "origin": "Mercury",
+      "orientation": "TOEEc",
+      "axes": "TOEEc",
+      "description": "Mercury-centered frame using GMAT TOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MercuryTOEEc",
+          "create_coordinate_system": true,
+          "origin": "Mercury",
+          "axes": "TOEEc"
+        }
+      }
+    },
+    {
+      "id": "Mercury_moeeq",
+      "name": "MercuryMOEEq",
+      "type": "gmat_builtin",
+      "origin": "Mercury",
+      "orientation": "MOEEq",
+      "axes": "MOEEq",
+      "description": "Mercury-centered frame using GMAT MOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MercuryMOEEq",
+          "create_coordinate_system": true,
+          "origin": "Mercury",
+          "axes": "MOEEq"
+        }
+      }
+    },
+    {
+      "id": "Mercury_moeec",
+      "name": "MercuryMOEEc",
+      "type": "gmat_builtin",
+      "origin": "Mercury",
+      "orientation": "MOEEc",
+      "axes": "MOEEc",
+      "description": "Mercury-centered frame using GMAT MOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MercuryMOEEc",
+          "create_coordinate_system": true,
+          "origin": "Mercury",
+          "axes": "MOEEc"
+        }
+      }
+    },
+    {
+      "id": "Mercury_todeq",
+      "name": "MercuryTODEq",
+      "type": "gmat_builtin",
+      "origin": "Mercury",
+      "orientation": "TODEq",
+      "axes": "TODEq",
+      "description": "Mercury-centered frame using GMAT TODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MercuryTODEq",
+          "create_coordinate_system": true,
+          "origin": "Mercury",
+          "axes": "TODEq"
+        }
+      }
+    },
+    {
+      "id": "Mercury_todec",
+      "name": "MercuryTODEc",
+      "type": "gmat_builtin",
+      "origin": "Mercury",
+      "orientation": "TODEc",
+      "axes": "TODEc",
+      "description": "Mercury-centered frame using GMAT TODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MercuryTODEc",
+          "create_coordinate_system": true,
+          "origin": "Mercury",
+          "axes": "TODEc"
+        }
+      }
+    },
+    {
+      "id": "Mercury_modeq",
+      "name": "MercuryMODEq",
+      "type": "gmat_builtin",
+      "origin": "Mercury",
+      "orientation": "MODEq",
+      "axes": "MODEq",
+      "description": "Mercury-centered frame using GMAT MODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MercuryMODEq",
+          "create_coordinate_system": true,
+          "origin": "Mercury",
+          "axes": "MODEq"
+        }
+      }
+    },
+    {
+      "id": "Mercury_modec",
+      "name": "MercuryMODEc",
+      "type": "gmat_builtin",
+      "origin": "Mercury",
+      "orientation": "MODEc",
+      "axes": "MODEc",
+      "description": "Mercury-centered frame using GMAT MODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MercuryMODEc",
+          "create_coordinate_system": true,
+          "origin": "Mercury",
+          "axes": "MODEc"
+        }
+      }
+    },
+    {
+      "id": "Mercury_equator",
+      "name": "MercuryEquator",
+      "type": "equator",
+      "origin": "Mercury",
+      "orientation": "Equator",
+      "axes": "Equator",
+      "description": "Mercury-centered frame using GMAT Equator axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MercuryEquator",
+          "create_coordinate_system": true,
+          "origin": "Mercury",
+          "axes": "Equator"
+        }
+      }
+    },
+    {
+      "id": "Mercury_bodyfixed",
+      "name": "MercuryFixed",
+      "type": "body_fixed",
+      "origin": "Mercury",
+      "orientation": "BodyFixed",
+      "axes": "BodyFixed",
+      "description": "Mercury-centered frame using GMAT BodyFixed axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MercuryFixed",
+          "create_coordinate_system": true,
+          "origin": "Mercury",
+          "axes": "BodyFixed"
+        }
+      }
+    },
+    {
+      "id": "Mercury_bodyinertial",
+      "name": "MercuryBodyInertial",
+      "type": "body_inertial",
+      "origin": "Mercury",
+      "orientation": "BodyInertial",
+      "axes": "BodyInertial",
+      "description": "Mercury-centered frame using GMAT BodyInertial axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MercuryBodyInertial",
+          "create_coordinate_system": true,
+          "origin": "Mercury",
+          "axes": "BodyInertial"
+        }
+      }
+    },
+    {
+      "id": "Mercury_icrf",
+      "name": "MercuryICRF",
+      "type": "icrf",
+      "origin": "Mercury",
+      "orientation": "ICRF",
+      "axes": "ICRF",
+      "description": "Mercury-centered frame using GMAT ICRF axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MercuryICRF",
+          "create_coordinate_system": true,
+          "origin": "Mercury",
+          "axes": "ICRF"
+        }
+      }
+    },
+    {
+      "id": "Mercury_bodyspinsun",
+      "name": "MercuryBodySpinSun",
+      "type": "body_spin_sun",
+      "origin": "Mercury",
+      "orientation": "BodySpinSun",
+      "axes": "BodySpinSun",
+      "description": "Mercury-centered frame using GMAT BodySpinSun axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MercuryBodySpinSun",
+          "create_coordinate_system": true,
+          "origin": "Mercury",
+          "axes": "BodySpinSun"
+        }
+      }
+    },
+    {
+      "id": "Venus_mj2000eq",
+      "name": "VenusMJ2000Eq",
+      "type": "body_inertial_equatorial",
+      "origin": "Venus",
+      "orientation": "MJ2000Eq",
+      "axes": "MJ2000Eq",
+      "description": "Venus-centered frame using GMAT MJ2000Eq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "VenusMJ2000Eq",
+          "create_coordinate_system": true,
+          "origin": "Venus",
+          "axes": "MJ2000Eq"
+        }
+      }
+    },
+    {
+      "id": "Venus_mj2000ec",
+      "name": "VenusMJ2000Ec",
+      "type": "body_inertial_ecliptic",
+      "origin": "Venus",
+      "orientation": "MJ2000Ec",
+      "axes": "MJ2000Ec",
+      "description": "Venus-centered frame using GMAT MJ2000Ec axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "VenusMJ2000Ec",
+          "create_coordinate_system": true,
+          "origin": "Venus",
+          "axes": "MJ2000Ec"
+        }
+      }
+    },
+    {
+      "id": "Venus_toeeq",
+      "name": "VenusTOEEq",
+      "type": "gmat_builtin",
+      "origin": "Venus",
+      "orientation": "TOEEq",
+      "axes": "TOEEq",
+      "description": "Venus-centered frame using GMAT TOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "VenusTOEEq",
+          "create_coordinate_system": true,
+          "origin": "Venus",
+          "axes": "TOEEq"
+        }
+      }
+    },
+    {
+      "id": "Venus_toeec",
+      "name": "VenusTOEEc",
+      "type": "gmat_builtin",
+      "origin": "Venus",
+      "orientation": "TOEEc",
+      "axes": "TOEEc",
+      "description": "Venus-centered frame using GMAT TOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "VenusTOEEc",
+          "create_coordinate_system": true,
+          "origin": "Venus",
+          "axes": "TOEEc"
+        }
+      }
+    },
+    {
+      "id": "Venus_moeeq",
+      "name": "VenusMOEEq",
+      "type": "gmat_builtin",
+      "origin": "Venus",
+      "orientation": "MOEEq",
+      "axes": "MOEEq",
+      "description": "Venus-centered frame using GMAT MOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "VenusMOEEq",
+          "create_coordinate_system": true,
+          "origin": "Venus",
+          "axes": "MOEEq"
+        }
+      }
+    },
+    {
+      "id": "Venus_moeec",
+      "name": "VenusMOEEc",
+      "type": "gmat_builtin",
+      "origin": "Venus",
+      "orientation": "MOEEc",
+      "axes": "MOEEc",
+      "description": "Venus-centered frame using GMAT MOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "VenusMOEEc",
+          "create_coordinate_system": true,
+          "origin": "Venus",
+          "axes": "MOEEc"
+        }
+      }
+    },
+    {
+      "id": "Venus_todeq",
+      "name": "VenusTODEq",
+      "type": "gmat_builtin",
+      "origin": "Venus",
+      "orientation": "TODEq",
+      "axes": "TODEq",
+      "description": "Venus-centered frame using GMAT TODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "VenusTODEq",
+          "create_coordinate_system": true,
+          "origin": "Venus",
+          "axes": "TODEq"
+        }
+      }
+    },
+    {
+      "id": "Venus_todec",
+      "name": "VenusTODEc",
+      "type": "gmat_builtin",
+      "origin": "Venus",
+      "orientation": "TODEc",
+      "axes": "TODEc",
+      "description": "Venus-centered frame using GMAT TODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "VenusTODEc",
+          "create_coordinate_system": true,
+          "origin": "Venus",
+          "axes": "TODEc"
+        }
+      }
+    },
+    {
+      "id": "Venus_modeq",
+      "name": "VenusMODEq",
+      "type": "gmat_builtin",
+      "origin": "Venus",
+      "orientation": "MODEq",
+      "axes": "MODEq",
+      "description": "Venus-centered frame using GMAT MODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "VenusMODEq",
+          "create_coordinate_system": true,
+          "origin": "Venus",
+          "axes": "MODEq"
+        }
+      }
+    },
+    {
+      "id": "Venus_modec",
+      "name": "VenusMODEc",
+      "type": "gmat_builtin",
+      "origin": "Venus",
+      "orientation": "MODEc",
+      "axes": "MODEc",
+      "description": "Venus-centered frame using GMAT MODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "VenusMODEc",
+          "create_coordinate_system": true,
+          "origin": "Venus",
+          "axes": "MODEc"
+        }
+      }
+    },
+    {
+      "id": "Venus_equator",
+      "name": "VenusEquator",
+      "type": "equator",
+      "origin": "Venus",
+      "orientation": "Equator",
+      "axes": "Equator",
+      "description": "Venus-centered frame using GMAT Equator axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "VenusEquator",
+          "create_coordinate_system": true,
+          "origin": "Venus",
+          "axes": "Equator"
+        }
+      }
+    },
+    {
+      "id": "Venus_bodyfixed",
+      "name": "VenusFixed",
+      "type": "body_fixed",
+      "origin": "Venus",
+      "orientation": "BodyFixed",
+      "axes": "BodyFixed",
+      "description": "Venus-centered frame using GMAT BodyFixed axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "VenusFixed",
+          "create_coordinate_system": true,
+          "origin": "Venus",
+          "axes": "BodyFixed"
+        }
+      }
+    },
+    {
+      "id": "Venus_bodyinertial",
+      "name": "VenusBodyInertial",
+      "type": "body_inertial",
+      "origin": "Venus",
+      "orientation": "BodyInertial",
+      "axes": "BodyInertial",
+      "description": "Venus-centered frame using GMAT BodyInertial axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "VenusBodyInertial",
+          "create_coordinate_system": true,
+          "origin": "Venus",
+          "axes": "BodyInertial"
+        }
+      }
+    },
+    {
+      "id": "Venus_icrf",
+      "name": "VenusICRF",
+      "type": "icrf",
+      "origin": "Venus",
+      "orientation": "ICRF",
+      "axes": "ICRF",
+      "description": "Venus-centered frame using GMAT ICRF axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "VenusICRF",
+          "create_coordinate_system": true,
+          "origin": "Venus",
+          "axes": "ICRF"
+        }
+      }
+    },
+    {
+      "id": "Venus_bodyspinsun",
+      "name": "VenusBodySpinSun",
+      "type": "body_spin_sun",
+      "origin": "Venus",
+      "orientation": "BodySpinSun",
+      "axes": "BodySpinSun",
+      "description": "Venus-centered frame using GMAT BodySpinSun axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "VenusBodySpinSun",
+          "create_coordinate_system": true,
+          "origin": "Venus",
+          "axes": "BodySpinSun"
+        }
+      }
+    },
+    {
+      "id": "Earth_mj2000eq",
+      "name": "EarthMJ2000Eq",
+      "type": "body_inertial_equatorial",
+      "origin": "Earth",
+      "orientation": "MJ2000Eq",
+      "axes": "MJ2000Eq",
+      "description": "Earth-centered frame using GMAT MJ2000Eq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthMJ2000Eq",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "MJ2000Eq"
+        }
+      }
+    },
+    {
+      "id": "Earth_mj2000ec",
+      "name": "EarthMJ2000Ec",
+      "type": "body_inertial_ecliptic",
+      "origin": "Earth",
+      "orientation": "MJ2000Ec",
+      "axes": "MJ2000Ec",
+      "description": "Earth-centered frame using GMAT MJ2000Ec axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthMJ2000Ec",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "MJ2000Ec"
+        }
+      }
+    },
+    {
+      "id": "Earth_toeeq",
+      "name": "EarthTOEEq",
+      "type": "gmat_builtin",
+      "origin": "Earth",
+      "orientation": "TOEEq",
+      "axes": "TOEEq",
+      "description": "Earth-centered frame using GMAT TOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthTOEEq",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "TOEEq"
+        }
+      }
+    },
+    {
+      "id": "Earth_toeec",
+      "name": "EarthTOEEc",
+      "type": "gmat_builtin",
+      "origin": "Earth",
+      "orientation": "TOEEc",
+      "axes": "TOEEc",
+      "description": "Earth-centered frame using GMAT TOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthTOEEc",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "TOEEc"
+        }
+      }
+    },
+    {
+      "id": "Earth_moeeq",
+      "name": "EarthMOEEq",
+      "type": "gmat_builtin",
+      "origin": "Earth",
+      "orientation": "MOEEq",
+      "axes": "MOEEq",
+      "description": "Earth-centered frame using GMAT MOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthMOEEq",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "MOEEq"
+        }
+      }
+    },
+    {
+      "id": "Earth_moeec",
+      "name": "EarthMOEEc",
+      "type": "gmat_builtin",
+      "origin": "Earth",
+      "orientation": "MOEEc",
+      "axes": "MOEEc",
+      "description": "Earth-centered frame using GMAT MOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthMOEEc",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "MOEEc"
+        }
+      }
+    },
+    {
+      "id": "Earth_todeq",
+      "name": "EarthTODEq",
+      "type": "gmat_builtin",
+      "origin": "Earth",
+      "orientation": "TODEq",
+      "axes": "TODEq",
+      "description": "Earth-centered frame using GMAT TODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthTODEq",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "TODEq"
+        }
+      }
+    },
+    {
+      "id": "Earth_todec",
+      "name": "EarthTODEc",
+      "type": "gmat_builtin",
+      "origin": "Earth",
+      "orientation": "TODEc",
+      "axes": "TODEc",
+      "description": "Earth-centered frame using GMAT TODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthTODEc",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "TODEc"
+        }
+      }
+    },
+    {
+      "id": "Earth_modeq",
+      "name": "EarthMODEq",
+      "type": "gmat_builtin",
+      "origin": "Earth",
+      "orientation": "MODEq",
+      "axes": "MODEq",
+      "description": "Earth-centered frame using GMAT MODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthMODEq",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "MODEq"
+        }
+      }
+    },
+    {
+      "id": "Earth_modec",
+      "name": "EarthMODEc",
+      "type": "gmat_builtin",
+      "origin": "Earth",
+      "orientation": "MODEc",
+      "axes": "MODEc",
+      "description": "Earth-centered frame using GMAT MODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthMODEc",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "MODEc"
+        }
+      }
+    },
+    {
+      "id": "Earth_equator",
+      "name": "EarthEquator",
+      "type": "equator",
+      "origin": "Earth",
+      "orientation": "Equator",
+      "axes": "Equator",
+      "description": "Earth-centered frame using GMAT Equator axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthEquator",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "Equator"
+        }
+      }
+    },
+    {
+      "id": "Earth_bodyfixed",
+      "name": "EarthFixed",
+      "type": "body_fixed",
+      "origin": "Earth",
+      "orientation": "BodyFixed",
+      "axes": "BodyFixed",
+      "description": "Earth-centered frame using GMAT BodyFixed axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthFixed",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "BodyFixed"
+        }
+      }
+    },
+    {
+      "id": "Earth_bodyinertial",
+      "name": "EarthBodyInertial",
+      "type": "body_inertial",
+      "origin": "Earth",
+      "orientation": "BodyInertial",
+      "axes": "BodyInertial",
+      "description": "Earth-centered frame using GMAT BodyInertial axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthBodyInertial",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "BodyInertial"
+        }
+      }
+    },
+    {
+      "id": "Earth_icrf",
+      "name": "EarthICRF",
+      "type": "icrf",
+      "origin": "Earth",
+      "orientation": "ICRF",
+      "axes": "ICRF",
+      "description": "Earth-centered frame using GMAT ICRF axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthICRF",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "ICRF"
+        }
+      }
+    },
+    {
+      "id": "Earth_bodyspinsun",
+      "name": "EarthBodySpinSun",
+      "type": "body_spin_sun",
+      "origin": "Earth",
+      "orientation": "BodySpinSun",
+      "axes": "BodySpinSun",
+      "description": "Earth-centered frame using GMAT BodySpinSun axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthBodySpinSun",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "BodySpinSun"
+        }
+      }
+    },
+    {
+      "id": "Luna_mj2000eq",
+      "name": "LunaMJ2000Eq",
+      "type": "body_inertial_equatorial",
+      "origin": "Luna",
+      "orientation": "MJ2000Eq",
+      "axes": "MJ2000Eq",
+      "description": "Luna-centered frame using GMAT MJ2000Eq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "LunaMJ2000Eq",
+          "create_coordinate_system": true,
+          "origin": "Luna",
+          "axes": "MJ2000Eq"
+        }
+      }
+    },
+    {
+      "id": "Luna_mj2000ec",
+      "name": "LunaMJ2000Ec",
+      "type": "body_inertial_ecliptic",
+      "origin": "Luna",
+      "orientation": "MJ2000Ec",
+      "axes": "MJ2000Ec",
+      "description": "Luna-centered frame using GMAT MJ2000Ec axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "LunaMJ2000Ec",
+          "create_coordinate_system": true,
+          "origin": "Luna",
+          "axes": "MJ2000Ec"
+        }
+      }
+    },
+    {
+      "id": "Luna_toeeq",
+      "name": "LunaTOEEq",
+      "type": "gmat_builtin",
+      "origin": "Luna",
+      "orientation": "TOEEq",
+      "axes": "TOEEq",
+      "description": "Luna-centered frame using GMAT TOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "LunaTOEEq",
+          "create_coordinate_system": true,
+          "origin": "Luna",
+          "axes": "TOEEq"
+        }
+      }
+    },
+    {
+      "id": "Luna_toeec",
+      "name": "LunaTOEEc",
+      "type": "gmat_builtin",
+      "origin": "Luna",
+      "orientation": "TOEEc",
+      "axes": "TOEEc",
+      "description": "Luna-centered frame using GMAT TOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "LunaTOEEc",
+          "create_coordinate_system": true,
+          "origin": "Luna",
+          "axes": "TOEEc"
+        }
+      }
+    },
+    {
+      "id": "Luna_moeeq",
+      "name": "LunaMOEEq",
+      "type": "gmat_builtin",
+      "origin": "Luna",
+      "orientation": "MOEEq",
+      "axes": "MOEEq",
+      "description": "Luna-centered frame using GMAT MOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "LunaMOEEq",
+          "create_coordinate_system": true,
+          "origin": "Luna",
+          "axes": "MOEEq"
+        }
+      }
+    },
+    {
+      "id": "Luna_moeec",
+      "name": "LunaMOEEc",
+      "type": "gmat_builtin",
+      "origin": "Luna",
+      "orientation": "MOEEc",
+      "axes": "MOEEc",
+      "description": "Luna-centered frame using GMAT MOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "LunaMOEEc",
+          "create_coordinate_system": true,
+          "origin": "Luna",
+          "axes": "MOEEc"
+        }
+      }
+    },
+    {
+      "id": "Luna_todeq",
+      "name": "LunaTODEq",
+      "type": "gmat_builtin",
+      "origin": "Luna",
+      "orientation": "TODEq",
+      "axes": "TODEq",
+      "description": "Luna-centered frame using GMAT TODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "LunaTODEq",
+          "create_coordinate_system": true,
+          "origin": "Luna",
+          "axes": "TODEq"
+        }
+      }
+    },
+    {
+      "id": "Luna_todec",
+      "name": "LunaTODEc",
+      "type": "gmat_builtin",
+      "origin": "Luna",
+      "orientation": "TODEc",
+      "axes": "TODEc",
+      "description": "Luna-centered frame using GMAT TODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "LunaTODEc",
+          "create_coordinate_system": true,
+          "origin": "Luna",
+          "axes": "TODEc"
+        }
+      }
+    },
+    {
+      "id": "Luna_modeq",
+      "name": "LunaMODEq",
+      "type": "gmat_builtin",
+      "origin": "Luna",
+      "orientation": "MODEq",
+      "axes": "MODEq",
+      "description": "Luna-centered frame using GMAT MODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "LunaMODEq",
+          "create_coordinate_system": true,
+          "origin": "Luna",
+          "axes": "MODEq"
+        }
+      }
+    },
+    {
+      "id": "Luna_modec",
+      "name": "LunaMODEc",
+      "type": "gmat_builtin",
+      "origin": "Luna",
+      "orientation": "MODEc",
+      "axes": "MODEc",
+      "description": "Luna-centered frame using GMAT MODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "LunaMODEc",
+          "create_coordinate_system": true,
+          "origin": "Luna",
+          "axes": "MODEc"
+        }
+      }
+    },
+    {
+      "id": "Luna_equator",
+      "name": "LunaEquator",
+      "type": "equator",
+      "origin": "Luna",
+      "orientation": "Equator",
+      "axes": "Equator",
+      "description": "Luna-centered frame using GMAT Equator axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "LunaEquator",
+          "create_coordinate_system": true,
+          "origin": "Luna",
+          "axes": "Equator"
+        }
+      }
+    },
+    {
+      "id": "Luna_bodyfixed",
+      "name": "LunaFixed",
+      "type": "body_fixed",
+      "origin": "Luna",
+      "orientation": "BodyFixed",
+      "axes": "BodyFixed",
+      "description": "Luna-centered frame using GMAT BodyFixed axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "LunaFixed",
+          "create_coordinate_system": true,
+          "origin": "Luna",
+          "axes": "BodyFixed"
+        }
+      }
+    },
+    {
+      "id": "Luna_bodyinertial",
+      "name": "LunaBodyInertial",
+      "type": "body_inertial",
+      "origin": "Luna",
+      "orientation": "BodyInertial",
+      "axes": "BodyInertial",
+      "description": "Luna-centered frame using GMAT BodyInertial axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "LunaBodyInertial",
+          "create_coordinate_system": true,
+          "origin": "Luna",
+          "axes": "BodyInertial"
+        }
+      }
+    },
+    {
+      "id": "Luna_icrf",
+      "name": "LunaICRF",
+      "type": "icrf",
+      "origin": "Luna",
+      "orientation": "ICRF",
+      "axes": "ICRF",
+      "description": "Luna-centered frame using GMAT ICRF axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "LunaICRF",
+          "create_coordinate_system": true,
+          "origin": "Luna",
+          "axes": "ICRF"
+        }
+      }
+    },
+    {
+      "id": "Luna_bodyspinsun",
+      "name": "LunaBodySpinSun",
+      "type": "body_spin_sun",
+      "origin": "Luna",
+      "orientation": "BodySpinSun",
+      "axes": "BodySpinSun",
+      "description": "Luna-centered frame using GMAT BodySpinSun axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "LunaBodySpinSun",
+          "create_coordinate_system": true,
+          "origin": "Luna",
+          "axes": "BodySpinSun"
+        }
+      }
+    },
+    {
+      "id": "Mars_mj2000eq",
+      "name": "MarsMJ2000Eq",
+      "type": "body_inertial_equatorial",
+      "origin": "Mars",
+      "orientation": "MJ2000Eq",
+      "axes": "MJ2000Eq",
+      "description": "Mars-centered frame using GMAT MJ2000Eq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MarsMJ2000Eq",
+          "create_coordinate_system": true,
+          "origin": "Mars",
+          "axes": "MJ2000Eq"
+        }
+      }
+    },
+    {
+      "id": "Mars_mj2000ec",
+      "name": "MarsMJ2000Ec",
+      "type": "body_inertial_ecliptic",
+      "origin": "Mars",
+      "orientation": "MJ2000Ec",
+      "axes": "MJ2000Ec",
+      "description": "Mars-centered frame using GMAT MJ2000Ec axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MarsMJ2000Ec",
+          "create_coordinate_system": true,
+          "origin": "Mars",
+          "axes": "MJ2000Ec"
+        }
+      }
+    },
+    {
+      "id": "Mars_toeeq",
+      "name": "MarsTOEEq",
+      "type": "gmat_builtin",
+      "origin": "Mars",
+      "orientation": "TOEEq",
+      "axes": "TOEEq",
+      "description": "Mars-centered frame using GMAT TOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MarsTOEEq",
+          "create_coordinate_system": true,
+          "origin": "Mars",
+          "axes": "TOEEq"
+        }
+      }
+    },
+    {
+      "id": "Mars_toeec",
+      "name": "MarsTOEEc",
+      "type": "gmat_builtin",
+      "origin": "Mars",
+      "orientation": "TOEEc",
+      "axes": "TOEEc",
+      "description": "Mars-centered frame using GMAT TOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MarsTOEEc",
+          "create_coordinate_system": true,
+          "origin": "Mars",
+          "axes": "TOEEc"
+        }
+      }
+    },
+    {
+      "id": "Mars_moeeq",
+      "name": "MarsMOEEq",
+      "type": "gmat_builtin",
+      "origin": "Mars",
+      "orientation": "MOEEq",
+      "axes": "MOEEq",
+      "description": "Mars-centered frame using GMAT MOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MarsMOEEq",
+          "create_coordinate_system": true,
+          "origin": "Mars",
+          "axes": "MOEEq"
+        }
+      }
+    },
+    {
+      "id": "Mars_moeec",
+      "name": "MarsMOEEc",
+      "type": "gmat_builtin",
+      "origin": "Mars",
+      "orientation": "MOEEc",
+      "axes": "MOEEc",
+      "description": "Mars-centered frame using GMAT MOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MarsMOEEc",
+          "create_coordinate_system": true,
+          "origin": "Mars",
+          "axes": "MOEEc"
+        }
+      }
+    },
+    {
+      "id": "Mars_todeq",
+      "name": "MarsTODEq",
+      "type": "gmat_builtin",
+      "origin": "Mars",
+      "orientation": "TODEq",
+      "axes": "TODEq",
+      "description": "Mars-centered frame using GMAT TODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MarsTODEq",
+          "create_coordinate_system": true,
+          "origin": "Mars",
+          "axes": "TODEq"
+        }
+      }
+    },
+    {
+      "id": "Mars_todec",
+      "name": "MarsTODEc",
+      "type": "gmat_builtin",
+      "origin": "Mars",
+      "orientation": "TODEc",
+      "axes": "TODEc",
+      "description": "Mars-centered frame using GMAT TODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MarsTODEc",
+          "create_coordinate_system": true,
+          "origin": "Mars",
+          "axes": "TODEc"
+        }
+      }
+    },
+    {
+      "id": "Mars_modeq",
+      "name": "MarsMODEq",
+      "type": "gmat_builtin",
+      "origin": "Mars",
+      "orientation": "MODEq",
+      "axes": "MODEq",
+      "description": "Mars-centered frame using GMAT MODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MarsMODEq",
+          "create_coordinate_system": true,
+          "origin": "Mars",
+          "axes": "MODEq"
+        }
+      }
+    },
+    {
+      "id": "Mars_modec",
+      "name": "MarsMODEc",
+      "type": "gmat_builtin",
+      "origin": "Mars",
+      "orientation": "MODEc",
+      "axes": "MODEc",
+      "description": "Mars-centered frame using GMAT MODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MarsMODEc",
+          "create_coordinate_system": true,
+          "origin": "Mars",
+          "axes": "MODEc"
+        }
+      }
+    },
+    {
+      "id": "Mars_equator",
+      "name": "MarsEquator",
+      "type": "equator",
+      "origin": "Mars",
+      "orientation": "Equator",
+      "axes": "Equator",
+      "description": "Mars-centered frame using GMAT Equator axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MarsEquator",
+          "create_coordinate_system": true,
+          "origin": "Mars",
+          "axes": "Equator"
+        }
+      }
+    },
+    {
+      "id": "Mars_bodyfixed",
+      "name": "MarsFixed",
+      "type": "body_fixed",
+      "origin": "Mars",
+      "orientation": "BodyFixed",
+      "axes": "BodyFixed",
+      "description": "Mars-centered frame using GMAT BodyFixed axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MarsFixed",
+          "create_coordinate_system": true,
+          "origin": "Mars",
+          "axes": "BodyFixed"
+        }
+      }
+    },
+    {
+      "id": "Mars_bodyinertial",
+      "name": "MarsBodyInertial",
+      "type": "body_inertial",
+      "origin": "Mars",
+      "orientation": "BodyInertial",
+      "axes": "BodyInertial",
+      "description": "Mars-centered frame using GMAT BodyInertial axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MarsBodyInertial",
+          "create_coordinate_system": true,
+          "origin": "Mars",
+          "axes": "BodyInertial"
+        }
+      }
+    },
+    {
+      "id": "Mars_icrf",
+      "name": "MarsICRF",
+      "type": "icrf",
+      "origin": "Mars",
+      "orientation": "ICRF",
+      "axes": "ICRF",
+      "description": "Mars-centered frame using GMAT ICRF axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MarsICRF",
+          "create_coordinate_system": true,
+          "origin": "Mars",
+          "axes": "ICRF"
+        }
+      }
+    },
+    {
+      "id": "Mars_bodyspinsun",
+      "name": "MarsBodySpinSun",
+      "type": "body_spin_sun",
+      "origin": "Mars",
+      "orientation": "BodySpinSun",
+      "axes": "BodySpinSun",
+      "description": "Mars-centered frame using GMAT BodySpinSun axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MarsBodySpinSun",
+          "create_coordinate_system": true,
+          "origin": "Mars",
+          "axes": "BodySpinSun"
+        }
+      }
+    },
+    {
+      "id": "Jupiter_mj2000eq",
+      "name": "JupiterMJ2000Eq",
+      "type": "body_inertial_equatorial",
+      "origin": "Jupiter",
+      "orientation": "MJ2000Eq",
+      "axes": "MJ2000Eq",
+      "description": "Jupiter-centered frame using GMAT MJ2000Eq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "JupiterMJ2000Eq",
+          "create_coordinate_system": true,
+          "origin": "Jupiter",
+          "axes": "MJ2000Eq"
+        }
+      }
+    },
+    {
+      "id": "Jupiter_mj2000ec",
+      "name": "JupiterMJ2000Ec",
+      "type": "body_inertial_ecliptic",
+      "origin": "Jupiter",
+      "orientation": "MJ2000Ec",
+      "axes": "MJ2000Ec",
+      "description": "Jupiter-centered frame using GMAT MJ2000Ec axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "JupiterMJ2000Ec",
+          "create_coordinate_system": true,
+          "origin": "Jupiter",
+          "axes": "MJ2000Ec"
+        }
+      }
+    },
+    {
+      "id": "Jupiter_toeeq",
+      "name": "JupiterTOEEq",
+      "type": "gmat_builtin",
+      "origin": "Jupiter",
+      "orientation": "TOEEq",
+      "axes": "TOEEq",
+      "description": "Jupiter-centered frame using GMAT TOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "JupiterTOEEq",
+          "create_coordinate_system": true,
+          "origin": "Jupiter",
+          "axes": "TOEEq"
+        }
+      }
+    },
+    {
+      "id": "Jupiter_toeec",
+      "name": "JupiterTOEEc",
+      "type": "gmat_builtin",
+      "origin": "Jupiter",
+      "orientation": "TOEEc",
+      "axes": "TOEEc",
+      "description": "Jupiter-centered frame using GMAT TOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "JupiterTOEEc",
+          "create_coordinate_system": true,
+          "origin": "Jupiter",
+          "axes": "TOEEc"
+        }
+      }
+    },
+    {
+      "id": "Jupiter_moeeq",
+      "name": "JupiterMOEEq",
+      "type": "gmat_builtin",
+      "origin": "Jupiter",
+      "orientation": "MOEEq",
+      "axes": "MOEEq",
+      "description": "Jupiter-centered frame using GMAT MOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "JupiterMOEEq",
+          "create_coordinate_system": true,
+          "origin": "Jupiter",
+          "axes": "MOEEq"
+        }
+      }
+    },
+    {
+      "id": "Jupiter_moeec",
+      "name": "JupiterMOEEc",
+      "type": "gmat_builtin",
+      "origin": "Jupiter",
+      "orientation": "MOEEc",
+      "axes": "MOEEc",
+      "description": "Jupiter-centered frame using GMAT MOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "JupiterMOEEc",
+          "create_coordinate_system": true,
+          "origin": "Jupiter",
+          "axes": "MOEEc"
+        }
+      }
+    },
+    {
+      "id": "Jupiter_todeq",
+      "name": "JupiterTODEq",
+      "type": "gmat_builtin",
+      "origin": "Jupiter",
+      "orientation": "TODEq",
+      "axes": "TODEq",
+      "description": "Jupiter-centered frame using GMAT TODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "JupiterTODEq",
+          "create_coordinate_system": true,
+          "origin": "Jupiter",
+          "axes": "TODEq"
+        }
+      }
+    },
+    {
+      "id": "Jupiter_todec",
+      "name": "JupiterTODEc",
+      "type": "gmat_builtin",
+      "origin": "Jupiter",
+      "orientation": "TODEc",
+      "axes": "TODEc",
+      "description": "Jupiter-centered frame using GMAT TODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "JupiterTODEc",
+          "create_coordinate_system": true,
+          "origin": "Jupiter",
+          "axes": "TODEc"
+        }
+      }
+    },
+    {
+      "id": "Jupiter_modeq",
+      "name": "JupiterMODEq",
+      "type": "gmat_builtin",
+      "origin": "Jupiter",
+      "orientation": "MODEq",
+      "axes": "MODEq",
+      "description": "Jupiter-centered frame using GMAT MODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "JupiterMODEq",
+          "create_coordinate_system": true,
+          "origin": "Jupiter",
+          "axes": "MODEq"
+        }
+      }
+    },
+    {
+      "id": "Jupiter_modec",
+      "name": "JupiterMODEc",
+      "type": "gmat_builtin",
+      "origin": "Jupiter",
+      "orientation": "MODEc",
+      "axes": "MODEc",
+      "description": "Jupiter-centered frame using GMAT MODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "JupiterMODEc",
+          "create_coordinate_system": true,
+          "origin": "Jupiter",
+          "axes": "MODEc"
+        }
+      }
+    },
+    {
+      "id": "Jupiter_equator",
+      "name": "JupiterEquator",
+      "type": "equator",
+      "origin": "Jupiter",
+      "orientation": "Equator",
+      "axes": "Equator",
+      "description": "Jupiter-centered frame using GMAT Equator axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "JupiterEquator",
+          "create_coordinate_system": true,
+          "origin": "Jupiter",
+          "axes": "Equator"
+        }
+      }
+    },
+    {
+      "id": "Jupiter_bodyfixed",
+      "name": "JupiterFixed",
+      "type": "body_fixed",
+      "origin": "Jupiter",
+      "orientation": "BodyFixed",
+      "axes": "BodyFixed",
+      "description": "Jupiter-centered frame using GMAT BodyFixed axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "JupiterFixed",
+          "create_coordinate_system": true,
+          "origin": "Jupiter",
+          "axes": "BodyFixed"
+        }
+      }
+    },
+    {
+      "id": "Jupiter_bodyinertial",
+      "name": "JupiterBodyInertial",
+      "type": "body_inertial",
+      "origin": "Jupiter",
+      "orientation": "BodyInertial",
+      "axes": "BodyInertial",
+      "description": "Jupiter-centered frame using GMAT BodyInertial axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "JupiterBodyInertial",
+          "create_coordinate_system": true,
+          "origin": "Jupiter",
+          "axes": "BodyInertial"
+        }
+      }
+    },
+    {
+      "id": "Jupiter_icrf",
+      "name": "JupiterICRF",
+      "type": "icrf",
+      "origin": "Jupiter",
+      "orientation": "ICRF",
+      "axes": "ICRF",
+      "description": "Jupiter-centered frame using GMAT ICRF axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "JupiterICRF",
+          "create_coordinate_system": true,
+          "origin": "Jupiter",
+          "axes": "ICRF"
+        }
+      }
+    },
+    {
+      "id": "Jupiter_bodyspinsun",
+      "name": "JupiterBodySpinSun",
+      "type": "body_spin_sun",
+      "origin": "Jupiter",
+      "orientation": "BodySpinSun",
+      "axes": "BodySpinSun",
+      "description": "Jupiter-centered frame using GMAT BodySpinSun axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "JupiterBodySpinSun",
+          "create_coordinate_system": true,
+          "origin": "Jupiter",
+          "axes": "BodySpinSun"
+        }
+      }
+    },
+    {
+      "id": "Saturn_mj2000eq",
+      "name": "SaturnMJ2000Eq",
+      "type": "body_inertial_equatorial",
+      "origin": "Saturn",
+      "orientation": "MJ2000Eq",
+      "axes": "MJ2000Eq",
+      "description": "Saturn-centered frame using GMAT MJ2000Eq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SaturnMJ2000Eq",
+          "create_coordinate_system": true,
+          "origin": "Saturn",
+          "axes": "MJ2000Eq"
+        }
+      }
+    },
+    {
+      "id": "Saturn_mj2000ec",
+      "name": "SaturnMJ2000Ec",
+      "type": "body_inertial_ecliptic",
+      "origin": "Saturn",
+      "orientation": "MJ2000Ec",
+      "axes": "MJ2000Ec",
+      "description": "Saturn-centered frame using GMAT MJ2000Ec axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SaturnMJ2000Ec",
+          "create_coordinate_system": true,
+          "origin": "Saturn",
+          "axes": "MJ2000Ec"
+        }
+      }
+    },
+    {
+      "id": "Saturn_toeeq",
+      "name": "SaturnTOEEq",
+      "type": "gmat_builtin",
+      "origin": "Saturn",
+      "orientation": "TOEEq",
+      "axes": "TOEEq",
+      "description": "Saturn-centered frame using GMAT TOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SaturnTOEEq",
+          "create_coordinate_system": true,
+          "origin": "Saturn",
+          "axes": "TOEEq"
+        }
+      }
+    },
+    {
+      "id": "Saturn_toeec",
+      "name": "SaturnTOEEc",
+      "type": "gmat_builtin",
+      "origin": "Saturn",
+      "orientation": "TOEEc",
+      "axes": "TOEEc",
+      "description": "Saturn-centered frame using GMAT TOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SaturnTOEEc",
+          "create_coordinate_system": true,
+          "origin": "Saturn",
+          "axes": "TOEEc"
+        }
+      }
+    },
+    {
+      "id": "Saturn_moeeq",
+      "name": "SaturnMOEEq",
+      "type": "gmat_builtin",
+      "origin": "Saturn",
+      "orientation": "MOEEq",
+      "axes": "MOEEq",
+      "description": "Saturn-centered frame using GMAT MOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SaturnMOEEq",
+          "create_coordinate_system": true,
+          "origin": "Saturn",
+          "axes": "MOEEq"
+        }
+      }
+    },
+    {
+      "id": "Saturn_moeec",
+      "name": "SaturnMOEEc",
+      "type": "gmat_builtin",
+      "origin": "Saturn",
+      "orientation": "MOEEc",
+      "axes": "MOEEc",
+      "description": "Saturn-centered frame using GMAT MOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SaturnMOEEc",
+          "create_coordinate_system": true,
+          "origin": "Saturn",
+          "axes": "MOEEc"
+        }
+      }
+    },
+    {
+      "id": "Saturn_todeq",
+      "name": "SaturnTODEq",
+      "type": "gmat_builtin",
+      "origin": "Saturn",
+      "orientation": "TODEq",
+      "axes": "TODEq",
+      "description": "Saturn-centered frame using GMAT TODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SaturnTODEq",
+          "create_coordinate_system": true,
+          "origin": "Saturn",
+          "axes": "TODEq"
+        }
+      }
+    },
+    {
+      "id": "Saturn_todec",
+      "name": "SaturnTODEc",
+      "type": "gmat_builtin",
+      "origin": "Saturn",
+      "orientation": "TODEc",
+      "axes": "TODEc",
+      "description": "Saturn-centered frame using GMAT TODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SaturnTODEc",
+          "create_coordinate_system": true,
+          "origin": "Saturn",
+          "axes": "TODEc"
+        }
+      }
+    },
+    {
+      "id": "Saturn_modeq",
+      "name": "SaturnMODEq",
+      "type": "gmat_builtin",
+      "origin": "Saturn",
+      "orientation": "MODEq",
+      "axes": "MODEq",
+      "description": "Saturn-centered frame using GMAT MODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SaturnMODEq",
+          "create_coordinate_system": true,
+          "origin": "Saturn",
+          "axes": "MODEq"
+        }
+      }
+    },
+    {
+      "id": "Saturn_modec",
+      "name": "SaturnMODEc",
+      "type": "gmat_builtin",
+      "origin": "Saturn",
+      "orientation": "MODEc",
+      "axes": "MODEc",
+      "description": "Saturn-centered frame using GMAT MODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SaturnMODEc",
+          "create_coordinate_system": true,
+          "origin": "Saturn",
+          "axes": "MODEc"
+        }
+      }
+    },
+    {
+      "id": "Saturn_equator",
+      "name": "SaturnEquator",
+      "type": "equator",
+      "origin": "Saturn",
+      "orientation": "Equator",
+      "axes": "Equator",
+      "description": "Saturn-centered frame using GMAT Equator axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SaturnEquator",
+          "create_coordinate_system": true,
+          "origin": "Saturn",
+          "axes": "Equator"
+        }
+      }
+    },
+    {
+      "id": "Saturn_bodyfixed",
+      "name": "SaturnFixed",
+      "type": "body_fixed",
+      "origin": "Saturn",
+      "orientation": "BodyFixed",
+      "axes": "BodyFixed",
+      "description": "Saturn-centered frame using GMAT BodyFixed axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SaturnFixed",
+          "create_coordinate_system": true,
+          "origin": "Saturn",
+          "axes": "BodyFixed"
+        }
+      }
+    },
+    {
+      "id": "Saturn_bodyinertial",
+      "name": "SaturnBodyInertial",
+      "type": "body_inertial",
+      "origin": "Saturn",
+      "orientation": "BodyInertial",
+      "axes": "BodyInertial",
+      "description": "Saturn-centered frame using GMAT BodyInertial axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SaturnBodyInertial",
+          "create_coordinate_system": true,
+          "origin": "Saturn",
+          "axes": "BodyInertial"
+        }
+      }
+    },
+    {
+      "id": "Saturn_icrf",
+      "name": "SaturnICRF",
+      "type": "icrf",
+      "origin": "Saturn",
+      "orientation": "ICRF",
+      "axes": "ICRF",
+      "description": "Saturn-centered frame using GMAT ICRF axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SaturnICRF",
+          "create_coordinate_system": true,
+          "origin": "Saturn",
+          "axes": "ICRF"
+        }
+      }
+    },
+    {
+      "id": "Saturn_bodyspinsun",
+      "name": "SaturnBodySpinSun",
+      "type": "body_spin_sun",
+      "origin": "Saturn",
+      "orientation": "BodySpinSun",
+      "axes": "BodySpinSun",
+      "description": "Saturn-centered frame using GMAT BodySpinSun axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SaturnBodySpinSun",
+          "create_coordinate_system": true,
+          "origin": "Saturn",
+          "axes": "BodySpinSun"
+        }
+      }
+    },
+    {
+      "id": "Uranus_mj2000eq",
+      "name": "UranusMJ2000Eq",
+      "type": "body_inertial_equatorial",
+      "origin": "Uranus",
+      "orientation": "MJ2000Eq",
+      "axes": "MJ2000Eq",
+      "description": "Uranus-centered frame using GMAT MJ2000Eq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "UranusMJ2000Eq",
+          "create_coordinate_system": true,
+          "origin": "Uranus",
+          "axes": "MJ2000Eq"
+        }
+      }
+    },
+    {
+      "id": "Uranus_mj2000ec",
+      "name": "UranusMJ2000Ec",
+      "type": "body_inertial_ecliptic",
+      "origin": "Uranus",
+      "orientation": "MJ2000Ec",
+      "axes": "MJ2000Ec",
+      "description": "Uranus-centered frame using GMAT MJ2000Ec axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "UranusMJ2000Ec",
+          "create_coordinate_system": true,
+          "origin": "Uranus",
+          "axes": "MJ2000Ec"
+        }
+      }
+    },
+    {
+      "id": "Uranus_toeeq",
+      "name": "UranusTOEEq",
+      "type": "gmat_builtin",
+      "origin": "Uranus",
+      "orientation": "TOEEq",
+      "axes": "TOEEq",
+      "description": "Uranus-centered frame using GMAT TOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "UranusTOEEq",
+          "create_coordinate_system": true,
+          "origin": "Uranus",
+          "axes": "TOEEq"
+        }
+      }
+    },
+    {
+      "id": "Uranus_toeec",
+      "name": "UranusTOEEc",
+      "type": "gmat_builtin",
+      "origin": "Uranus",
+      "orientation": "TOEEc",
+      "axes": "TOEEc",
+      "description": "Uranus-centered frame using GMAT TOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "UranusTOEEc",
+          "create_coordinate_system": true,
+          "origin": "Uranus",
+          "axes": "TOEEc"
+        }
+      }
+    },
+    {
+      "id": "Uranus_moeeq",
+      "name": "UranusMOEEq",
+      "type": "gmat_builtin",
+      "origin": "Uranus",
+      "orientation": "MOEEq",
+      "axes": "MOEEq",
+      "description": "Uranus-centered frame using GMAT MOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "UranusMOEEq",
+          "create_coordinate_system": true,
+          "origin": "Uranus",
+          "axes": "MOEEq"
+        }
+      }
+    },
+    {
+      "id": "Uranus_moeec",
+      "name": "UranusMOEEc",
+      "type": "gmat_builtin",
+      "origin": "Uranus",
+      "orientation": "MOEEc",
+      "axes": "MOEEc",
+      "description": "Uranus-centered frame using GMAT MOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "UranusMOEEc",
+          "create_coordinate_system": true,
+          "origin": "Uranus",
+          "axes": "MOEEc"
+        }
+      }
+    },
+    {
+      "id": "Uranus_todeq",
+      "name": "UranusTODEq",
+      "type": "gmat_builtin",
+      "origin": "Uranus",
+      "orientation": "TODEq",
+      "axes": "TODEq",
+      "description": "Uranus-centered frame using GMAT TODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "UranusTODEq",
+          "create_coordinate_system": true,
+          "origin": "Uranus",
+          "axes": "TODEq"
+        }
+      }
+    },
+    {
+      "id": "Uranus_todec",
+      "name": "UranusTODEc",
+      "type": "gmat_builtin",
+      "origin": "Uranus",
+      "orientation": "TODEc",
+      "axes": "TODEc",
+      "description": "Uranus-centered frame using GMAT TODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "UranusTODEc",
+          "create_coordinate_system": true,
+          "origin": "Uranus",
+          "axes": "TODEc"
+        }
+      }
+    },
+    {
+      "id": "Uranus_modeq",
+      "name": "UranusMODEq",
+      "type": "gmat_builtin",
+      "origin": "Uranus",
+      "orientation": "MODEq",
+      "axes": "MODEq",
+      "description": "Uranus-centered frame using GMAT MODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "UranusMODEq",
+          "create_coordinate_system": true,
+          "origin": "Uranus",
+          "axes": "MODEq"
+        }
+      }
+    },
+    {
+      "id": "Uranus_modec",
+      "name": "UranusMODEc",
+      "type": "gmat_builtin",
+      "origin": "Uranus",
+      "orientation": "MODEc",
+      "axes": "MODEc",
+      "description": "Uranus-centered frame using GMAT MODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "UranusMODEc",
+          "create_coordinate_system": true,
+          "origin": "Uranus",
+          "axes": "MODEc"
+        }
+      }
+    },
+    {
+      "id": "Uranus_equator",
+      "name": "UranusEquator",
+      "type": "equator",
+      "origin": "Uranus",
+      "orientation": "Equator",
+      "axes": "Equator",
+      "description": "Uranus-centered frame using GMAT Equator axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "UranusEquator",
+          "create_coordinate_system": true,
+          "origin": "Uranus",
+          "axes": "Equator"
+        }
+      }
+    },
+    {
+      "id": "Uranus_bodyfixed",
+      "name": "UranusFixed",
+      "type": "body_fixed",
+      "origin": "Uranus",
+      "orientation": "BodyFixed",
+      "axes": "BodyFixed",
+      "description": "Uranus-centered frame using GMAT BodyFixed axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "UranusFixed",
+          "create_coordinate_system": true,
+          "origin": "Uranus",
+          "axes": "BodyFixed"
+        }
+      }
+    },
+    {
+      "id": "Uranus_bodyinertial",
+      "name": "UranusBodyInertial",
+      "type": "body_inertial",
+      "origin": "Uranus",
+      "orientation": "BodyInertial",
+      "axes": "BodyInertial",
+      "description": "Uranus-centered frame using GMAT BodyInertial axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "UranusBodyInertial",
+          "create_coordinate_system": true,
+          "origin": "Uranus",
+          "axes": "BodyInertial"
+        }
+      }
+    },
+    {
+      "id": "Uranus_icrf",
+      "name": "UranusICRF",
+      "type": "icrf",
+      "origin": "Uranus",
+      "orientation": "ICRF",
+      "axes": "ICRF",
+      "description": "Uranus-centered frame using GMAT ICRF axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "UranusICRF",
+          "create_coordinate_system": true,
+          "origin": "Uranus",
+          "axes": "ICRF"
+        }
+      }
+    },
+    {
+      "id": "Uranus_bodyspinsun",
+      "name": "UranusBodySpinSun",
+      "type": "body_spin_sun",
+      "origin": "Uranus",
+      "orientation": "BodySpinSun",
+      "axes": "BodySpinSun",
+      "description": "Uranus-centered frame using GMAT BodySpinSun axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "UranusBodySpinSun",
+          "create_coordinate_system": true,
+          "origin": "Uranus",
+          "axes": "BodySpinSun"
+        }
+      }
+    },
+    {
+      "id": "Neptune_mj2000eq",
+      "name": "NeptuneMJ2000Eq",
+      "type": "body_inertial_equatorial",
+      "origin": "Neptune",
+      "orientation": "MJ2000Eq",
+      "axes": "MJ2000Eq",
+      "description": "Neptune-centered frame using GMAT MJ2000Eq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "NeptuneMJ2000Eq",
+          "create_coordinate_system": true,
+          "origin": "Neptune",
+          "axes": "MJ2000Eq"
+        }
+      }
+    },
+    {
+      "id": "Neptune_mj2000ec",
+      "name": "NeptuneMJ2000Ec",
+      "type": "body_inertial_ecliptic",
+      "origin": "Neptune",
+      "orientation": "MJ2000Ec",
+      "axes": "MJ2000Ec",
+      "description": "Neptune-centered frame using GMAT MJ2000Ec axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "NeptuneMJ2000Ec",
+          "create_coordinate_system": true,
+          "origin": "Neptune",
+          "axes": "MJ2000Ec"
+        }
+      }
+    },
+    {
+      "id": "Neptune_toeeq",
+      "name": "NeptuneTOEEq",
+      "type": "gmat_builtin",
+      "origin": "Neptune",
+      "orientation": "TOEEq",
+      "axes": "TOEEq",
+      "description": "Neptune-centered frame using GMAT TOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "NeptuneTOEEq",
+          "create_coordinate_system": true,
+          "origin": "Neptune",
+          "axes": "TOEEq"
+        }
+      }
+    },
+    {
+      "id": "Neptune_toeec",
+      "name": "NeptuneTOEEc",
+      "type": "gmat_builtin",
+      "origin": "Neptune",
+      "orientation": "TOEEc",
+      "axes": "TOEEc",
+      "description": "Neptune-centered frame using GMAT TOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "NeptuneTOEEc",
+          "create_coordinate_system": true,
+          "origin": "Neptune",
+          "axes": "TOEEc"
+        }
+      }
+    },
+    {
+      "id": "Neptune_moeeq",
+      "name": "NeptuneMOEEq",
+      "type": "gmat_builtin",
+      "origin": "Neptune",
+      "orientation": "MOEEq",
+      "axes": "MOEEq",
+      "description": "Neptune-centered frame using GMAT MOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "NeptuneMOEEq",
+          "create_coordinate_system": true,
+          "origin": "Neptune",
+          "axes": "MOEEq"
+        }
+      }
+    },
+    {
+      "id": "Neptune_moeec",
+      "name": "NeptuneMOEEc",
+      "type": "gmat_builtin",
+      "origin": "Neptune",
+      "orientation": "MOEEc",
+      "axes": "MOEEc",
+      "description": "Neptune-centered frame using GMAT MOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "NeptuneMOEEc",
+          "create_coordinate_system": true,
+          "origin": "Neptune",
+          "axes": "MOEEc"
+        }
+      }
+    },
+    {
+      "id": "Neptune_todeq",
+      "name": "NeptuneTODEq",
+      "type": "gmat_builtin",
+      "origin": "Neptune",
+      "orientation": "TODEq",
+      "axes": "TODEq",
+      "description": "Neptune-centered frame using GMAT TODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "NeptuneTODEq",
+          "create_coordinate_system": true,
+          "origin": "Neptune",
+          "axes": "TODEq"
+        }
+      }
+    },
+    {
+      "id": "Neptune_todec",
+      "name": "NeptuneTODEc",
+      "type": "gmat_builtin",
+      "origin": "Neptune",
+      "orientation": "TODEc",
+      "axes": "TODEc",
+      "description": "Neptune-centered frame using GMAT TODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "NeptuneTODEc",
+          "create_coordinate_system": true,
+          "origin": "Neptune",
+          "axes": "TODEc"
+        }
+      }
+    },
+    {
+      "id": "Neptune_modeq",
+      "name": "NeptuneMODEq",
+      "type": "gmat_builtin",
+      "origin": "Neptune",
+      "orientation": "MODEq",
+      "axes": "MODEq",
+      "description": "Neptune-centered frame using GMAT MODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "NeptuneMODEq",
+          "create_coordinate_system": true,
+          "origin": "Neptune",
+          "axes": "MODEq"
+        }
+      }
+    },
+    {
+      "id": "Neptune_modec",
+      "name": "NeptuneMODEc",
+      "type": "gmat_builtin",
+      "origin": "Neptune",
+      "orientation": "MODEc",
+      "axes": "MODEc",
+      "description": "Neptune-centered frame using GMAT MODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "NeptuneMODEc",
+          "create_coordinate_system": true,
+          "origin": "Neptune",
+          "axes": "MODEc"
+        }
+      }
+    },
+    {
+      "id": "Neptune_equator",
+      "name": "NeptuneEquator",
+      "type": "equator",
+      "origin": "Neptune",
+      "orientation": "Equator",
+      "axes": "Equator",
+      "description": "Neptune-centered frame using GMAT Equator axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "NeptuneEquator",
+          "create_coordinate_system": true,
+          "origin": "Neptune",
+          "axes": "Equator"
+        }
+      }
+    },
+    {
+      "id": "Neptune_bodyfixed",
+      "name": "NeptuneFixed",
+      "type": "body_fixed",
+      "origin": "Neptune",
+      "orientation": "BodyFixed",
+      "axes": "BodyFixed",
+      "description": "Neptune-centered frame using GMAT BodyFixed axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "NeptuneFixed",
+          "create_coordinate_system": true,
+          "origin": "Neptune",
+          "axes": "BodyFixed"
+        }
+      }
+    },
+    {
+      "id": "Neptune_bodyinertial",
+      "name": "NeptuneBodyInertial",
+      "type": "body_inertial",
+      "origin": "Neptune",
+      "orientation": "BodyInertial",
+      "axes": "BodyInertial",
+      "description": "Neptune-centered frame using GMAT BodyInertial axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "NeptuneBodyInertial",
+          "create_coordinate_system": true,
+          "origin": "Neptune",
+          "axes": "BodyInertial"
+        }
+      }
+    },
+    {
+      "id": "Neptune_icrf",
+      "name": "NeptuneICRF",
+      "type": "icrf",
+      "origin": "Neptune",
+      "orientation": "ICRF",
+      "axes": "ICRF",
+      "description": "Neptune-centered frame using GMAT ICRF axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "NeptuneICRF",
+          "create_coordinate_system": true,
+          "origin": "Neptune",
+          "axes": "ICRF"
+        }
+      }
+    },
+    {
+      "id": "Neptune_bodyspinsun",
+      "name": "NeptuneBodySpinSun",
+      "type": "body_spin_sun",
+      "origin": "Neptune",
+      "orientation": "BodySpinSun",
+      "axes": "BodySpinSun",
+      "description": "Neptune-centered frame using GMAT BodySpinSun axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "NeptuneBodySpinSun",
+          "create_coordinate_system": true,
+          "origin": "Neptune",
+          "axes": "BodySpinSun"
+        }
+      }
+    },
+    {
+      "id": "Pluto_mj2000eq",
+      "name": "PlutoMJ2000Eq",
+      "type": "body_inertial_equatorial",
+      "origin": "Pluto",
+      "orientation": "MJ2000Eq",
+      "axes": "MJ2000Eq",
+      "description": "Pluto-centered frame using GMAT MJ2000Eq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "PlutoMJ2000Eq",
+          "create_coordinate_system": true,
+          "origin": "Pluto",
+          "axes": "MJ2000Eq"
+        }
+      }
+    },
+    {
+      "id": "Pluto_mj2000ec",
+      "name": "PlutoMJ2000Ec",
+      "type": "body_inertial_ecliptic",
+      "origin": "Pluto",
+      "orientation": "MJ2000Ec",
+      "axes": "MJ2000Ec",
+      "description": "Pluto-centered frame using GMAT MJ2000Ec axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "PlutoMJ2000Ec",
+          "create_coordinate_system": true,
+          "origin": "Pluto",
+          "axes": "MJ2000Ec"
+        }
+      }
+    },
+    {
+      "id": "Pluto_toeeq",
+      "name": "PlutoTOEEq",
+      "type": "gmat_builtin",
+      "origin": "Pluto",
+      "orientation": "TOEEq",
+      "axes": "TOEEq",
+      "description": "Pluto-centered frame using GMAT TOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "PlutoTOEEq",
+          "create_coordinate_system": true,
+          "origin": "Pluto",
+          "axes": "TOEEq"
+        }
+      }
+    },
+    {
+      "id": "Pluto_toeec",
+      "name": "PlutoTOEEc",
+      "type": "gmat_builtin",
+      "origin": "Pluto",
+      "orientation": "TOEEc",
+      "axes": "TOEEc",
+      "description": "Pluto-centered frame using GMAT TOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "PlutoTOEEc",
+          "create_coordinate_system": true,
+          "origin": "Pluto",
+          "axes": "TOEEc"
+        }
+      }
+    },
+    {
+      "id": "Pluto_moeeq",
+      "name": "PlutoMOEEq",
+      "type": "gmat_builtin",
+      "origin": "Pluto",
+      "orientation": "MOEEq",
+      "axes": "MOEEq",
+      "description": "Pluto-centered frame using GMAT MOEEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "PlutoMOEEq",
+          "create_coordinate_system": true,
+          "origin": "Pluto",
+          "axes": "MOEEq"
+        }
+      }
+    },
+    {
+      "id": "Pluto_moeec",
+      "name": "PlutoMOEEc",
+      "type": "gmat_builtin",
+      "origin": "Pluto",
+      "orientation": "MOEEc",
+      "axes": "MOEEc",
+      "description": "Pluto-centered frame using GMAT MOEEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "PlutoMOEEc",
+          "create_coordinate_system": true,
+          "origin": "Pluto",
+          "axes": "MOEEc"
+        }
+      }
+    },
+    {
+      "id": "Pluto_todeq",
+      "name": "PlutoTODEq",
+      "type": "gmat_builtin",
+      "origin": "Pluto",
+      "orientation": "TODEq",
+      "axes": "TODEq",
+      "description": "Pluto-centered frame using GMAT TODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "PlutoTODEq",
+          "create_coordinate_system": true,
+          "origin": "Pluto",
+          "axes": "TODEq"
+        }
+      }
+    },
+    {
+      "id": "Pluto_todec",
+      "name": "PlutoTODEc",
+      "type": "gmat_builtin",
+      "origin": "Pluto",
+      "orientation": "TODEc",
+      "axes": "TODEc",
+      "description": "Pluto-centered frame using GMAT TODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "PlutoTODEc",
+          "create_coordinate_system": true,
+          "origin": "Pluto",
+          "axes": "TODEc"
+        }
+      }
+    },
+    {
+      "id": "Pluto_modeq",
+      "name": "PlutoMODEq",
+      "type": "gmat_builtin",
+      "origin": "Pluto",
+      "orientation": "MODEq",
+      "axes": "MODEq",
+      "description": "Pluto-centered frame using GMAT MODEq axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "PlutoMODEq",
+          "create_coordinate_system": true,
+          "origin": "Pluto",
+          "axes": "MODEq"
+        }
+      }
+    },
+    {
+      "id": "Pluto_modec",
+      "name": "PlutoMODEc",
+      "type": "gmat_builtin",
+      "origin": "Pluto",
+      "orientation": "MODEc",
+      "axes": "MODEc",
+      "description": "Pluto-centered frame using GMAT MODEc axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "PlutoMODEc",
+          "create_coordinate_system": true,
+          "origin": "Pluto",
+          "axes": "MODEc"
+        }
+      }
+    },
+    {
+      "id": "Pluto_equator",
+      "name": "PlutoEquator",
+      "type": "equator",
+      "origin": "Pluto",
+      "orientation": "Equator",
+      "axes": "Equator",
+      "description": "Pluto-centered frame using GMAT Equator axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "PlutoEquator",
+          "create_coordinate_system": true,
+          "origin": "Pluto",
+          "axes": "Equator"
+        }
+      }
+    },
+    {
+      "id": "Pluto_bodyfixed",
+      "name": "PlutoFixed",
+      "type": "body_fixed",
+      "origin": "Pluto",
+      "orientation": "BodyFixed",
+      "axes": "BodyFixed",
+      "description": "Pluto-centered frame using GMAT BodyFixed axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "PlutoFixed",
+          "create_coordinate_system": true,
+          "origin": "Pluto",
+          "axes": "BodyFixed"
+        }
+      }
+    },
+    {
+      "id": "Pluto_bodyinertial",
+      "name": "PlutoBodyInertial",
+      "type": "body_inertial",
+      "origin": "Pluto",
+      "orientation": "BodyInertial",
+      "axes": "BodyInertial",
+      "description": "Pluto-centered frame using GMAT BodyInertial axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "PlutoBodyInertial",
+          "create_coordinate_system": true,
+          "origin": "Pluto",
+          "axes": "BodyInertial"
+        }
+      }
+    },
+    {
+      "id": "Pluto_icrf",
+      "name": "PlutoICRF",
+      "type": "icrf",
+      "origin": "Pluto",
+      "orientation": "ICRF",
+      "axes": "ICRF",
+      "description": "Pluto-centered frame using GMAT ICRF axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "PlutoICRF",
+          "create_coordinate_system": true,
+          "origin": "Pluto",
+          "axes": "ICRF"
+        }
+      }
+    },
+    {
+      "id": "Pluto_bodyspinsun",
+      "name": "PlutoBodySpinSun",
+      "type": "body_spin_sun",
+      "origin": "Pluto",
+      "orientation": "BodySpinSun",
+      "axes": "BodySpinSun",
+      "description": "Pluto-centered frame using GMAT BodySpinSun axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "PlutoBodySpinSun",
+          "create_coordinate_system": true,
+          "origin": "Pluto",
+          "axes": "BodySpinSun"
+        }
+      }
+    },
+    {
+      "id": "Earth_gse",
+      "name": "EarthGSE",
+      "type": "gse",
+      "origin": "Earth",
+      "orientation": "GSE",
+      "axes": "GSE",
+      "description": "Earth-centered frame using GMAT GSE axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthGSE",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "GSE"
+        }
+      }
+    },
+    {
+      "id": "Earth_gsm",
+      "name": "EarthGSM",
+      "type": "gsm",
+      "origin": "Earth",
+      "orientation": "GSM",
+      "axes": "GSM",
+      "description": "Earth-centered frame using GMAT GSM axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthGSM",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "GSM"
+        }
+      }
+    },
+    {
+      "id": "Earth_teme",
+      "name": "EarthTEME",
+      "type": "teme",
+      "origin": "Earth",
+      "orientation": "TEME",
+      "axes": "TEME",
+      "description": "Earth-centered frame using GMAT TEME axes.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthTEME",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "TEME"
+        }
+      }
+    },
+    {
+      "id": "MercurySunRotating",
+      "name": "MercurySunRotating",
+      "type": "object_referenced",
+      "origin": "Mercury",
+      "primary": "Mercury",
+      "secondary": "Sun",
+      "orientation": "ObjectReferenced",
+      "axes": "ObjectReferenced",
+      "plane": "N",
+      "x_axis": "R",
+      "y_axis": null,
+      "z_axis": "N",
+      "description": "Mercury-centered frame using the Mercury-Sun line and the Mercury orbit plane about Sun.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MercurySunRotating",
+          "create_coordinate_system": true,
+          "origin": "Mercury",
+          "axes": "ObjectReferenced",
+          "primary": "Mercury",
+          "secondary": "Sun",
+          "x_axis": "R",
+          "z_axis": "N"
+        }
+      }
+    },
+    {
+      "id": "VenusSunRotating",
+      "name": "VenusSunRotating",
+      "type": "object_referenced",
+      "origin": "Venus",
+      "primary": "Venus",
+      "secondary": "Sun",
+      "orientation": "ObjectReferenced",
+      "axes": "ObjectReferenced",
+      "plane": "N",
+      "x_axis": "R",
+      "y_axis": null,
+      "z_axis": "N",
+      "description": "Venus-centered frame using the Venus-Sun line and the Venus orbit plane about Sun.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "VenusSunRotating",
+          "create_coordinate_system": true,
+          "origin": "Venus",
+          "axes": "ObjectReferenced",
+          "primary": "Venus",
+          "secondary": "Sun",
+          "x_axis": "R",
+          "z_axis": "N"
+        }
+      }
+    },
+    {
+      "id": "EarthSunRotating",
+      "name": "EarthSunRotating",
+      "type": "object_referenced",
+      "origin": "Earth",
+      "primary": "Earth",
+      "secondary": "Sun",
+      "orientation": "ObjectReferenced",
+      "axes": "ObjectReferenced",
+      "plane": "N",
+      "x_axis": "R",
+      "y_axis": null,
+      "z_axis": "N",
+      "description": "Earth-centered frame using the Earth-Sun line and the Earth orbit plane about Sun.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthSunRotating",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "ObjectReferenced",
+          "primary": "Earth",
+          "secondary": "Sun",
+          "x_axis": "R",
+          "z_axis": "N"
+        }
+      }
+    },
+    {
+      "id": "LunaEarthRotating",
+      "name": "LunaEarthRotating",
+      "type": "object_referenced",
+      "origin": "Luna",
+      "primary": "Luna",
+      "secondary": "Earth",
+      "orientation": "ObjectReferenced",
+      "axes": "ObjectReferenced",
+      "plane": "N",
+      "x_axis": "R",
+      "y_axis": null,
+      "z_axis": "N",
+      "description": "Luna-centered frame using the Luna-Earth line and the Luna orbit plane about Earth.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "LunaEarthRotating",
+          "create_coordinate_system": true,
+          "origin": "Luna",
+          "axes": "ObjectReferenced",
+          "primary": "Luna",
+          "secondary": "Earth",
+          "x_axis": "R",
+          "z_axis": "N"
+        }
+      }
+    },
+    {
+      "id": "MarsSunRotating",
+      "name": "MarsSunRotating",
+      "type": "object_referenced",
+      "origin": "Mars",
+      "primary": "Mars",
+      "secondary": "Sun",
+      "orientation": "ObjectReferenced",
+      "axes": "ObjectReferenced",
+      "plane": "N",
+      "x_axis": "R",
+      "y_axis": null,
+      "z_axis": "N",
+      "description": "Mars-centered frame using the Mars-Sun line and the Mars orbit plane about Sun.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "MarsSunRotating",
+          "create_coordinate_system": true,
+          "origin": "Mars",
+          "axes": "ObjectReferenced",
+          "primary": "Mars",
+          "secondary": "Sun",
+          "x_axis": "R",
+          "z_axis": "N"
+        }
+      }
+    },
+    {
+      "id": "JupiterSunRotating",
+      "name": "JupiterSunRotating",
+      "type": "object_referenced",
+      "origin": "Jupiter",
+      "primary": "Jupiter",
+      "secondary": "Sun",
+      "orientation": "ObjectReferenced",
+      "axes": "ObjectReferenced",
+      "plane": "N",
+      "x_axis": "R",
+      "y_axis": null,
+      "z_axis": "N",
+      "description": "Jupiter-centered frame using the Jupiter-Sun line and the Jupiter orbit plane about Sun.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "JupiterSunRotating",
+          "create_coordinate_system": true,
+          "origin": "Jupiter",
+          "axes": "ObjectReferenced",
+          "primary": "Jupiter",
+          "secondary": "Sun",
+          "x_axis": "R",
+          "z_axis": "N"
+        }
+      }
+    },
+    {
+      "id": "SaturnSunRotating",
+      "name": "SaturnSunRotating",
+      "type": "object_referenced",
+      "origin": "Saturn",
+      "primary": "Saturn",
+      "secondary": "Sun",
+      "orientation": "ObjectReferenced",
+      "axes": "ObjectReferenced",
+      "plane": "N",
+      "x_axis": "R",
+      "y_axis": null,
+      "z_axis": "N",
+      "description": "Saturn-centered frame using the Saturn-Sun line and the Saturn orbit plane about Sun.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "SaturnSunRotating",
+          "create_coordinate_system": true,
+          "origin": "Saturn",
+          "axes": "ObjectReferenced",
+          "primary": "Saturn",
+          "secondary": "Sun",
+          "x_axis": "R",
+          "z_axis": "N"
+        }
+      }
+    },
+    {
+      "id": "UranusSunRotating",
+      "name": "UranusSunRotating",
+      "type": "object_referenced",
+      "origin": "Uranus",
+      "primary": "Uranus",
+      "secondary": "Sun",
+      "orientation": "ObjectReferenced",
+      "axes": "ObjectReferenced",
+      "plane": "N",
+      "x_axis": "R",
+      "y_axis": null,
+      "z_axis": "N",
+      "description": "Uranus-centered frame using the Uranus-Sun line and the Uranus orbit plane about Sun.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "UranusSunRotating",
+          "create_coordinate_system": true,
+          "origin": "Uranus",
+          "axes": "ObjectReferenced",
+          "primary": "Uranus",
+          "secondary": "Sun",
+          "x_axis": "R",
+          "z_axis": "N"
+        }
+      }
+    },
+    {
+      "id": "NeptuneSunRotating",
+      "name": "NeptuneSunRotating",
+      "type": "object_referenced",
+      "origin": "Neptune",
+      "primary": "Neptune",
+      "secondary": "Sun",
+      "orientation": "ObjectReferenced",
+      "axes": "ObjectReferenced",
+      "plane": "N",
+      "x_axis": "R",
+      "y_axis": null,
+      "z_axis": "N",
+      "description": "Neptune-centered frame using the Neptune-Sun line and the Neptune orbit plane about Sun.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "NeptuneSunRotating",
+          "create_coordinate_system": true,
+          "origin": "Neptune",
+          "axes": "ObjectReferenced",
+          "primary": "Neptune",
+          "secondary": "Sun",
+          "x_axis": "R",
+          "z_axis": "N"
+        }
+      }
+    },
+    {
+      "id": "PlutoSunRotating",
+      "name": "PlutoSunRotating",
+      "type": "object_referenced",
+      "origin": "Pluto",
+      "primary": "Pluto",
+      "secondary": "Sun",
+      "orientation": "ObjectReferenced",
+      "axes": "ObjectReferenced",
+      "plane": "N",
+      "x_axis": "R",
+      "y_axis": null,
+      "z_axis": "N",
+      "description": "Pluto-centered frame using the Pluto-Sun line and the Pluto orbit plane about Sun.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "PlutoSunRotating",
+          "create_coordinate_system": true,
+          "origin": "Pluto",
+          "axes": "ObjectReferenced",
+          "primary": "Pluto",
+          "secondary": "Sun",
+          "x_axis": "R",
+          "z_axis": "N"
+        }
+      }
+    },
+    {
+      "id": "EarthLunaRotating",
+      "name": "EarthLunaRotating",
+      "type": "object_referenced",
+      "origin": "Earth",
+      "primary": "Earth",
+      "secondary": "Luna",
+      "orientation": "ObjectReferenced",
+      "axes": "ObjectReferenced",
+      "plane": "N",
+      "x_axis": "R",
+      "y_axis": null,
+      "z_axis": "N",
+      "description": "Earth-centered Earth-Luna rotating/object-referenced frame.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "EarthLunaRotating",
+          "create_coordinate_system": true,
+          "origin": "Earth",
+          "axes": "ObjectReferenced",
+          "primary": "Earth",
+          "secondary": "Luna",
+          "x_axis": "R",
+          "z_axis": "N"
+        }
+      }
+    },
+    {
+      "id": "DemoSatEarthOrbitFrame",
+      "name": "DemoSatEarthOrbitFrame",
+      "type": "object_referenced",
+      "origin": "DemoSat",
+      "primary": "DemoSat",
+      "secondary": "Earth",
+      "orientation": "ObjectReferenced",
+      "axes": "ObjectReferenced",
+      "plane": "N",
+      "x_axis": "R",
+      "y_axis": null,
+      "z_axis": "N",
+      "description": "DemoSat-centered frame using the DemoSat-Earth line and orbit plane.",
+      "backend_overrides": {
+        "gmat": {
+          "name": "DemoSatEarthOrbitFrame",
+          "create_coordinate_system": true,
+          "origin": "DemoSat",
+          "axes": "ObjectReferenced",
+          "primary": "DemoSat",
+          "secondary": "Earth",
+          "x_axis": "R",
+          "z_axis": "N"
+        }
+      }
+    }
+  ]
+}

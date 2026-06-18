@@ -1,0 +1,205 @@
+{
+  "mission_id": "elliptical_LEO_to_GEO",
+  "paths": {
+    "mission_root": "D:\\Documents and stuff\\Random stuff\\Pet Projects\\Agnetic GMAT\\AMAT\\generated\\elliptical_LEO_to_GEO",
+    "mission_dir": "D:\\Documents and stuff\\Random stuff\\Pet Projects\\Agnetic GMAT\\AMAT\\generated\\elliptical_LEO_to_GEO\\simulation",
+    "outputs_dir": "D:\\Documents and stuff\\Random stuff\\Pet Projects\\Agnetic GMAT\\AMAT\\generated\\elliptical_LEO_to_GEO\\simulation\\outputs",
+    "targeting_dir": "D:\\Documents and stuff\\Random stuff\\Pet Projects\\Agnetic GMAT\\AMAT\\generated\\elliptical_LEO_to_GEO\\targeting",
+    "target_problem": "D:\\Documents and stuff\\Random stuff\\Pet Projects\\Agnetic GMAT\\AMAT\\generated\\elliptical_LEO_to_GEO\\targeting\\target_problem.canonical.json",
+    "targeting_result": "D:\\Documents and stuff\\Random stuff\\Pet Projects\\Agnetic GMAT\\AMAT\\generated\\elliptical_LEO_to_GEO\\targeting\\targeting_result.json",
+    "candidate_mission_spec": "D:\\Documents and stuff\\Random stuff\\Pet Projects\\Agnetic GMAT\\AMAT\\generated\\elliptical_LEO_to_GEO\\targeting\\candidate_mission_spec.json"
+  },
+  "spacecraft_ephemerides": [
+    {
+      "name": "TargetSat (EarthFixed)",
+      "object": "TargetSat",
+      "frame": "EarthFixed",
+      "file": "outputs\\_Ephemeris_TargetSat_EarthFixed.csv",
+      "time_column": "TargetSat.ElapsedSecs",
+      "position_columns": [
+        "TargetSat.EarthFixed.X",
+        "TargetSat.EarthFixed.Y",
+        "TargetSat.EarthFixed.Z"
+      ],
+      "rows": 799,
+      "warnings": []
+    },
+    {
+      "name": "TargetSat (EarthMJ2000Eq)",
+      "object": "TargetSat",
+      "frame": "EarthMJ2000Eq",
+      "file": "outputs\\_Ephemeris_TargetSat_EarthMJ2000Eq.csv",
+      "time_column": "TargetSat.ElapsedSecs",
+      "position_columns": [
+        "TargetSat.EarthMJ2000Eq.X",
+        "TargetSat.EarthMJ2000Eq.Y",
+        "TargetSat.EarthMJ2000Eq.Z"
+      ],
+      "rows": 799,
+      "warnings": []
+    }
+  ],
+  "body_ephemerides": [],
+  "checkpoints": [
+    {
+      "name": "final_state_checkpoint",
+      "file": "outputs\\final_state_checkpoint.csv",
+      "spacecraft": "TargetSat",
+      "frame": "EarthMJ2000Eq",
+      "time_column": "TargetSat.ElapsedSecs",
+      "elapsed_secs": 204462.9749284359,
+      "utc_gregorian": "03 Jan 2026 08:47:42.975",
+      "plotted": true,
+      "matched_trace": "TargetSat (EarthFixed)",
+      "interpolated_xyz": [
+        -38715.48345349111,
+        14541.24953055085,
+        -8214.657985888834
+      ],
+      "warnings": []
+    },
+    {
+      "name": "initial_state",
+      "file": "outputs\\initial_state.csv",
+      "spacecraft": "TargetSat",
+      "frame": "EarthMJ2000Eq",
+      "time_column": "TargetSat.ElapsedSecs",
+      "elapsed_secs": 0.0,
+      "utc_gregorian": "01 Jan 2026 00:00:00.000",
+      "plotted": true,
+      "matched_trace": "TargetSat (EarthFixed)",
+      "interpolated_xyz": [
+        6398.70452516874,
+        -1396.37496877876,
+        1305.458458753443
+      ],
+      "warnings": []
+    },
+    {
+      "name": "post_initial_coast",
+      "file": "outputs\\post_initial_coast.csv",
+      "spacecraft": "TargetSat",
+      "frame": "EarthMJ2000Eq",
+      "time_column": "TargetSat.ElapsedSecs",
+      "elapsed_secs": 10799.99999968568,
+      "utc_gregorian": "01 Jan 2026 03:00:00.000",
+      "plotted": true,
+      "matched_trace": "TargetSat (EarthFixed)",
+      "interpolated_xyz": [
+        3152.427008558574,
+        -5775.753387748779,
+        1140.342580661999
+      ],
+      "warnings": []
+    },
+    {
+      "name": "post_orbit_insertion",
+      "file": "outputs\\post_orbit_insertion.csv",
+      "spacecraft": "TargetSat",
+      "frame": "EarthMJ2000Eq",
+      "time_column": "TargetSat.ElapsedSecs",
+      "elapsed_secs": 31662.97492875019,
+      "utc_gregorian": "01 Jan 2026 08:47:42.975",
+      "plotted": true,
+      "matched_trace": "TargetSat (EarthFixed)",
+      "interpolated_xyz": [
+        -38718.72845062624,
+        14570.253082652,
+        -8147.698757327289
+      ],
+      "warnings": []
+    },
+    {
+      "name": "post_plane_change_at_node",
+      "file": "outputs\\post_plane_change_at_node.csv",
+      "spacecraft": "TargetSat",
+      "frame": "EarthMJ2000Eq",
+      "time_column": "TargetSat.ElapsedSecs",
+      "elapsed_secs": 18864.37730798498,
+      "utc_gregorian": "01 Jan 2026 05:14:24.377",
+      "plotted": true,
+      "matched_trace": "TargetSat (EarthFixed)",
+      "interpolated_xyz": [
+        -25521.336601596417,
+        2009.862838071778,
+        -9801.74072957657
+      ],
+      "warnings": []
+    },
+    {
+      "name": "post_transfer_injection",
+      "file": "outputs\\post_transfer_injection.csv",
+      "spacecraft": "TargetSat",
+      "frame": "EarthMJ2000Eq",
+      "time_column": "TargetSat.ElapsedSecs",
+      "elapsed_secs": 12672.7446471923,
+      "utc_gregorian": "01 Jan 2026 03:31:12.745",
+      "plotted": true,
+      "matched_trace": "TargetSat (EarthFixed)",
+      "interpolated_xyz": [
+        3401.997408261881,
+        5599.872885568302,
+        1290.481205335833
+      ],
+      "warnings": []
+    }
+  ],
+  "ground_tracks": [
+    {
+      "name": "TargetSat ground track (Earth)",
+      "spacecraft": "TargetSat",
+      "body": "Earth",
+      "file": "outputs\\_GroundTrack_TargetSat_Earth.csv",
+      "time_column": "TargetSat.ElapsedSecs",
+      "latitude_column": "TargetSat.Earth.Latitude",
+      "longitude_column": "TargetSat.Earth.Longitude",
+      "altitude_column": "TargetSat.Earth.Altitude",
+      "rows": 799,
+      "warnings": []
+    }
+  ],
+  "frames": [
+    {
+      "name": "EarthMJ2000Eq",
+      "origin": "Earth",
+      "axes": "MJ2000Eq",
+      "source": "mission_spec",
+      "confidence": "high",
+      "raw": {
+        "axes": "MJ2000Eq",
+        "backend_overrides": {
+          "gmat": {
+            "axes": "MJ2000Eq",
+            "create_coordinate_system": true,
+            "name": "EarthMJ2000Eq",
+            "origin": "Earth"
+          }
+        },
+        "id": "Earth_mj2000eq",
+        "name": "EarthMJ2000Eq",
+        "origin": "Earth",
+        "primary": null,
+        "secondary": null,
+        "source": "mission_spec",
+        "type": "body_inertial_equatorial",
+        "x_axis": null,
+        "z_axis": null
+      }
+    },
+    {
+      "name": "EarthFixed",
+      "origin": "Earth",
+      "axes": "Fixed",
+      "source": "ground_track",
+      "confidence": "high",
+      "raw": {
+        "axes": null,
+        "name": "EarthFixed",
+        "origin": null,
+        "source": "output_parameter",
+        "type": "inferred"
+      }
+    }
+  ],
+  "warnings": []
+}

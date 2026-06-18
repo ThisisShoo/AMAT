@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "amat"
+version = "0.2.0"
+description = "AMAT mission workbench: MissionSpec-driven GMAT/SPICE simulation plus interactive trajectory visualization"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "AMAT Project" }
+]
+keywords = [
+  "astrodynamics",
+  "GMAT",
+  "SPICE",
+  "mission planning",
+  "trajectory simulation",
+  "trajectory visualization",
+  "spacecraft"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Astronomy",
+  "Topic :: Scientific/Engineering :: Physics"
+]
+dependencies = [
+  "jsonschema>=4.22",
+  "jinja2>=3.1",
+  "spiceypy>=6.0",
+  "gmatpyplus>=0.11",
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "plotly>=5.20"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0"
+]
+visualization = [
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "plotly>=5.20"
+]
+
+[project.urls]
+Homepage = "https://github.com/weasdown/gmatpyplus"
+gmatpyplus = "https://github.com/weasdown/gmatpyplus"
+
+[project.scripts]
+amat = "mission_compiler.cli:main"
+mission-mvp = "mission_compiler.cli:main"
+mission-visualizer = "mission_visualizer.cli:main"
+amat-target = "mission_targeting.cli:main"
+amat-optimize = "mission_optimization.cli:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["mission_compiler*", "mission_visualizer*", "mission_targeting*", "mission_optimization*"]
+
+[tool.setuptools.package-data]
+mission_compiler = [
+  "backends/gmat/*.json",
+  "backends/gmat/templates/*.j2"
+]
+mission_visualizer = [
+  "assets/*.json"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

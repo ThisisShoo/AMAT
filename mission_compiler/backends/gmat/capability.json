@@ -1,0 +1,83 @@
+{
+  "backend_id": "gmat",
+  "backend_name": "GMAT MVP Backend",
+  "supported": {
+    "central_bodies": [
+      "Sun",
+      "Mercury",
+      "Venus",
+      "Earth",
+      "Luna",
+      "Mars",
+      "Jupiter",
+      "Saturn",
+      "Uranus",
+      "Neptune",
+      "Pluto"
+    ],
+    "custom_bodies": true,
+    "state_types": [
+      "cartesian",
+      "keplerian"
+    ],
+    "force_models": [
+      "point_mass",
+      "spherical_harmonic",
+      "basic_earth_gravity"
+    ],
+    "integrators": [
+      "RungeKutta89"
+    ],
+    "maneuvers": [
+      "impulsive",
+      "finite"
+    ],
+    "commands": [
+      "propagate",
+      "maneuver",
+      "checkpoint",
+      "event_action"
+    ],
+    "outputs": [
+      "final_state",
+      "state_history",
+      "spacecraft_ephemeris",
+      "full_ephemeris",
+      "ground_track",
+      "body_ephemeris",
+      "body_ephemeris_group"
+    ],
+    "point_masses": [
+      "Sun",
+      "Mercury",
+      "Venus",
+      "Earth",
+      "Luna",
+      "Mars",
+      "Jupiter",
+      "Saturn",
+      "Uranus",
+      "Neptune",
+      "Pluto"
+    ],
+    "events": [
+      "parameter_reaches",
+      "orbital_event:periapsis",
+      "orbital_event:apoapsis",
+      "node_crossing:either",
+      "node_crossing:ascending_direction_not_enforced",
+      "node_crossing:descending_direction_not_enforced",
+      "node_crossing:both_direction_not_enforced"
+    ]
+  },
+  "unsupported_for_mvp": [
+    "targeting",
+    "optimization",
+    "external_ephemeris_execution",
+    "stm",
+    "estimation",
+    "automatic_custom_body_creation",
+    "soi_crossing",
+    "distance_threshold_events"
+  ]
+}

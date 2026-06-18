@@ -1,0 +1,45 @@
+{
+  "checks": [
+    {
+      "check_id": "schema",
+      "message": "MissionSpec matches schema.",
+      "severity": "error",
+      "status": "passed"
+    },
+    {
+      "check_id": "units",
+      "message": "MVP units and time scale are explicit and supported.",
+      "severity": "error",
+      "status": "passed"
+    },
+    {
+      "check_id": "frames",
+      "message": "Frames are explicit in MissionSpec/catalog and mappable to GMAT coordinate systems where required.",
+      "severity": "error",
+      "status": "passed"
+    },
+    {
+      "check_id": "dependencies",
+      "message": "All object, phase, step, burn, checkpoint, and event references resolve.",
+      "severity": "error",
+      "status": "passed"
+    },
+    {
+      "check_id": "bounds",
+      "message": "All MVP physical/runtime bounds pass.",
+      "severity": "error",
+      "status": "passed"
+    },
+    {
+      "check_id": "backend_capability",
+      "message": "MissionSpec fits selected backend capability.",
+      "severity": "error",
+      "status": "passed"
+    }
+  ],
+  "errors": [],
+  "mission_id": "cislunar_demo",
+  "schema_version": "1.0.0",
+  "status": "passed",
+  "warnings": []
+}

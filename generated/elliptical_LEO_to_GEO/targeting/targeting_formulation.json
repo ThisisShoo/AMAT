@@ -1,0 +1,230 @@
+{
+  "available_maneuver_types": [
+    "tangential_impulsive",
+    "radial_impulsive",
+    "normal_impulsive",
+    "combined_impulsive",
+    "plane_change_impulsive",
+    "apsidal_raise_lower",
+    "circularization",
+    "phasing",
+    "deep_space_impulsive",
+    "finite_burn"
+  ],
+  "constraints": [
+    {
+      "constraint_id": "final_sma",
+      "hard": true,
+      "kind": "equality",
+      "metric_id": "spacecraft.final.orbit.sma",
+      "relation": "eq",
+      "scale": {
+        "unit": "km",
+        "value": 1.0
+      },
+      "target": {
+        "unit": "km",
+        "value": 42164.1696
+      },
+      "tolerance": {
+        "unit": "km",
+        "value": 1.0
+      }
+    },
+    {
+      "constraint_id": "final_eccentricity",
+      "hard": true,
+      "kind": "equality",
+      "metric_id": "spacecraft.final.orbit.eccentricity",
+      "relation": "eq",
+      "scale": {
+        "unit": "1",
+        "value": 0.001
+      },
+      "target": {
+        "unit": "1",
+        "value": 0.0
+      },
+      "tolerance": {
+        "unit": "1",
+        "value": 0.001
+      }
+    },
+    {
+      "constraint_id": "final_inclination",
+      "hard": true,
+      "kind": "equality",
+      "metric_id": "spacecraft.final.orbit.inclination",
+      "relation": "eq",
+      "scale": {
+        "unit": "deg",
+        "value": 0.05
+      },
+      "target": {
+        "unit": "deg",
+        "value": 0.0
+      },
+      "tolerance": {
+        "unit": "deg",
+        "value": 0.05
+      }
+    },
+    {
+      "constraint_id": "final_raan",
+      "hard": true,
+      "kind": "equality",
+      "metric_id": "spacecraft.final.orbit.raan",
+      "relation": "eq",
+      "scale": {
+        "unit": "deg",
+        "value": 0.05
+      },
+      "target": {
+        "unit": "deg",
+        "value": 0.0
+      },
+      "tolerance": {
+        "unit": "deg",
+        "value": 0.05
+      }
+    },
+    {
+      "constraint_id": "final_aop",
+      "hard": true,
+      "kind": "equality",
+      "metric_id": "spacecraft.final.orbit.aop",
+      "relation": "eq",
+      "scale": {
+        "unit": "deg",
+        "value": 0.05
+      },
+      "target": {
+        "unit": "deg",
+        "value": 0.0
+      },
+      "tolerance": {
+        "unit": "deg",
+        "value": 0.05
+      }
+    }
+  ],
+  "decision_variables": [
+    {
+      "bounds": [
+        -10.0,
+        10.0
+      ],
+      "scale": 1.0,
+      "unit": "km/s",
+      "variable_id": "transfer_injection.delta_v_v"
+    },
+    {
+      "bounds": [
+        -10.0,
+        10.0
+      ],
+      "scale": 1.0,
+      "unit": "km/s",
+      "variable_id": "transfer_injection.delta_v_n"
+    },
+    {
+      "bounds": [
+        -10.0,
+        10.0
+      ],
+      "scale": 1.0,
+      "unit": "km/s",
+      "variable_id": "orbit_insertion.delta_v_v"
+    },
+    {
+      "bounds": [
+        -10.0,
+        10.0
+      ],
+      "scale": 1.0,
+      "unit": "km/s",
+      "variable_id": "orbit_insertion.delta_v_n"
+    },
+    {
+      "bounds": [
+        1.0,
+        604800.0
+      ],
+      "scale": 10000.0,
+      "unit": "s",
+      "variable_id": "transfer.coast_time"
+    }
+  ],
+  "maneuver_plan": {
+    "arrival_event": "apoapsis",
+    "departure_event": "periapsis",
+    "impulse_count": 2,
+    "placement_rule": "plane changes must occur on a valid plane-intersection line unless explicitly delegated to a later high-fidelity correction layer",
+    "plane_change_policy": "valid_node_low_speed",
+    "plane_change_policy_config": {
+      "allow_departure_phasing": true,
+      "fallback": "split_at_nearest_valid_node",
+      "prefer_apsis_alignment": true,
+      "type": "valid_node_low_speed"
+    },
+    "prefer_concurrent_effects": false
+  },
+  "metric_requests": [
+    {
+      "evaluation_event": "post_insertion",
+      "frame": "EarthMJ2000Eq",
+      "metric_id": "spacecraft.final.orbit.sma",
+      "unit": "km"
+    },
+    {
+      "evaluation_event": "post_insertion",
+      "frame": "EarthMJ2000Eq",
+      "metric_id": "spacecraft.final.orbit.eccentricity",
+      "unit": "1"
+    },
+    {
+      "evaluation_event": "post_insertion",
+      "frame": "EarthMJ2000Eq",
+      "metric_id": "spacecraft.final.orbit.inclination",
+      "unit": "deg"
+    },
+    {
+      "evaluation_event": "post_insertion",
+      "frame": "EarthMJ2000Eq",
+      "metric_id": "spacecraft.final.orbit.raan",
+      "unit": "deg"
+    },
+    {
+      "evaluation_event": "post_insertion",
+      "frame": "EarthMJ2000Eq",
+      "metric_id": "spacecraft.final.orbit.aop",
+      "unit": "deg"
+    },
+    {
+      "evaluation_event": "post_insertion",
+      "frame": "EarthMJ2000Eq",
+      "metric_id": "spacecraft.final.orbit.ta",
+      "unit": "deg"
+    },
+    {
+      "evaluation_event": "mission_end",
+      "metric_id": "mission.total_delta_v",
+      "unit": "km/s"
+    },
+    {
+      "evaluation_event": "entire_trajectory",
+      "frame": "EarthMJ2000Eq",
+      "metric_id": "trajectory.minimum_altitude",
+      "unit": "km"
+    }
+  ],
+  "problem_id": "elliptical_LEO_to_GEO",
+  "schema_version": "1.1.0",
+  "solver_policy": {
+    "initial_guess_backend": "analytic_two_impulse_apsidal",
+    "pre_correction_refinement": "soi_hyperbola_bplane_matching",
+    "reason": "Use patched conics and hyperbola/B-plane matching as the cheap path; invoke STM correction only when high-fidelity final orbital-state residuals exceed tolerance.",
+    "target_solver": "stm_correction_on_vector_miss"
+  },
+  "transfer_strategy_type": "two_impulse_apsidal_transfer"
+}

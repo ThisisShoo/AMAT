@@ -1,0 +1,477 @@
+"""
+Generated GMAT/gmatpyplus mission script.
+
+Source MissionSpec: {{ spec.mission_id }}
+
+Normal operation is controlled by mission_spec.json.  Terminal flags are only
+for troubleshooting/export.  If mission_spec.json requests full ephemeris or
+checkpoints, this script runs the generated GMAT script through GMAT's native
+LoadScript/RunScript path so ReportFile output is handled by GMAT itself.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import os
+import shutil
+import sys
+from pathlib import Path
+from typing import Any
+
+try:
+    import gmatpyplus as gp
+except Exception as exc:  # pragma: no cover - generated runtime guard
+    raise RuntimeError("GMAT/gmatpyplus is required to run this generated script") from exc
+
+MISSION_ID = "{{ spec.mission_id }}"
+ROOT = Path(__file__).resolve().parent
+
+def _ensure_project_import_path() -> None:
+    """Allow generated scripts in generated/<mission_id>/ to import mission_compiler.
+
+    Users normally run this file directly, e.g.
+    python generated/event_test/generated_mission.py --run. In that mode
+    Python places generated/event_test on sys.path, not necessarily the AMAT
+    project root. Add the nearest parent containing mission_compiler so
+    automatic visualization export can run without requiring pip install -e .
+    """
+    candidates = [ROOT, *ROOT.parents, Path.cwd(), *Path.cwd().parents]
+    for candidate in candidates:
+        if (candidate / "mission_compiler").is_dir():
+            text = str(candidate)
+            if text not in sys.path:
+                sys.path.insert(0, text)
+            return
+
+_ensure_project_import_path()
+OUTPUT_DIR = ROOT / "outputs"
+SCRIPT_PATH = ROOT / "generated_mission.script"
+REQUIRES_SCRIPT_REPLAY = {{ 'True' if requires_script_replay else 'False' }}
+VISUALIZATION_ENABLED = {{ 'True' if spec.get("visualization", {}).get("enabled", True) else 'False' }}
+VISUALIZATION_AUTO_EXPORT_AFTER_RUN = {{ 'True' if spec.get("visualization", {}).get("auto_export_after_run", True) else 'False' }}
+EXPECTED_OUTPUTS = [
+{% for out in expected_outputs %}
+    str(ROOT / "{{ out.path }}"),
+{% endfor %}
+]
+REPORT_COPIES = [
+{% for out in report_copies %}
+    {"source_filename": "{{ out.source_filename }}", "desired_path": r"{{ out.desired_path }}"},
+{% endfor %}
+]
+CHECKPOINT_REPORTS = [
+{% for cp in checkpoints %}
+    {
+        "desired_path": r"{{ cp.desired_path }}",
+        "include_header": {{ 'True' if cp.include_header else 'False' }},
+        "parameters": [{% for p in cp.parameters %}r"{{ p }}"{{ ", " if not loop.last else "" }}{% endfor %}],
+    },
+{% endfor %}
+]
+def _gmat_module() -> Any:
+    return getattr(gp, "gmat", gp)
+
+
+def _call_gmat_function(names: list[str], *args: Any) -> Any:
+    """Call a GMAT/gmatpyplus function from the first available location."""
+    candidates = [gp, _gmat_module()]
+    for obj in candidates:
+        for name in names:
+            fn = getattr(obj, name, None)
+            if callable(fn):
+                return fn(*args)
+    raise RuntimeError(f"None of the GMAT functions are available: {names}")
+
+
+def _clear_gmat_state() -> None:
+    if hasattr(_gmat_module(), "Clear"):
+        try:
+            _gmat_module().Clear()
+        except Exception:
+            pass
+
+
+def _get_state(spacecraft: Any) -> list[float | None]:
+    state: list[float | None] = [None] * 6
+    for idx in range(13, 19):
+        try:
+            state[idx - 13] = float(spacecraft.GetField(idx))
+        except Exception:
+            state[idx - 13] = None
+    return state
+
+
+def build_objects() -> dict[str, Any]:
+    """Build a direct Python GMAT mission for missions without full ephemeris/checkpoints."""
+    _clear_gmat_state()
+    objects: dict[str, Any] = {}
+
+{% for sc in spec.spacecraft %}
+    {{ sc.name }} = gp.Spacecraft("{{ sc.name }}")
+    {{ sc.name }}.SetField("DateFormat", "UTCGregorian")
+    {{ sc.name }}.SetField("Epoch", "{{ gmat_epoch(sc.epoch) }}")
+    {{ sc.name }}.SetField("CoordinateSystem", "{{ sc.frame|gmat_frame }}")
+{% if sc.state_type == "cartesian" %}
+    {{ sc.name }}.SetField("DisplayStateType", "Cartesian")
+    {{ sc.name }}.SetField("X", {{ sc.position_km[0] }})
+    {{ sc.name }}.SetField("Y", {{ sc.position_km[1] }})
+    {{ sc.name }}.SetField("Z", {{ sc.position_km[2] }})
+    {{ sc.name }}.SetField("VX", {{ sc.velocity_km_s[0] }})
+    {{ sc.name }}.SetField("VY", {{ sc.velocity_km_s[1] }})
+    {{ sc.name }}.SetField("VZ", {{ sc.velocity_km_s[2] }})
+{% elif sc.state_type == "keplerian" %}
+    {{ sc.name }}.SetField("DisplayStateType", "Keplerian")
+    {{ sc.name }}.SetField("SMA", {{ sc.sma_km }})
+    {{ sc.name }}.SetField("ECC", {{ sc.ecc }})
+    {{ sc.name }}.SetField("INC", {{ sc.inc_deg }})
+    {{ sc.name }}.SetField("RAAN", {{ sc.raan_deg }})
+    {{ sc.name }}.SetField("AOP", {{ sc.aop_deg }})
+    {{ sc.name }}.SetField("TA", {{ sc.ta_deg }})
+{% endif %}
+    {{ sc.name }}.SetField("DryMass", {{ sc.dry_mass_kg }})
+    {{ sc.name }}.SetField("Cd", {{ sc.cd }})
+    {{ sc.name }}.SetField("Cr", {{ sc.cr }})
+    {{ sc.name }}.SetField("DragArea", {{ sc.drag_area_m2 }})
+    {{ sc.name }}.SetField("SRPArea", {{ sc.srp_area_m2 }})
+    objects["{{ sc.id }}"] = {{ sc.name }}
+{% endfor %}
+
+{% for fm in spec.force_models %}
+{% if fm.point_masses or fm.gravity.type == "spherical_harmonic" %}
+    raise RuntimeError("Direct Python force-model execution is not enabled for multi-body/spherical-harmonic force models in this MVP; use script replay, which is selected automatically.")
+{% else %}
+    {{ fm.name }}_gravity = None
+    {{ fm.name }} = gp.ForceModel(
+        name="{{ fm.name }}",
+        central_body="{{ fm.central_body }}",
+        gravity_field={{ fm.name }}_gravity,
+    )
+    objects["{{ fm.id }}"] = {{ fm.name }}
+{% endif %}
+{% endfor %}
+
+{% for prop in spec.propagators %}
+    {{ prop.name }}_integrator = gp.PropSetup.Propagator(
+        name="{{ prop.name }}_Integrator",
+        integrator="{{ prop.integrator }}",
+    )
+    {{ prop.name }} = gp.PropSetup(
+        "{{ prop.name }}",
+        fm=objects["{{ prop.force_model }}"],
+        gator={{ prop.name }}_integrator,
+        initial_step_size={{ prop.initial_step_s }},
+        accuracy={{ prop.accuracy }},
+        min_step={{ prop.min_step_s }},
+        max_step={{ prop.max_step_s }},
+    )
+    objects["{{ prop.id }}"] = {{ prop.name }}
+{% endfor %}
+
+    if hasattr(gp, "Initialize"):
+        gp.Initialize()
+    return objects
+
+
+def build_mission_sequence(objects: dict[str, Any]) -> list[Any]:
+    mcs: list[Any] = []
+{% for phase in phases %}
+    # Phase: {{ phase.phase_id }} - {{ phase.name }}
+{% for step in phase.steps %}
+{% if step.type == "propagate" %}
+{% set sc = (spec.spacecraft | selectattr('id', 'equalto', step.spacecraft) | list)[0] %}
+    mcs.append(
+        gp.Propagate(
+            "Propagate_{{ step.step_id }}_{{ sc.name }}",
+            objects["{{ step.spacecraft }}"],
+            objects["{{ step.propagator }}"],
+            ("{{ sc.name }}.ElapsedSecs", {{ step.duration_s }}),
+        )
+    )
+{% elif step.type == "maneuver" %}
+    raise RuntimeError("Direct Python maneuver execution is not enabled in this MVP; run with script replay, which is selected automatically for missions with burns.")
+{% elif step.type == "checkpoint" %}
+    # Sparse checkpoints are handled by GMAT script replay mode.
+{% elif step.type == "event_action" %}
+    raise RuntimeError("Direct Python event-action execution is not enabled in this MVP; run with script replay, which is selected automatically for missions with events.")
+{% endif %}
+{% endfor %}
+{% endfor %}
+    return mcs
+
+
+def save_script(path: str | Path | None = None) -> Path:
+    """Save/export the current direct-Python object graph as GMAT script."""
+    script_path = Path(path) if path else SCRIPT_PATH
+    _call_gmat_function(["SaveScript"], str(script_path))
+    return script_path
+
+
+
+def _candidate_report_locations(filename: str) -> list[Path]:
+    """Return likely locations where GMAT writes ReportFile output.
+
+    Native GMAT script mode is most reliable when ReportFile.Filename is a
+    plain filename. GMAT commonly writes such files into its configured output
+    directory, not the project directory. We therefore search the GMAT output
+    directory first, then local fallback locations, and copy results into the
+    generated mission outputs folder after RunScript returns.
+    """
+    candidates: list[Path] = []
+    gmat_root = os.environ.get("GMAT") or os.environ.get("GMAT_ROOT") or os.environ.get("GMAT_PATH")
+    if gmat_root:
+        candidates.append(Path(gmat_root) / "output" / filename)
+        candidates.append(Path(gmat_root) / "bin" / "output" / filename)
+    candidates.extend([
+        ROOT / filename,
+        ROOT / "outputs" / filename,
+        Path.cwd() / filename,
+        Path.cwd() / "output" / filename,
+        Path.cwd() / "outputs" / filename,
+    ])
+    # Preserve order while removing duplicates.
+    unique: list[Path] = []
+    seen: set[str] = set()
+    for item in candidates:
+        key = str(item.resolve()) if item.exists() else str(item)
+        if key not in seen:
+            seen.add(key)
+            unique.append(item)
+    return unique
+
+
+def _collect_report_outputs() -> dict[str, Any]:
+    copied: list[dict[str, str]] = []
+    still_missing: list[str] = []
+    searched: dict[str, list[str]] = {}
+    normalized_csvs: list[dict[str, Any]] = []
+    for item in REPORT_COPIES:
+        filename = item["source_filename"]
+        desired = Path(item["desired_path"])
+        desired.parent.mkdir(parents=True, exist_ok=True)
+        candidates = [desired, *[path for path in _candidate_report_locations(filename) if path != desired]]
+        searched[str(desired)] = [str(path) for path in candidates]
+        source = next((path for path in candidates if path.exists()), None)
+        if source is None:
+            still_missing.append(str(desired))
+            continue
+        if source.resolve() != desired.resolve():
+            shutil.copy2(source, desired)
+        normalized_csvs.append(_normalize_csv_file(desired))
+        copied.append({"from": str(source), "to": str(desired)})
+    checkpoint_headers = _finalize_checkpoint_headers()
+    return {
+        "copied_outputs": copied,
+        "missing_outputs": still_missing,
+        "searched_locations": searched,
+        "normalized_csvs": normalized_csvs,
+        **checkpoint_headers,
+    }
+
+
+def _clean_prior_report_outputs() -> list[str]:
+    removed: list[str] = []
+    targets = set(EXPECTED_OUTPUTS)
+    for item in REPORT_COPIES:
+        for path in _candidate_report_locations(item["source_filename"]):
+            targets.add(str(path))
+    for text in sorted(targets):
+        path = Path(text)
+        try:
+            if path.exists():
+                path.unlink()
+                removed.append(str(path))
+        except Exception:
+            pass
+    return removed
+
+
+def _clean_csv_row(row: list[str]) -> list[str]:
+    return [cell.strip() for cell in row if cell is not None and cell.strip() != ""]
+
+
+
+def _normalize_csv_file(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {"path": str(path), "exists": False, "changed": False}
+    try:
+        with path.open("r", newline="", encoding="utf-8", errors="replace") as f:
+            rows = [_clean_csv_row(row) for row in csv.reader(f)]
+        rows = [row for row in rows if row]
+        before = path.read_text(encoding="utf-8", errors="replace")
+        with path.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerows(rows)
+        after = path.read_text(encoding="utf-8", errors="replace")
+        return {"path": str(path), "exists": True, "changed": before != after, "rows": len(rows)}
+    except Exception as exc:
+        return {"path": str(path), "exists": True, "changed": False, "error": str(exc)}
+
+
+def _finalize_checkpoint_headers() -> dict[str, Any]:
+    """Ensure sparse checkpoint files have deterministic one-row snapshot headers.
+
+    GMAT's Report command writes the snapshot data at the exact mission-sequence
+    location. Some GMAT versions do not emit headers for Report-command output,
+    so the generated runner inserts the user-defined parameter list as the first
+    row after the run. This preserves the rule that checkpoint files are sparse
+    state snapshots, not trajectory files.
+    """
+    updated: list[str] = []
+    missing: list[str] = []
+    errors: list[dict[str, str]] = []
+    for item in CHECKPOINT_REPORTS:
+        path = Path(item["desired_path"])
+        if not path.exists():
+            missing.append(str(path))
+            continue
+        if not item.get("include_header", True):
+            continue
+        header = [str(p) for p in item.get("parameters", [])]
+        try:
+            with path.open("r", newline="", encoding="utf-8", errors="replace") as f:
+                rows = [_clean_csv_row(row) for row in csv.reader(f)]
+            rows = [row for row in rows if row]
+            if rows and rows[0] == header:
+                continue
+            with path.open("w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(header)
+                writer.writerows(rows)
+            updated.append(str(path))
+        except Exception as exc:
+            errors.append({"path": str(path), "error": str(exc)})
+    return {
+        "checkpoint_headers_updated": updated,
+        "checkpoint_header_missing_files": missing,
+        "checkpoint_header_errors": errors,
+    }
+
+def _find_elapsed_column(header: list[str]) -> int | None:
+    for idx, name in enumerate(header):
+        compact = name.strip().replace(" ", "")
+        if compact.endswith(".ElapsedSecs") or compact == "ElapsedSecs" or "ElapsedSecs" in compact:
+            return idx
+    return None
+
+
+
+def _auto_export_visualization_artifacts() -> dict[str, Any]:
+    """Refresh viewer-facing artifacts after runtime outputs are available.
+
+    Normal operation should leave the visualization layer with ready-to-load
+    data after `generated_mission.py --run`: cleaned spacecraft/checkpoint CSVs,
+    SPICE-derived body ephemeris CSVs when resolved files are present, and a
+    refreshed visualization_manifest.json.  The standalone CLI command
+    `export-visualization` remains available as a repair/troubleshooting path.
+    """
+    if not (VISUALIZATION_ENABLED and VISUALIZATION_AUTO_EXPORT_AFTER_RUN):
+        return {"enabled": VISUALIZATION_ENABLED, "auto_export_after_run": VISUALIZATION_AUTO_EXPORT_AFTER_RUN, "status": "skipped"}
+    try:
+        from mission_compiler.visualization import export_visualization_artifacts
+        export = export_visualization_artifacts(ROOT)
+        export["enabled"] = True
+        export["auto_export_after_run"] = True
+        export["status"] = "completed"
+        return export
+    except Exception as exc:  # pragma: no cover - runtime diagnostic path
+        return {
+            "enabled": True,
+            "auto_export_after_run": True,
+            "status": "failed",
+            "error": str(exc),
+        }
+
+def run_script_replay() -> dict[str, Any]:
+    """Run generated_mission.script through GMAT's native script runner.
+
+    Use this mode whenever mission_spec.json requests full ephemeris or sparse
+    checkpoints.  GMAT owns ReportFile creation, headers, data publication, and
+    file finalization; Python only loads/runs the script and reports output paths.
+    """
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    removed_prior_outputs = _clean_prior_report_outputs()
+    print(f"Loading GMAT script: {SCRIPT_PATH}")
+    load_code = _call_gmat_function(["LoadScript"], str(SCRIPT_PATH))
+    print(f"GMAT LoadScript returned: {load_code}")
+    print("Starting GMAT RunScript...")
+    run_code = _call_gmat_function(["RunScript"])
+    print(f"GMAT RunScript returned: {run_code}")
+    collected = _collect_report_outputs()
+    visualization_export = _auto_export_visualization_artifacts()
+    return {
+        "mission_id": MISSION_ID,
+        "execution_mode": "script_replay",
+        "load_code": load_code,
+        "run_code": run_code,
+        "outputs_dir": str(OUTPUT_DIR),
+        "expected_outputs": EXPECTED_OUTPUTS,
+        "removed_prior_outputs": removed_prior_outputs,
+        **collected,
+        "visualization_export": visualization_export,
+    }
+
+
+def run_direct_python() -> dict[str, Any]:
+    """Run directly through gmatpyplus object mode.
+
+    This mode is only used when mission_spec.json does not request full ephemeris
+    or checkpoints, because ReportFile/subscriber handling is more reliable in
+    native GMAT script replay mode.
+    """
+    objects = build_objects()
+    mcs = build_mission_sequence(objects)
+    before = {
+{% for sc in spec.spacecraft %}
+        "{{ sc.id }}": _get_state(objects["{{ sc.id }}"]),
+{% endfor %}
+    }
+    run_code = gp.RunMission(mcs)
+    after: dict[str, Any] = {}
+{% for sc in spec.spacecraft %}
+    try:
+        runtime_sc = _gmat_module().GetRuntimeObject("{{ sc.name }}")
+    except Exception:
+        runtime_sc = objects["{{ sc.id }}"]
+    after["{{ sc.id }}"] = _get_state(runtime_sc)
+{% endfor %}
+    visualization_export = _auto_export_visualization_artifacts()
+    return {
+        "mission_id": MISSION_ID,
+        "execution_mode": "direct_python",
+        "run_code": int(run_code) if isinstance(run_code, (int, float, str)) and str(run_code).isdigit() else run_code,
+        "state_before": before,
+        "state_after": after,
+        "visualization_export": visualization_export,
+    }
+
+
+def run_mission() -> dict[str, Any]:
+    return run_script_replay() if REQUIRES_SCRIPT_REPLAY else run_direct_python()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--run", action="store_true", help="Run according to mission_spec.json execution needs")
+    parser.add_argument("--save-script", action="store_true", help="Troubleshooting only: export direct-Python object graph")
+    parser.add_argument("--force-direct-python", action="store_true", help="Troubleshooting only: bypass script replay")
+    args = parser.parse_args()
+
+    if args.run:
+        result = run_direct_python() if args.force_direct_python else run_mission()
+        print(result)
+        return
+
+    if args.save_script:
+        build_objects()
+        print(f"Saved script: {save_script()}")
+        return
+
+    print("Generated mission is ready.")
+    print("Normal operation is controlled by mission_spec.json; use --run to execute it.")
+    print(f"Execution mode: {'script_replay' if REQUIRES_SCRIPT_REPLAY else 'direct_python'}")
+    print(f"Runtime outputs will be written to: {OUTPUT_DIR}")
+
+
+if __name__ == "__main__":
+    main()

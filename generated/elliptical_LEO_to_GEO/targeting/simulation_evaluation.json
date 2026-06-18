@@ -1,0 +1,133 @@
+{
+  "evaluation_status": "passed",
+  "evidence": {
+    "central_body": "Earth",
+    "columns": {
+      "spacecraft.final.orbit.aop": "TargetSat.EarthMJ2000Eq.AOP",
+      "spacecraft.final.orbit.eccentricity": "TargetSat.Earth.ECC",
+      "spacecraft.final.orbit.inclination": "TargetSat.EarthMJ2000Eq.INC",
+      "spacecraft.final.orbit.raan": "TargetSat.EarthMJ2000Eq.RAAN",
+      "spacecraft.final.orbit.sma": "TargetSat.Earth.SMA",
+      "spacecraft.final.orbit.ta": "TargetSat.Earth.TA"
+    },
+    "final_checkpoint": "generated\\elliptical_LEO_to_GEO\\simulation\\outputs\\final_state_checkpoint.csv",
+    "frame": "EarthMJ2000Eq",
+    "minimum_altitude": {
+      "central_body": "Earth",
+      "columns": [
+        "TargetSat.EarthMJ2000Eq.X",
+        "TargetSat.EarthMJ2000Eq.Y",
+        "TargetSat.EarthMJ2000Eq.Z"
+      ],
+      "ephemeris": "generated\\elliptical_LEO_to_GEO\\simulation\\outputs\\_Ephemeris_TargetSat_EarthMJ2000Eq.csv",
+      "frame": "EarthMJ2000Eq"
+    },
+    "mission_spec": "generated\\elliptical_LEO_to_GEO\\simulation\\mission_spec.canonical.json",
+    "spacecraft": "TargetSat"
+  },
+  "metrics": {
+    "mission.total_delta_v": {
+      "unit": "km/s",
+      "value": 4.705080502767035
+    },
+    "spacecraft.final.orbit.aop": {
+      "unit": "deg",
+      "value": 275.6335499396797
+    },
+    "spacecraft.final.orbit.eccentricity": {
+      "unit": "1",
+      "value": 4.901992823157133e-10
+    },
+    "spacecraft.final.orbit.inclination": {
+      "unit": "deg",
+      "value": 0.0
+    },
+    "spacecraft.final.orbit.raan": {
+      "unit": "deg",
+      "value": 0.0
+    },
+    "spacecraft.final.orbit.sma": {
+      "unit": "km",
+      "value": 42164.16967458877
+    },
+    "spacecraft.final.orbit.ta": {
+      "unit": "deg",
+      "value": 356.3377434889839
+    },
+    "trajectory.minimum_altitude": {
+      "unit": "km",
+      "value": 299.99970825889704
+    }
+  },
+  "mission_id": "elliptical_LEO_to_GEO",
+  "outputs_dir": "generated\\elliptical_LEO_to_GEO\\simulation\\outputs",
+  "problem_id": "elliptical_LEO_to_GEO",
+  "residuals": [
+    {
+      "achieved": {
+        "unit": "km",
+        "value": 42164.16967458877
+      },
+      "metric_id": "spacecraft.final.orbit.sma",
+      "passed": true,
+      "relation": "eq",
+      "residual": {
+        "unit": "km",
+        "value": 7.45887664379552e-05
+      },
+      "target": {
+        "unit": "km",
+        "value": 42164.1696
+      },
+      "tolerance": {
+        "unit": "km",
+        "value": 1.0
+      }
+    },
+    {
+      "achieved": {
+        "unit": "1",
+        "value": 4.901992823157133e-10
+      },
+      "metric_id": "spacecraft.final.orbit.eccentricity",
+      "passed": true,
+      "relation": "eq",
+      "residual": {
+        "unit": "1",
+        "value": 4.901992823157133e-10
+      },
+      "target": {
+        "unit": "1",
+        "value": 0.0
+      },
+      "tolerance": {
+        "unit": "1",
+        "value": 0.001
+      }
+    },
+    {
+      "achieved": {
+        "unit": "deg",
+        "value": 0.0
+      },
+      "metric_id": "spacecraft.final.orbit.inclination",
+      "passed": true,
+      "relation": "eq",
+      "residual": {
+        "unit": "deg",
+        "value": 0.0
+      },
+      "target": {
+        "unit": "deg",
+        "value": 0.0
+      },
+      "tolerance": {
+        "unit": "deg",
+        "value": 0.05
+      }
+    }
+  ],
+  "schema_version": "1.0.0",
+  "simulation_dir": "generated\\elliptical_LEO_to_GEO\\simulation",
+  "simulation_status": "completed"
+}

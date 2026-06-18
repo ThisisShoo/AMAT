@@ -1,0 +1,294 @@
+{
+  "burns": [
+    {
+      "delta_v_km_s": [
+        3.092757101421149,
+        -7.610334121841048e-16,
+        -0.5976864128033639
+      ],
+      "frame": "VNB",
+      "id": "tli_seed",
+      "name": "TLISeed",
+      "origin": "Earth",
+      "type": "impulsive"
+    },
+    {
+      "delta_v_km_s": [
+        -0.85,
+        0.0,
+        0.0
+      ],
+      "frame": "VNB",
+      "id": "loi_circularize_seed",
+      "name": "LOICircularizeSeed",
+      "origin": "Luna",
+      "type": "impulsive"
+    }
+  ],
+  "checkpoints": [
+    {
+      "frame": "EarthMJ2000Eq",
+      "id": "post_tli",
+      "parameters": [
+        "ElapsedSecs"
+      ],
+      "path": "outputs/post_tli.csv",
+      "spacecraft": "cislunar_sat",
+      "state_groups": [
+        "cartesian",
+        "keplerian",
+        "elapsed_time"
+      ]
+    },
+    {
+      "frame": "LunaMJ2000Eq",
+      "id": "post_loi",
+      "parameters": [
+        "ElapsedSecs"
+      ],
+      "path": "outputs/post_loi.csv",
+      "spacecraft": "cislunar_sat",
+      "state_groups": [
+        "cartesian",
+        "keplerian",
+        "elapsed_time"
+      ]
+    }
+  ],
+  "conventions": {
+    "angle_unit": "deg",
+    "distance_unit": "km",
+    "mass_unit": "kg",
+    "time_format": "ISO-8601",
+    "time_scale": "UTC",
+    "velocity_unit": "km/s"
+  },
+  "description": "Demonstrative impulsive cislunar transfer retargeted from GMAT Luna ephemeris. The initial Cartesian state and TLI VNB burn are produced by the AMAT cislunar Lambert targeting layer.",
+  "events": [
+    {
+      "actions": [
+        {
+          "action_id": "burn_loi",
+          "burn": "loi_circularize_seed",
+          "spacecraft": "cislunar_sat",
+          "type": "maneuver"
+        },
+        {
+          "action_id": "report_post_loi",
+          "checkpoint_id": "post_loi",
+          "type": "checkpoint"
+        }
+      ],
+      "central_body": "Luna",
+      "event": "periapsis",
+      "id": "lunar_perilune_capture",
+      "max_duration_s": 864000.0,
+      "propagator": "cislunar_prop",
+      "spacecraft": "cislunar_sat",
+      "type": "orbital_event"
+    }
+  ],
+  "external_dependencies": [
+    {
+      "aberration_correction": "NONE",
+      "frame": "J2000",
+      "id": "luna_ephem_20260601",
+      "observer": {
+        "naif_id": 399,
+        "name": "Earth"
+      },
+      "provider": "spice",
+      "target": {
+        "naif_id": 301,
+        "name": "Luna"
+      },
+      "time_range": {
+        "start": "2026-06-01T00:00:00Z",
+        "step_s": 3600.0,
+        "stop": "2026-06-12T00:00:00Z"
+      },
+      "type": "spice_ephemeris"
+    }
+  ],
+  "force_models": [
+    {
+      "central_body": "Earth",
+      "gravity": {
+        "degree": 8,
+        "order": 8,
+        "potential_file": "JGM2.cof",
+        "type": "spherical_harmonic"
+      },
+      "id": "earth_luna_8x8",
+      "name": "EarthLuna8x8",
+      "third_body_gravity": {
+        "bodies": [
+          "Luna",
+          "Sun"
+        ],
+        "enabled": true
+      }
+    }
+  ],
+  "mission_id": "cislunar_demo",
+  "mission_name": "Cislunar Demonstration Transfer",
+  "mission_sequence": [
+    {
+      "name": "Impulsive cislunar transfer",
+      "phase_id": "cislunar_transfer",
+      "steps": [
+        {
+          "burn": "tli_seed",
+          "spacecraft": "cislunar_sat",
+          "step_id": "tli",
+          "type": "maneuver"
+        },
+        {
+          "checkpoint_id": "post_tli",
+          "step_id": "checkpoint_post_tli",
+          "type": "checkpoint"
+        },
+        {
+          "event_id": "lunar_perilune_capture",
+          "step_id": "capture_at_perilune",
+          "type": "event_action"
+        },
+        {
+          "duration_s": 172800.0,
+          "propagator": "cislunar_prop",
+          "spacecraft": "cislunar_sat",
+          "step_id": "lunar_orbit_checkout",
+          "type": "propagate"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "frames": [
+        "EarthMJ2000Eq",
+        "LunaMJ2000Eq",
+        "EarthLunaRotating",
+        "LunaEarthRotating"
+      ],
+      "id": "cislunar_frames",
+      "path_template": "outputs/_Ephemeris_{spacecraft}_{frame}.csv",
+      "spacecraft": "cislunar_sat",
+      "state_groups": [
+        "elapsed_time",
+        "cartesian",
+        "keplerian"
+      ],
+      "type": "spacecraft_ephemeris"
+    },
+    {
+      "body": "Luna",
+      "dependency_id": "luna_ephem_20260601",
+      "frame": "EarthMJ2000Eq",
+      "id": "luna_body_ephemeris",
+      "path": "outputs/_BodyEphemeris_Luna_EarthMJ2000Eq.csv",
+      "source": "spice",
+      "type": "body_ephemeris"
+    }
+  ],
+  "propagators": [
+    {
+      "accuracy": 1e-09,
+      "force_model": "earth_luna_8x8",
+      "id": "cislunar_prop",
+      "initial_step_s": 60.0,
+      "integrator": "RungeKutta89",
+      "max_step_s": 1800.0,
+      "min_step_s": 0.1,
+      "name": "CislunarProp"
+    }
+  ],
+  "reference_frames": [
+    {
+      "id": "luna_inertial",
+      "name": "LunaMJ2000Eq",
+      "orientation": "MJ2000Eq",
+      "origin": "Luna",
+      "type": "body_inertial_equatorial"
+    },
+    {
+      "axes": "ObjectReferenced",
+      "backend_overrides": {
+        "gmat": {
+          "axes": "ObjectReferenced",
+          "create_coordinate_system": true,
+          "name": "EarthLunaRotating",
+          "origin": "Earth",
+          "primary": "Earth",
+          "secondary": "Luna",
+          "x_axis": "R",
+          "z_axis": "N"
+        }
+      },
+      "id": "earth_luna_rotating",
+      "name": "EarthLunaRotating",
+      "orientation": "ObjectReferenced",
+      "origin": "Earth",
+      "primary": "Earth",
+      "secondary": "Luna",
+      "type": "object_referenced",
+      "x_axis": "R",
+      "z_axis": "N"
+    },
+    {
+      "axes": "ObjectReferenced",
+      "backend_overrides": {
+        "gmat": {
+          "axes": "ObjectReferenced",
+          "create_coordinate_system": true,
+          "name": "LunaEarthRotating",
+          "origin": "Luna",
+          "primary": "Luna",
+          "secondary": "Earth",
+          "x_axis": "R",
+          "z_axis": "N"
+        }
+      },
+      "id": "luna_earth_rotating",
+      "name": "LunaEarthRotating",
+      "orientation": "ObjectReferenced",
+      "origin": "Luna",
+      "primary": "Luna",
+      "secondary": "Earth",
+      "type": "object_referenced",
+      "x_axis": "R",
+      "z_axis": "N"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "spacecraft": [
+    {
+      "cd": 2.2,
+      "cr": 1.8,
+      "drag_area_m2": 8.0,
+      "dry_mass_kg": 1000.0,
+      "epoch": "2026-06-01T00:00:00Z",
+      "frame": "EarthMJ2000Eq",
+      "id": "cislunar_sat",
+      "name": "CislunarSat",
+      "position_km": [
+        -4947.9535435061525,
+        4053.0644613947075,
+        1920.398043235261
+      ],
+      "srp_area_m2": 12.0,
+      "state_type": "cartesian",
+      "velocity_km_s": [
+        -5.1791178775370375,
+        -4.963716277224432,
+        -2.868036985421945
+      ]
+    }
+  ],
+  "visualization": {
+    "auto_export_after_run": true,
+    "enabled": true,
+    "include_spice_body_ephemerides": true,
+    "write_manifest": true
+  }
+}

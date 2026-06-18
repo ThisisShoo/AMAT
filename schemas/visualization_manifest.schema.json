@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://amat.local/schemas/visualization_manifest.schema.json",
+  "title": "VisualizationManifest",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema_version", "mission_id", "spacecraft_ephemerides", "body_ephemerides", "checkpoints", "frames"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "mission_id": {"type": "string"},
+    "spacecraft_ephemerides": {"type": "array", "items": {"type": "object"}},
+    "body_ephemerides": {"type": "array", "items": {"type": "object"}},
+    "checkpoints": {"type": "array", "items": {"type": "object"}},
+    "frames": {"type": "array", "items": {"type": "object"}},
+    "sources": {"type": "object"},
+    "assumptions": {"type": "array", "items": {"type": "string"}},
+    "viewer_warnings": {"type": "array", "items": {"type": "string"}},
+    "artifact_layout": {"type": "object"}
+  }
+}
