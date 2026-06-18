@@ -24,42 +24,6 @@ MissionSpec or TargetProblem
   -> interactive visualization
 ```
 
-## Current Capabilities
-
-AMAT supports:
-
-- Cartesian and Keplerian spacecraft initial states.
-- Multi-phase mission sequences.
-- Propagation, impulsive maneuvers, event actions, and checkpoints.
-- Earth-centered and cislunar demonstration cases.
-- GMAT point-mass and spherical-harmonic force model declarations.
-- Third-body gravity using GMAT-supported bodies such as Luna and the Sun.
-- GMAT ReportFile output cleanup and manifest generation.
-- Body ephemeris requests from GMAT, with SPICE fallback/resolution paths where configured.
-- Interactive Three.js trajectory visualization.
-- Targeting artifacts for selected impulsive transfers, including node-aware Earth-orbit transfers and ephemeris-aware cislunar Lambert seeds.
-- A preliminary optimization layer with swappable module boundaries.
-
-AMAT is still an alpha-stage workbench. Some workflows are strong demonstrations rather than complete mission-design automation. Global optimization, estimation, operational maneuver design, generalized SOI switching, and fully closed-loop high-fidelity targeting are active design boundaries rather than solved guarantees.
-
-## Repository Layout
-
-```text
-AMAT/
-  mission_compiler/       MissionSpec validation, canonicalization, GMAT generation
-  mission_targeting/      TargetProblem handling and transfer seed generation
-  mission_optimization/   Optimization layer and backend adapters
-  mission_visualizer/     Artifact discovery and 3D visualization
-  examples/               Example MissionSpecs and target problems
-  docs/                   Operator and schema documentation
-  schemas/                JSON schemas
-  configs/                Shared configuration such as reference frames
-  tests/                  Regression tests
-  generated/              Local generated artifacts, created by workflows
-```
-
-`generated/` is the normal working output area. Mission runs should not need to write products outside the project tree, except for GMAT's own temporary/native report locations before AMAT copies results back into `generated/<mission_id>/`.
-
 ## Installation
 
 AMAT is a Python project. Install it from the repository root:
@@ -159,6 +123,20 @@ Useful examples:
 - `examples/elliptical_LEO_to_GEO/target_problem.json`: targeting-first Earth-orbit transfer seed.
 - `examples/MEO_demo/mission_spec.json`: medium Earth orbit propagation example.
 - `examples/cislunar_demo/mission_spec.json`: GMAT-backed cislunar demonstration with body ephemerides.
+
+## Current Capabilities
+
+AMAT currently only support GMAT as the simulation backend. Targeting and rendering are done natively, unless a high-fidelity simulation pass is needed. Please raise an issue to include other simulation or optimization backends. 
+
+Spaceflight-related capabilities include but not limited to:
+
+- Cartesian and Keplerian spacecraft initial states.
+- Multi-phase mission sequences.
+- Propagation, impulsive maneuvers, event actions, and checkpoints.
+- GMAT point-mass and spherical-harmonic force model declarations.
+- Multi-body gravities. 
+- Simulation-coupled body ephemeris, with SPICE fallback when configured. 
+- Interactive trajectory visualization. 
 
 ## Acknowledgement
 
