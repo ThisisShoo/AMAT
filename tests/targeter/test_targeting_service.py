@@ -1,12 +1,5 @@
 from pathlib import Path
 import json
-<<<<<<< Updated upstream:tests/targeting/test_targeting_service.py
-from mission_targeting.service import solve_file, validate_file
-from mission_compiler.io import read_json
-from mission_compiler.ir.canonicalize import canonicalize
-from mission_compiler.validation.validate_schema import validate_schema
-from mission_compiler.validation.validate_bounds import validate_bounds
-=======
 from targeter.service import solve_file, validate_file
 from targeter.domain import canonicalize_target_problem
 from targeter.formulation import build_targeting_formulation
@@ -14,7 +7,6 @@ from compiler.io import read_json
 from compiler.ir.canonicalize import canonicalize
 from compiler.validation.validate_schema import validate_schema
 from compiler.validation.validate_bounds import validate_bounds
->>>>>>> Stashed changes:tests/targeter/test_targeting_service.py
 
 TARGET_PROBLEM = {
     "schema_version": "1.0.0",
@@ -67,8 +59,6 @@ def test_solve_emits_new_artifact_set(tmp_path):
     solved = canonicalize(read_json(tmp_path/"candidate_mission_spec.json"))
     failures = [x for x in validate_schema(solved) + validate_bounds(solved) if x.get("status") != "passed"]
     assert failures == []
-<<<<<<< Updated upstream:tests/targeting/test_targeting_service.py
-=======
 
 
 def test_target_argument_of_latitude_is_optional_constraint():
@@ -84,5 +74,3 @@ def test_target_argument_of_latitude_is_optional_constraint():
         constraint["metric_id"] == "spacecraft.final.orbit.argument_of_latitude"
         for constraint in formulation["constraints"]
     )
-
->>>>>>> Stashed changes:tests/targeter/test_targeting_service.py

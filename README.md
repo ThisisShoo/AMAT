@@ -53,9 +53,11 @@ amat --help
 
 Using `python -m ...` is preferred during development because it makes the active Python environment explicit.
 
-## GMAT Setup
+## Backend setup
 
-AMAT's simulation backend requires GMAT and its Python interface. The `gmatpyplus` wrapper expects a GMAT installation path. Set the `GMAT` environment variable to the GMAT root directory.
+### GMAT - General Mission Analysis Tool
+
+[GMAT](https://etd.gsfc.nasa.gov/capabilities/capabilities-listing/general-mission-analysis-tool-gmat/), or General Mission Analysis Tool, is a NASA open-source trajectory optimization and optimization software. It serves as one of AMAT's optional simulation backends. AMAT currently operates GMAT through the `gmatpyplus` wrapper, which expects a GMAT installation path. Set the `GMAT` environment variable to the GMAT root directory.
 
 Windows PowerShell example:
 
@@ -79,7 +81,7 @@ If GMAT cannot be loaded, first confirm:
 
 ## Verify the install
 
-After installation and GMAT setup, run the test suite:
+After installation and simulation tool setup, run the test suite:
 
 ```bash
 python -m pytest
@@ -125,17 +127,27 @@ Useful examples:
 
 ## Current Capabilities
 
-AMAT currently only support GMAT as the simulation backend. Targeting and rendering are done natively, unless a high-fidelity simulation pass is needed. Please raise an issue to include other simulation or optimization backends. 
+AMAT currently only support GMAT as the simulation backend. Targeting and rendering are done natively, unless a high-fidelity simulation pass is needed. Please raise an [issue](https://github.com/ThisisShoo/AMAT/issues) to include other simulation or optimization backends. 
 
 Spaceflight-related capabilities include but not limited to:
 
-- Cartesian and Keplerian spacecraft initial states.
-- Multi-phase mission sequences.
-- Propagation, impulsive maneuvers, event actions, and checkpoints.
+- Body-agnostic cartesian and Keplerian spacecraft states
+- Multi-phase mission sequences combining propagation, impulsive maneuvers, event actions, and checkpoints.
 - GMAT point-mass and spherical-harmonic force model declarations.
 - Multi-body gravities. 
 - Simulation-coupled body ephemeris, with SPICE fallback when configured. 
-- Interactive trajectory visualization. 
+- HTML-based interactive trajectory visualization with backend-defined frames. 
+
+## Development Roadmap (in order of priority)*
+
+- Finite burn compatibility 
+- Orekit integration
+- Multi-spacecraft missions
+- Human-agent-AMAT interfaces
+- Persistent UI
+- ...
+
+*List subject to change based on user feedbacks and development status.*
 
 ## Acknowledgement
 
@@ -149,10 +161,10 @@ Later, AMAT was ~~scope crept~~ expanded into a broader backend-agnostic framewo
 
 ## AI Disclosure
 
-This repository utilizes ChatGPT, and its derivative, Codex, for code generation, optimization, and documentation. All AI-generated code is thoroughly tested and vetted by human maintainers for quality, fidality, and consistency. 
+This repository utilizes ChatGPT, and its derivative, Codex, for code generation, optimization, and documentation. All AI-generated content is thoroughly tested and reviewed by a combination of cross-agent, inter-model, and human-led review processes for quality, fidality, and consistency. 
 
 ## Development Status
 
-AMAT is under active development. The core design goal is to keep mission intent, generated backend artifacts, simulation outputs, and visualization products explicit and inspectable. When behavior is ambiguous, GMAT propagation outputs and generated manifests are treated as the source of truth for downstream visualization.
+AMAT is under active development. The core design goal is to keep mission intent, generated backend artifacts, simulation outputs, and visualization products explicit and inspectable. 
 
 

@@ -67,7 +67,10 @@
         "inclination": {"$ref": "#/$defs/quantity"},
         "inclination_max": {"$ref": "#/$defs/quantity"},
         "raan": {"$ref": "#/$defs/quantity"},
-        "aop": {"$ref": "#/$defs/quantity"}
+        "aop": {"$ref": "#/$defs/quantity"},
+        "argument_of_latitude": {"$ref": "#/$defs/quantity"},
+        "argument_of_latitude_max": {"$ref": "#/$defs/quantity"},
+        "angle_tolerance": {"$ref": "#/$defs/quantity"}
       },
       "additionalProperties": false
     },

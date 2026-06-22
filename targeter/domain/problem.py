@@ -162,6 +162,13 @@ def _canonical_target(target: dict[str, Any], strategy: dict[str, Any]) -> dict[
     target["eccentricity"] = _number(target.get("eccentricity", 0.0), "target.eccentricity")
     target["eccentricity_max"] = _number(target.get("eccentricity_max", 1e-4), "target.eccentricity_max")
     target["inclination_max"] = _quantity(target["inclination_max"], "target.inclination_max", "deg")
+    if "argument_of_latitude" in target:
+        target["argument_of_latitude"] = _angle(target["argument_of_latitude"], "target.argument_of_latitude")
+        target["argument_of_latitude_max"] = _quantity(
+            target.get("argument_of_latitude_max", target.get("angle_tolerance", target["inclination_max"])),
+            "target.argument_of_latitude_max",
+            "deg",
+        )
     if target["sma"]["value"] <= EARTH_RADIUS_KM:
         raise TargetingError("target.sma must exceed Earth radius")
     if not 0 <= target["eccentricity"] < 1:

@@ -125,6 +125,14 @@ def _extract_final_metrics(problem: dict[str, Any], outputs_dir: Path) -> tuple[
             if value is not None and not (isinstance(value, float) and np.isnan(value)):
                 metrics[metric_id] = {"value": float(value), "unit": "deg" if metric_id.endswith(("inclination", "raan", "aop", "ta")) else ("1" if metric_id.endswith("eccentricity") else "km")}
                 evidence["columns"][metric_id] = col
+    aop = metrics.get("spacecraft.final.orbit.aop", {}).get("value")
+    ta = metrics.get("spacecraft.final.orbit.ta", {}).get("value")
+    if aop is not None and ta is not None:
+        metrics["spacecraft.final.orbit.argument_of_latitude"] = {"value": (float(aop) + float(ta)) % 360.0, "unit": "deg"}
+        evidence["columns"]["spacecraft.final.orbit.argument_of_latitude"] = [
+            evidence["columns"].get("spacecraft.final.orbit.aop"),
+            evidence["columns"].get("spacecraft.final.orbit.ta"),
+        ]
     return metrics, evidence
 
 
@@ -298,6 +306,13 @@ def _constraint_residuals(problem: dict[str, Any], metrics: dict[str, Any]) -> l
                 _quantity_value(ta_target),
                 angular_tolerance,
             ))
+    if "argument_of_latitude" in target and "spacecraft.final.orbit.argument_of_latitude" in metrics:
+        residuals.append(_angle_residual(
+            "spacecraft.final.orbit.argument_of_latitude",
+            metrics["spacecraft.final.orbit.argument_of_latitude"]["value"],
+            _quantity_value(target["argument_of_latitude"]),
+            _quantity_value(target.get("argument_of_latitude_max", target.get("angle_tolerance", target["inclination_max"]))),
+        ))
 
     limits = problem.get("limits", {})
     if "minimum_altitude" in limits and "trajectory.minimum_altitude" in metrics:

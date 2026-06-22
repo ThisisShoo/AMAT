@@ -177,10 +177,6 @@ def _scene_payload(scene: MissionScene, paths: MissionPaths) -> dict[str, Any]:
         for item in (_trace_payload(t, paths.mission_dir) for t in [*scene.spacecraft_traces, *scene.body_traces])
         if item is not None
     ]
-<<<<<<< Updated upstream:mission_visualizer/three_renderer.py
-    checkpoints = [item for item in (_checkpoint_payload(c) for c in scene.checkpoints) if item is not None]
-    ground_tracks = [item for item in (_ground_track_payload(gt) for gt in scene.ground_tracks) if item is not None]
-=======
     checkpoints = sorted(
         [item for item in (_checkpoint_payload(c) for c in scene.checkpoints) if item is not None],
         key=lambda item: (
@@ -192,7 +188,6 @@ def _scene_payload(scene: MissionScene, paths: MissionPaths) -> dict[str, Any]:
         checkpoint["number"] = index
         checkpoint["caption"] = f"{index}. {checkpoint['name']}"
     ground_tracks = [item for item in (_ground_track_payload(gt, paths.mission_dir) for gt in scene.ground_tracks) if item is not None]
->>>>>>> Stashed changes:visualzer/three_renderer.py
     frames = [
         {
             "name": f.name,
