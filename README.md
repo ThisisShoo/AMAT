@@ -37,19 +37,20 @@ This installs the AMAT packages and development test dependency. The core depend
 Verify that the CLIs import:
 
 ```bash
-python -m mission_compiler --help
-python -m mission_targeting --help
-python -m mission_optimization --help
-python -m mission_visualizer --help
+python -m compiler --help
+python -m targeter --help
+python -m optimizer --help
+python -m visualzer --help
 ```
 
 Installed console entry points are also declared:
 
 ```bash
+compiler --help
+targeter --help
+optimizer --help
+visualzer --help
 amat --help
-amat-target --help
-amat-optimize --help
-mission-visualizer --help
 ```
 
 Using `python -m ...` is preferred during development because it makes the active Python environment explicit.
@@ -61,7 +62,7 @@ AMAT's simulation backend requires GMAT and its Python interface. The `gmatpyplu
 Windows PowerShell example:
 
 ```powershell
-$env:GMAT = "C:\Users\<username>\Apps\GMAT-R2026a"
+$env:GMAT = "$env:USERPROFILE\Apps\GMAT-R2026a"
 ```
 
 For a persistent setup, add `GMAT` through your operating system's environment variable settings.
@@ -89,22 +90,22 @@ python -m pytest
 Then do a minimal compile check from the project root:
 
 ```bash
-python -m mission_compiler validate examples/elliptical_LEO_to_GEO/mission_spec.json
-python -m mission_compiler compile examples/elliptical_LEO_to_GEO/mission_spec.json --out generated/elliptical_LEO_to_GEO/simulation
+python -m compiler validate examples/LEO_to_GEO/mission_spec.json
+python -m compiler compile examples/LEO_to_GEO/mission_spec.json --out generated/LEO_to_GEO/simulation
 ```
 
 At this point AMAT is installed and can generate mission artifacts. To confirm the full GMAT-backed path, run the generated mission and render the visualization:
 
 ```bash
-python generated/elliptical_LEO_to_GEO/simulation/generated_mission.py --run
-python -m mission_visualizer view --mission-dir generated/elliptical_LEO_to_GEO/simulation
+python generated/LEO_to_GEO/simulation/generated_mission.py --run
+python -m visualzer view --mission-dir generated/LEO_to_GEO/simulation
 ```
 
 The viewer writes:
 
 ```text
-generated/elliptical_LEO_to_GEO/simulation/visualization/trajectory.html
-generated/elliptical_LEO_to_GEO/simulation/visualization/visualization_report.json
+generated/LEO_to_GEO/simulation/visualization/trajectory.html
+generated/LEO_to_GEO/simulation/visualization/visualization_report.json
 ```
 
 Open `trajectory.html` in a browser to inspect the result.
@@ -119,8 +120,8 @@ Use these documents for hands-on workflows and schema details:
 
 Useful examples:
 
-- `examples/elliptical_LEO_to_GEO/mission_spec.json`: Earth-orbit transfer example.
-- `examples/elliptical_LEO_to_GEO/target_problem.json`: targeting-first Earth-orbit transfer seed.
+- `examples/LEO_to_GEO/mission_spec.json`: Earth-orbit transfer example.
+- `examples/LEO_to_GEO/target_problem.json`: targeting-first Earth-orbit transfer seed.
 - `examples/MEO_demo/mission_spec.json`: medium Earth orbit propagation example.
 - `examples/cislunar_demo/mission_spec.json`: GMAT-backed cislunar demonstration with body ephemerides.
 
@@ -155,3 +156,5 @@ This repository utilizes ChatGPT, and its derivative, Codex, for code generation
 ## Development Status
 
 AMAT is under active development. The core design goal is to keep mission intent, generated backend artifacts, simulation outputs, and visualization products explicit and inspectable. When behavior is ambiguous, GMAT propagation outputs and generated manifests are treated as the source of truth for downstream visualization.
+
+

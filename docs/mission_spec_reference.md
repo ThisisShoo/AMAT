@@ -703,9 +703,9 @@ SPICE dependencies are declared in `external_dependencies[]`.
 Commands:
 
 ```bash
-python -m mission_compiler spice-requests examples/event_test/mission_spec.json --out generated/event_test
-python -m mission_compiler resolve-spice generated/event_test/dependencies/spice_requests.json --request-id dep_luna_spice --out generated/event_test/dependencies/resolved/dep_luna_spice_ephemeris.json
-python -m mission_compiler export-visualization generated/event_test
+python -m compiler spice-requests examples/event_test/mission_spec.json --out generated/event_test
+python -m compiler resolve-spice generated/event_test/dependencies/spice_requests.json --request-id dep_luna_spice --out generated/event_test/dependencies/resolved/dep_luna_spice_ephemeris.json
+python -m compiler export-visualization generated/event_test
 ```
 
 ## Visualization manifest
@@ -773,3 +773,4 @@ AMAT does not yet provide:
 - Guaranteed visualization transforms for every custom GMAT frame.
 
 These are intended future layers on top of the current MissionSpec/artifact foundation.
+

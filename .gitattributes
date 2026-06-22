@@ -1,2 +1,9 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Generated and local-only artifacts should not be included in GitHub source archives.
+generated/** export-ignore
+for_demo/** export-ignore
+debug/** export-ignore
+__pycache__/** export-ignore
+.pytest_cache/** export-ignore

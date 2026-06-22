@@ -46,7 +46,7 @@ Start with a semantic target problem. The targeting layer currently generates an
 ### 1. Validate The Target Problem
 
 ```bash
-python -m mission_targeting validate examples/elliptical_LEO_to_GEO/target_problem.json
+python -m targeter validate examples/LEO_to_GEO/target_problem.json
 ```
 
 Validation canonicalizes the target problem internally and reports whether the request is structurally supported.
@@ -54,8 +54,8 @@ Validation canonicalizes the target problem internally and reports whether the r
 ### 2. Solve For An Initial Candidate
 
 ```bash
-python -m mission_targeting solve examples/elliptical_LEO_to_GEO/target_problem.json \
-  --out generated/elliptical_LEO_to_GEO/targeting
+python -m targeter solve examples/LEO_to_GEO/target_problem.json \
+  --out generated/LEO_to_GEO/targeting
 ```
 
 This writes the targeting artifacts and `candidate_mission_spec.json`.
@@ -65,7 +65,7 @@ For impulsive non-coplanar transfers, the initial guess is node-aware: AMAT comp
 ### 3. Validate The Candidate MissionSpec
 
 ```bash
-python -m mission_compiler validate generated/elliptical_LEO_to_GEO/targeting/candidate_mission_spec.json
+python -m compiler validate generated/LEO_to_GEO/targeting/candidate_mission_spec.json
 ```
 
 This checks the MissionSpec that will be handed to the simulation compiler.
@@ -73,8 +73,8 @@ This checks the MissionSpec that will be handed to the simulation compiler.
 ### 4. Compile The Simulation
 
 ```bash
-python -m mission_compiler compile generated/elliptical_LEO_to_GEO/targeting/candidate_mission_spec.json \
-  --out generated/elliptical_LEO_to_GEO/simulation
+python -m compiler compile generated/LEO_to_GEO/targeting/candidate_mission_spec.json \
+  --out generated/LEO_to_GEO/simulation
 ```
 
 Compilation writes the canonical MissionSpec, GMAT-native script, generated Python runner, manifests, expected output declarations, and visualization manifest.
@@ -82,28 +82,28 @@ Compilation writes the canonical MissionSpec, GMAT-native script, generated Pyth
 ### 5. Run GMAT
 
 ```bash
-python generated/elliptical_LEO_to_GEO/simulation/generated_mission.py --run
+python generated/LEO_to_GEO/simulation/generated_mission.py --run
 ```
 
 The runner loads and replays `generated_mission.script` when the mission needs GMAT ReportFile outputs. Runtime CSV files are written under:
 
 ```text
-generated/elliptical_LEO_to_GEO/simulation/outputs/
+generated/LEO_to_GEO/simulation/outputs/
 ```
 
 ### 6. Evaluate The Runtime Result
 
 ```bash
-python -m mission_targeting evaluate examples/elliptical_LEO_to_GEO/target_problem.json \
-  --simulation-dir generated/elliptical_LEO_to_GEO/simulation \
-  --out generated/elliptical_LEO_to_GEO/targeting
+python -m targeter evaluate examples/LEO_to_GEO/target_problem.json \
+  --simulation-dir generated/LEO_to_GEO/simulation \
+  --out generated/LEO_to_GEO/targeting
 ```
 
 Evaluation compares the runtime final state against the target problem and updates:
 
 ```text
-generated/elliptical_LEO_to_GEO/targeting/simulation_evaluation.json
-generated/elliptical_LEO_to_GEO/targeting/acceptance_result.json
+generated/LEO_to_GEO/targeting/simulation_evaluation.json
+generated/LEO_to_GEO/targeting/acceptance_result.json
 ```
 
 If the result is outside tolerance, use the evaluation artifact to decide whether the next step is patched-conic/hyperbola refinement, STM correction, or manual mission redesign.
@@ -111,20 +111,20 @@ If the result is outside tolerance, use the evaluation artifact to decide whethe
 ### 7. Render The Visualization
 
 ```bash
-python -m mission_visualizer view --mission-dir generated/elliptical_LEO_to_GEO/simulation
+python -m visualzer view --mission-dir generated/LEO_to_GEO/simulation
 ```
 
 or, when using the standard generated layout:
 
 ```bash
-python -m mission_visualizer view elliptical_LEO_to_GEO
+python -m visualzer view LEO_to_GEO
 ```
 
 The viewer writes:
 
 ```text
-generated/elliptical_LEO_to_GEO/simulation/visualization/trajectory.html
-generated/elliptical_LEO_to_GEO/simulation/visualization/visualization_report.json
+generated/LEO_to_GEO/simulation/visualization/trajectory.html
+generated/LEO_to_GEO/simulation/visualization/visualization_report.json
 ```
 
 Open `trajectory.html` in a browser.
@@ -136,40 +136,40 @@ Use this path when an example or hand-authored MissionSpec already exists.
 ### 1. Validate
 
 ```bash
-python -m mission_compiler validate examples/elliptical_LEO_to_GEO/mission_spec.json
+python -m compiler validate examples/LEO_to_GEO/mission_spec.json
 ```
 
 ### 2. Compile
 
 ```bash
-python -m mission_compiler compile examples/elliptical_LEO_to_GEO/mission_spec.json \
-  --out generated/elliptical_LEO_to_GEO/simulation
+python -m compiler compile examples/LEO_to_GEO/mission_spec.json \
+  --out generated/LEO_to_GEO/simulation
 ```
 
 ### 3. Run
 
 ```bash
-python generated/elliptical_LEO_to_GEO/simulation/generated_mission.py --run
+python generated/LEO_to_GEO/simulation/generated_mission.py --run
 ```
 
 ### 4. Render
 
 ```bash
-python -m mission_visualizer view --mission-dir generated/elliptical_LEO_to_GEO/simulation
+python -m visualzer view --mission-dir generated/LEO_to_GEO/simulation
 ```
 
 The same pattern applies to the current demonstration examples:
 
 ```bash
-python -m mission_compiler compile examples/cislunar_demo/mission_spec.json --out generated/cislunar_demo/simulation
+python -m compiler compile examples/cislunar_demo/mission_spec.json --out generated/cislunar_demo/simulation
 python generated/cislunar_demo/simulation/generated_mission.py --run
-python -m mission_visualizer view --mission-dir generated/cislunar_demo/simulation
+python -m visualzer view --mission-dir generated/cislunar_demo/simulation
 ```
 
 ```bash
-python -m mission_compiler compile examples/MEO_demo/mission_spec.json --out generated/MEO_demo/simulation
+python -m compiler compile examples/MEO_demo/mission_spec.json --out generated/MEO_demo/simulation
 python generated/MEO_demo/simulation/generated_mission.py --run
-python -m mission_visualizer view --mission-dir generated/MEO_demo/simulation
+python -m visualzer view --mission-dir generated/MEO_demo/simulation
 ```
 
 ## Visualization Refresh Only
@@ -177,8 +177,8 @@ python -m mission_visualizer view --mission-dir generated/MEO_demo/simulation
 If GMAT outputs already exist and only viewer artifacts need regeneration:
 
 ```bash
-python -m mission_compiler export-visualization generated/cislunar_demo/simulation
-python -m mission_visualizer view --mission-dir generated/cislunar_demo/simulation
+python -m compiler export-visualization generated/cislunar_demo/simulation
+python -m visualzer view --mission-dir generated/cislunar_demo/simulation
 ```
 
 Use this after changing visualization code, body textures, frame declarations, or manifest generation.
@@ -242,10 +242,12 @@ Confirm the viewer loaded the intended frames and traces.
 
 ## Troubleshooting
 
-If `python -m mission_targeting solve` succeeds but simulation misses the target, remember that the analytic candidate is a seed. Run `python -m mission_targeting evaluate` and inspect the residuals before changing the mission.
+If `python -m targeter solve` succeeds but simulation misses the target, remember that the analytic candidate is a seed. Run `python -m targeter evaluate` and inspect the residuals before changing the mission.
 
 If GMAT fails to load the script, inspect `generated_mission.script` first. Common causes are unsupported frame names, unsupported report parameters, or a MissionSpec event that compiles to an impossible stop condition.
 
 If visualization cannot find outputs, pass `--mission-dir` explicitly to the directory containing `outputs/`, usually `generated/<mission_id>/simulation`.
 
 If the viewer omits a body in a rotating frame, check `visualization_manifest.json` for `frames`, `body_ephemerides`, and `force_model_bodies`.
+
+

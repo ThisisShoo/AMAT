@@ -12,11 +12,13 @@ TargetProblem
   -> targeting formulation
   -> analytic initial candidate
   -> MissionSpec materialization
-  -> GMAT simulation
+  -> selected simulation backend
   -> simulation evaluation
 ```
 
 A successful targeting solve means AMAT produced a structurally valid initial candidate. It does not by itself prove that GMAT propagation will meet every requirement.
+
+The executable closed loop keeps targeting policy, simulation, and correction modules separate. For example, `simulation_backend` can be `gmat` while `correction_backend` is `stm`; a future workflow can swap either side independently.
 
 ## Current Scope
 
@@ -56,36 +58,56 @@ Semantic metric IDs are intentionally not GMAT column names. The evaluation laye
 Validate a target problem:
 
 ```bash
-python -m mission_targeting validate examples/elliptical_LEO_to_GEO/target_problem.json
+python -m targeter validate examples/LEO_to_GEO/target_problem.json
 ```
 
 Solve for an initial candidate:
 
 ```bash
-python -m mission_targeting solve examples/elliptical_LEO_to_GEO/target_problem.json \
-  --out generated/elliptical_LEO_to_GEO/targeting
+python -m targeter solve examples/LEO_to_GEO/target_problem.json \
+  --out generated/LEO_to_GEO/targeting
 ```
 
 Compile the materialized MissionSpec:
 
 ```bash
-python -m mission_compiler compile generated/elliptical_LEO_to_GEO/targeting/candidate_mission_spec.json \
-  --out generated/elliptical_LEO_to_GEO/simulation
+python -m compiler compile generated/LEO_to_GEO/targeting/candidate_mission_spec.json \
+  --out generated/LEO_to_GEO/simulation
 ```
 
 Run GMAT:
 
 ```bash
-python generated/elliptical_LEO_to_GEO/simulation/generated_mission.py --run
+python generated/LEO_to_GEO/simulation/generated_mission.py --run
 ```
 
 Evaluate the simulation result:
 
 ```bash
-python -m mission_targeting evaluate examples/elliptical_LEO_to_GEO/target_problem.json \
-  --simulation-dir generated/elliptical_LEO_to_GEO/simulation \
-  --out generated/elliptical_LEO_to_GEO/targeting
+python -m targeter evaluate examples/LEO_to_GEO/target_problem.json \
+  --simulation-dir generated/LEO_to_GEO/simulation \
+  --out generated/LEO_to_GEO/targeting
 ```
+
+Compile the first closed-loop iteration without running the simulation backend:
+
+```bash
+python -m targeter closed-loop examples/LEO_to_GEO/target_problem.json \
+  --out generated/LEO_to_GEO/targeting
+```
+
+Run the closed loop with explicit modules:
+
+```bash
+python -m targeter closed-loop examples/LEO_to_GEO/target_problem.json \
+  --simulation-backend gmat \
+  --correction-backend stm \
+  --max-iterations 3 \
+  --run \
+  --out generated/LEO_to_GEO/targeting
+```
+
+If GMAT propagation does not produce the STM assessment requested by the correction module, the loop stops with `missing_stm_assessment` rather than inventing sensitivities.
 
 For the complete end-to-end workflow, see [pipeline.md](pipeline.md).
 
@@ -171,11 +193,11 @@ Legacy policy names such as `node_near_apoapsis`, `concurrent_minimum_delta_v`, 
 
 ## Cross-SOI Conic Chains
 
-Cross-SOI seeds live in `mission_targeting/conic_chain.py`. A conic chain is an ordered sequence of up to three connecting patched conics. That is enough for planet-to-moon, moon-to-planet, and interplanetary-style chains with an intermediate encounter leg while keeping the analytic seed separate from the later correction pass.
+Cross-SOI seeds live in `targeter/conic_chain.py`. A conic chain is an ordered sequence of up to three connecting patched conics. That is enough for planet-to-moon, moon-to-planet, and interplanetary-style chains with an intermediate encounter leg while keeping the analytic seed separate from the later correction pass.
 
 The seed layer uses resolved body ephemerides as input to Lambert helpers. This keeps targeting, propagation, and visualization aligned to the same body phases when those ephemerides come from the GMAT simulation layer.
 
-`mission_targeting/cislunar.py` remains a cislunar MissionSpec compatibility wrapper. Generic cross-SOI seed concepts belong in `conic_chain.py`.
+`targeter/cislunar.py` remains a cislunar MissionSpec compatibility wrapper. Generic cross-SOI seed concepts belong in `conic_chain.py`.
 
 ## STM Closed Loop
 
@@ -196,10 +218,12 @@ The cislunar command uses GMAT's resolved Luna ephemeris as input to the conic-c
 The command shape is:
 
 ```bash
-python -m mission_targeting cislunar-seed examples/cislunar_demo/mission_spec.json \
+python -m targeter cislunar-seed examples/cislunar_demo/mission_spec.json \
   --body-ephemeris generated/cislunar_demo/simulation/outputs/_BodyEphemeris_Luna_EarthMJ2000Eq.csv \
   --out examples/cislunar_demo/mission_spec.json \
   --seed-out generated/cislunar_demo/targeting/cislunar_lambert_seed.json
 ```
 
 Use this after an initial GMAT run has produced the body ephemeris file. The generated seed JSON records the selected Luna sample, TLI magnitude, and arrival v-infinity.
+
+

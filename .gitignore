@@ -1,0 +1,35 @@
+# Python caches and test/runtime artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local environments and editor state
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+
+# Build/package output
+build/
+dist/
+*.egg-info/
+
+# AMAT generated artifacts
+generated/
+for_demo/
+debug/
+
+# GMAT/runtime logs and scratch output
+*.log
+*.bak
+*.tmp
+output/
+outputs/

@@ -3,17 +3,18 @@ import json
 
 import pytest
 
-from mission_compiler.artifacts.bundle import compile_bundle
-from mission_compiler.io import read_json
-from mission_compiler.ir.canonicalize import canonicalize
-from mission_compiler.validation.validate_bounds import validate_bounds
-from mission_compiler.validation.validate_dependencies import validate_dependencies
-from mission_compiler.validation.validate_schema import validate_schema
-from mission_compiler.visualization import build_visualization_manifest
+from compiler.artifacts.bundle import compile_bundle
+from compiler.io import read_json
+from compiler.ir.canonicalize import canonicalize
+from compiler.validation.validate_bounds import validate_bounds
+from compiler.validation.validate_dependencies import validate_dependencies
+from compiler.validation.validate_schema import validate_schema
+from compiler.visualization import build_visualization_manifest
+from targeter.execution import execute_closed_loop
 
 
 EXAMPLES = [
-    Path("examples/elliptical_LEO_to_GEO/mission_spec.json"),
+    Path("examples/LEO_to_GEO/mission_spec.json"),
     Path("examples/cislunar_demo/mission_spec.json"),
     Path("examples/MEO_demo/mission_spec.json"),
 ]
@@ -54,25 +55,51 @@ def test_meo_demo_manifest_lists_ground_track(tmp_path: Path) -> None:
 
 
 def test_targeting_generated_geo_manifest_lists_ground_track(tmp_path: Path) -> None:
-    from mission_targeting.domain import canonicalize_target_problem
-    from mission_targeting.initial_guess import generate_hohmann_candidate
-    from mission_targeting.materialization import materialize_mission_spec
+    from targeter.domain import canonicalize_target_problem
+    from targeter.initial_guess import generate_hohmann_candidate
+    from targeter.materialization import materialize_mission_spec
 
-    problem = canonicalize_target_problem(read_json(Path("examples/elliptical_LEO_to_GEO/target_problem.json")))
+    problem = canonicalize_target_problem(read_json(Path("examples/LEO_to_GEO/target_problem.json")))
     candidate = generate_hohmann_candidate(problem)
     spec = canonicalize(materialize_mission_spec(problem, candidate))
     spec_path = tmp_path / "candidate_mission_spec.json"
     spec_path.write_text(json.dumps(spec), encoding="utf-8")
-    result = compile_bundle(spec_path, tmp_path / "elliptical_LEO_to_GEO", "gmat")
+    result = compile_bundle(spec_path, tmp_path / "LEO_to_GEO", "gmat")
     assert result["compile_result"]["status"] == "success", result["compile_result"]
 
-    manifest = build_visualization_manifest(spec, tmp_path / "elliptical_LEO_to_GEO")
+    manifest = build_visualization_manifest(spec, tmp_path / "LEO_to_GEO")
 
     assert manifest["ground_tracks"]
     assert manifest["ground_tracks"][0]["file"] == "outputs/_GroundTrack_TargetSat_Earth.csv"
     assert manifest["sources"]["ground_tracks"][0]["provider"] == "gmat"
     frames = {entry["frame"] for entry in manifest["spacecraft_ephemerides"]}
     assert frames == {"EarthMJ2000Eq", "EarthFixed"}
+
+
+def test_leo_to_geo_target_problem_is_closed_loop_demo(tmp_path: Path) -> None:
+    from targeter.domain import canonicalize_target_problem
+
+    problem = canonicalize_target_problem(read_json(Path("examples/LEO_to_GEO/target_problem.json")))
+
+    assert problem["target"]["argument_of_latitude"] == {"value": 45.0, "unit": "deg"}
+    assert problem["execution"]["closed_loop"]["simulation_backend"] == "gmat"
+    assert problem["execution"]["closed_loop"]["correction_backend"] == "stm"
+    assert problem["execution"]["closed_loop"]["stm"]["enabled"] is True
+
+    result = execute_closed_loop(problem, tmp_path / "closed_loop", run=False, max_iterations=1)
+
+    assert result["status"] == "compiled_not_run"
+    assert result["simulation_backend"] == "gmat"
+    assert result["correction_backend"] == "stm"
+    iteration_dir = tmp_path / "closed_loop" / "iteration_000" / "simulation"
+    contract = read_json(iteration_dir / "targeting" / "stm_artifact_contract.json")
+    assert contract["artifacts"][0]["id"] == "leo_geo_closed_loop_stm"
+    assert contract["artifacts"][0]["decision_variables"] == [
+        "transfer_injection.delta_v_v",
+        "transfer_injection.delta_v_n",
+        "orbit_insertion.delta_v_v",
+        "orbit_insertion.delta_v_n",
+    ]
 
 
 def test_cislunar_manifest_exposes_rotating_frame_bodies(tmp_path: Path) -> None:
@@ -109,11 +136,11 @@ def test_cislunar_compile_requests_force_model_body_ephemerides_from_gmat(tmp_pa
 
 
 def test_leo_to_geo_initial_coast_is_event_driven_before_transfer_injection(tmp_path: Path) -> None:
-    spec_path = Path("examples/elliptical_LEO_to_GEO/mission_spec.json")
-    result = compile_bundle(spec_path, tmp_path / "elliptical_LEO_to_GEO", "gmat")
+    spec_path = Path("examples/LEO_to_GEO/mission_spec.json")
+    result = compile_bundle(spec_path, tmp_path / "LEO_to_GEO", "gmat")
     assert result["compile_result"]["status"] == "success", result["compile_result"]
 
-    script = (tmp_path / "elliptical_LEO_to_GEO" / "generated_mission.script").read_text(encoding="utf-8")
+    script = (tmp_path / "LEO_to_GEO" / "generated_mission.script").read_text(encoding="utf-8")
 
     assert "Propagate EarthProp(TargetSat) { TargetSat.ElapsedSecs = 10800.0 };" in script
     assert script.index("TargetSat.ElapsedSecs = 10800.0") < script.index("Maneuver TransferInjection(TargetSat);")
@@ -121,8 +148,28 @@ def test_leo_to_geo_initial_coast_is_event_driven_before_transfer_injection(tmp_
     assert "Maneuver TransferInjection(TargetSat);" in script
 
 
+def test_generated_artifacts_do_not_embed_workspace_absolute_paths(tmp_path: Path) -> None:
+    spec_path = Path("examples/LEO_to_GEO/mission_spec.json")
+    out_dir = tmp_path / "LEO_to_GEO"
+    result = compile_bundle(spec_path, out_dir, "gmat")
+    assert result["compile_result"]["status"] == "success", result["compile_result"]
+
+    workspace = str(Path.cwd()).replace("\\", "/")
+    for path in [
+        out_dir / "generated_mission.py",
+        out_dir / "generated_mission.script",
+        out_dir / "visualization_manifest.json",
+    ]:
+        text = path.read_text(encoding="utf-8")
+        assert workspace not in text.replace("\\", "/")
+        assert ("Documents" + " and stuff") not in text
+
+    script = (out_dir / "generated_mission.script").read_text(encoding="utf-8")
+    assert "Filename = '_Ephemeris_TargetSat_EarthMJ2000Eq.csv';" in script
+
+
 def test_leo_to_geo_plane_change_is_combined_with_apogee_insertion(tmp_path: Path) -> None:
-    spec_path = Path("examples/elliptical_LEO_to_GEO/mission_spec.json")
+    spec_path = Path("examples/LEO_to_GEO/mission_spec.json")
     spec = _validate(spec_path)
 
     initial_coast = next(event for event in spec["events"] if event["id"] == "event_initial_coast")
@@ -139,10 +186,10 @@ def test_leo_to_geo_plane_change_is_combined_with_apogee_insertion(tmp_path: Pat
     assert geo_burn["delta_v_km_s"][1] != 0.0
     assert all(burn["id"] != "plane_change_at_node" for burn in spec["burns"])
 
-    result = compile_bundle(spec_path, tmp_path / "elliptical_LEO_to_GEO", "gmat")
+    result = compile_bundle(spec_path, tmp_path / "LEO_to_GEO", "gmat")
     assert result["compile_result"]["status"] == "success", result["compile_result"]
 
-    script = (tmp_path / "elliptical_LEO_to_GEO" / "generated_mission.script").read_text(encoding="utf-8")
+    script = (tmp_path / "LEO_to_GEO" / "generated_mission.script").read_text(encoding="utf-8")
 
     assert "Propagate EarthProp(TargetSat) { TargetSat.Earth.TA = 150.0 };" in script
     assert "Maneuver OrbitInsertion(TargetSat);" in script
@@ -151,14 +198,16 @@ def test_leo_to_geo_plane_change_is_combined_with_apogee_insertion(tmp_path: Pat
 
 
 def test_surface_fixed_ephemeris_uses_inertial_keplerian_angles(tmp_path: Path) -> None:
-    spec_path = Path("examples/elliptical_LEO_to_GEO/mission_spec.json")
-    result = compile_bundle(spec_path, tmp_path / "elliptical_LEO_to_GEO", "gmat")
+    spec_path = Path("examples/LEO_to_GEO/mission_spec.json")
+    result = compile_bundle(spec_path, tmp_path / "LEO_to_GEO", "gmat")
     assert result["compile_result"]["status"] == "success", result["compile_result"]
 
-    script = (tmp_path / "elliptical_LEO_to_GEO" / "generated_mission.script").read_text(encoding="utf-8")
+    script = (tmp_path / "LEO_to_GEO" / "generated_mission.script").read_text(encoding="utf-8")
 
     assert "TargetSat.EarthFixed.X" in script
     assert "TargetSat.EarthFixed.INC" not in script
     assert "TargetSat.EarthFixed.RAAN" not in script
     assert "TargetSat.EarthFixed.AOP" not in script
     assert "TargetSat.EarthMJ2000Eq.INC" in script
+
+

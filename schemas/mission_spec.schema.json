@@ -30,6 +30,60 @@
     "description": {
       "type": "string"
     },
+    "targeting": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "stm": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "id": {
+              "type": "string"
+            },
+            "spacecraft": {
+              "type": "string"
+            },
+            "frame": {
+              "type": "string"
+            },
+            "mode": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "parameters": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "state_vector": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "decision_variables": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "notes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
     "conventions": {
       "type": "object",
       "additionalProperties": false,

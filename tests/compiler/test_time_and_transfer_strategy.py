@@ -5,19 +5,19 @@ from pathlib import Path
 
 import pytest
 
-from mission_compiler.backends.gmat.compiler import GmatCompiler
-from mission_compiler.ir.sequence import append_mission_sequence_phase
-from mission_compiler.ir.canonicalize import canonicalize
-from mission_compiler.time_formats import canonicalize_epoch, format_epoch_for_backend
-from mission_compiler.validation.validate_bounds import validate_bounds
-from mission_compiler.validation.validate_dependencies import validate_dependencies
-from mission_compiler.validation.validate_schema import validate_schema
-from mission_targeting.domain import canonicalize_target_problem, validate_target_problem
-from mission_targeting.errors import TargetingError
-from mission_targeting.initial_guess import generate_hohmann_candidate
-from mission_targeting.io import read_json
-from mission_targeting.materialization import materialize_mission_spec
-import mission_targeting.initial_guess.hohmann as hohmann_guess
+from compiler.backends.gmat.compiler import GmatCompiler
+from compiler.ir.sequence import append_mission_sequence_phase
+from compiler.ir.canonicalize import canonicalize
+from compiler.time_formats import canonicalize_epoch, format_epoch_for_backend
+from compiler.validation.validate_bounds import validate_bounds
+from compiler.validation.validate_dependencies import validate_dependencies
+from compiler.validation.validate_schema import validate_schema
+from targeter.domain import canonicalize_target_problem, validate_target_problem
+from targeter.errors import TargetingError
+from targeter.initial_guess import generate_hohmann_candidate
+from targeter.io import read_json
+from targeter.materialization import materialize_mission_spec
+import targeter.initial_guess.hohmann as hohmann_guess
 
 TARGET_PROBLEM = {
     "schema_version": "1.0.0",
@@ -114,7 +114,7 @@ def test_gmat_compiler_emits_stm_artifact_contract(tmp_path):
     assert any(item["artifact_id"] == "STM_ARTIFACT_CONTRACT" for item in result["generated_artifacts"])
     assert "% STM artifact request: stm" in script
     assert "Native GMAT STM ReportFile is not emitted" in script
-    assert contract["consumer"] == "mission_targeting.solve_stm_target_state_correction"
+    assert contract["consumer"] == "targeter.solve_stm_target_state_correction"
     assert contract["artifacts"][0]["has_native_report"] is False
 
 
@@ -138,7 +138,7 @@ def test_gmat_compiler_can_emit_native_stm_report_when_parameters_are_validated(
 
     assert "Create ReportFile RF_TargetSat_STM;" in script
     assert "GMAT RF_TargetSat_STM.Add = { TargetSat.STM_11, TargetSat.STM_12 };" in script
-    assert "/outputs/stm.csv';" in script.replace("\\", "/")
+    assert "GMAT RF_TargetSat_STM.Filename = 'stm.csv';" in script.replace("\\", "/")
 
 
 def test_finite_burn_mission_spec_compiles_to_timed_finite_burn(tmp_path):
@@ -382,3 +382,4 @@ def test_elliptical_initial_state_supported_at_selected_apsis(tmp_path):
     sc = spec["spacecraft"][0]
     assert sc["sma_km"] == 10000.0
     assert sc["ecc"] == 0.2
+

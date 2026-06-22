@@ -56,26 +56,27 @@ Homepage = "https://github.com/weasdown/gmatpyplus"
 gmatpyplus = "https://github.com/weasdown/gmatpyplus"
 
 [project.scripts]
-amat = "mission_compiler.cli:main"
-mission-mvp = "mission_compiler.cli:main"
-mission-visualizer = "mission_visualizer.cli:main"
-amat-target = "mission_targeting.cli:main"
-amat-optimize = "mission_optimization.cli:main"
+compiler = "compiler.cli:main"
+targeter = "targeter.cli:main"
+optimizer = "optimizer.cli:main"
+visualzer = "visualzer.cli:main"
+amat = "compiler.cli:main"
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["mission_compiler*", "mission_visualizer*", "mission_targeting*", "mission_optimization*"]
+include = ["compiler*", "visualzer*", "targeter*", "optimizer*"]
 
 [tool.setuptools.package-data]
-mission_compiler = [
+compiler = [
   "backends/gmat/*.json",
   "backends/gmat/templates/*.j2"
 ]
-mission_visualizer = [
+visualzer = [
   "assets/*.json"
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
