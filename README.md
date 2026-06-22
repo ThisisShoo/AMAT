@@ -2,26 +2,24 @@
 
 AMAT is a mission simulation, targeting, optimization, and visualization workbench for spacecraft trajectory studies. It turns machine-readable mission descriptions into GMAT-backed simulations, collects repeatable artifacts, and renders interactive trajectory views for inspection.
 
-AMAT is not meant to replace GMAT, SPICE, or a flight dynamics toolchain. It sits above them as an orchestration layer: users describe a mission in AMAT's data models, AMAT generates auditable backend artifacts, GMAT performs propagation, and the visualization layer presents the resulting trajectory products.
-
 ## What AMAT Does
 
 AMAT currently provides four cooperating layers:
 
-- **Mission compilation**: validates a `mission_spec.json`, canonicalizes it, and emits GMAT-native scripts plus generated Python runners.
-- **Simulation execution**: runs generated GMAT missions and collects spacecraft ephemerides, checkpoints, body ephemerides, reports, manifests, and provenance under `generated/<mission_id>/`.
-- **Targeting and optimization**: creates initial maneuver seeds for supported transfer problems and provides a swappable optimization layer, currently with GMAT as the first backend.
+- **Mission compilation**: validates a human- or machine-written `mission_spec.json`, canonicalizes it, and emits scripts and generated Python runners to operate other softwares.
+- **Simulation execution**: runs generated missions and collects spacecraft and body ephemerides. User-defined checkpoints are available to sample spacecraft states at any point during flight. All outputs are saved under `generated/<mission_id>/`.
+- **Targeting and optimization**: creates initial maneuver seeds for supported transfer problems and provides a swappable optimization layer, currently with GMAT as the first supported backend.
 - **Visualization**: reads generated simulation artifacts and creates an interactive 3D HTML viewer with spacecraft trajectories, body ephemerides, checkpoints, ground tracks, and reference-frame context.
 
-The normal artifact flow is:
+A typical workflow resembles:
 
 ```text
 MissionSpec or TargetProblem
-  -> AMAT validation/canonicalization
-  -> generated GMAT script and Python runner
-  -> GMAT propagation
-  -> output CSVs and manifests
-  -> interactive visualization
+  1. AMAT validation/canonicalization
+  2. generated script and Python runner
+  3. Propagation
+  4. output CSVs and manifests
+  5. interactive visualization
 ```
 
 ## Installation
