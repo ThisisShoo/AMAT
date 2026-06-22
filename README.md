@@ -145,26 +145,23 @@ Spaceflight-related capabilities include but not limited to:
 - Multi-spacecraft missions
 - Human-agent-AMAT interfaces
 - Persistent UI
-- ...
+- ... (TBD)
 
 *List subject to change based on user feedbacks and development status.*
 
-## Acknowledgement
+<!-- ## Acknowledgement
 
-AMAT was originally inspired by the GMAT Python wrapper `gmatpyplus` written by **weasdown**: 
+AMAT grew out of my earlier research project, the [GMAT Monte Carlo Propagator](https://github.com/ThisisShoo/GMAT-Monte-Carlo-Propagator), which automated Monte Carlo simulations using GMAT as the physics backend.
 
-```text
-https://github.com/weasdown/gmatpyplus
-```
+The direct spark for AMAT came from a message I received from [**weasdown**](https://github.com/weasdown) about an update to his GMAT wrapper. That message prompted me to revisit the broader problem of building reliable, programmable interfaces around GMAT, and ultimately led to the development of AMAT.
 
-Later, AMAT was ~~scope crept~~ expanded into a broader backend-agnostic framework for mission design and analysis. AMAT calls GMAT features through `gmatpyplus` and generates a separate `.script` file for human audit and review.
+This project would not have come to fruition without **weasdown**'s dedication to the GMAT community and his work making GMAT more accessible. I am deeply grateful for his contributions and for the inspiration they provided.  -->
+
 
 ## AI Disclosure
 
 This repository utilizes ChatGPT, and its derivative, Codex, for code generation, optimization, and documentation. All AI-generated content is thoroughly tested and reviewed by a combination of cross-agent, inter-model, and human-led review processes for quality, fidality, and consistency. 
 
-## Development Status
+## Author
 
-AMAT is under active development. The core design goal is to keep mission intent, generated backend artifacts, simulation outputs, and visualization products explicit and inspectable. 
-
-
+* **Shuhan Zheng** - Initial work / lead developer - [thisisshoo](https://github.com/ThisisShoo)

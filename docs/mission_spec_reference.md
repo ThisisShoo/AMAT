@@ -2,28 +2,17 @@
 
 This document explains how to manually write `mission_spec.json` files for the AMAT simulation layer.
 
-AMAT is designed for users who may not know GMAT scripting. You describe the mission in JSON, and AMAT generates GMAT artifacts, runs the simulation, and writes viewer-ready output files.
+AMAT is designed for users who may not know a backend's native scripting language. Describe the mission in JSON, and AMAT validates the intent, generates backend artifacts, runs the selected simulation backend, and writes viewer-ready output files. The current production simulation backend is GMAT, but MissionSpec should be written as backend-neutral mission intent wherever possible.
 
 ## Core idea
 
-A MissionSpec is the source of truth for a mission.
-
-```text
-mission_spec.json
-  -> AMAT validation
-  -> canonical MissionSpec
-  -> GMAT script and Python runner
-  -> GMAT execution
-  -> spacecraft ephemeris, checkpoints, body ephemeris, visualization manifest
-```
-
-Normal operation is controlled by editing `mission_spec.json`. Terminal commands are only for compiling, running, and troubleshooting.
+A MissionSpec is the source of truth for a mission. Normal operation is controlled by editing `mission_spec.json`. Terminal commands are only for compiling, running, and troubleshooting.
 
 ## Minimal top-level structure
 
 ```json
 {
-  "schema_version": "0.2.0",
+  "schema_version": "1.0.0",
   "mission_id": "MY_MISSION",
   "mission_name": "My mission",
   "description": "Short description.",
@@ -59,7 +48,7 @@ Normal operation is controlled by editing `mission_spec.json`. Terminal commands
 
 | Field | Required | Purpose |
 |---|---:|---|
-| `schema_version` | Yes | Schema version. Use `0.2.0`. |
+| `schema_version` | Yes | Schema version. Use `1.0.0`. |
 | `mission_id` | Yes | Stable artifact ID. Used in generated paths and manifests. |
 | `mission_name` | Yes | Human-readable mission name. |
 | `description` | No | Mission summary. |
@@ -71,7 +60,7 @@ Normal operation is controlled by editing `mission_spec.json`. Terminal commands
 | `spacecraft` | Yes | Spacecraft definitions and initial states. |
 | `force_models` | Yes | Gravity and force environments. |
 | `propagators` | Yes | Integrator and force-model selection. |
-| `burns` | No | Reusable impulsive burn definitions. |
+| `burns` | No | Reusable impulsive or finite burn definitions. |
 | `outputs` | No | Full ephemeris, body ephemeris, and final-state requests. |
 | `checkpoints` | No | Sparse state snapshots written at mission-sequence locations. |
 | `events` | No | Event definitions that stop propagation and trigger actions. |
@@ -82,15 +71,15 @@ Normal operation is controlled by editing `mission_spec.json`. Terminal commands
 
 IDs such as `mission_id`, spacecraft `id`, propagator `id`, and checkpoint `id` should use letters, numbers, `_`, or `-`.
 
-GMAT object names such as spacecraft `name`, force model `name`, propagator `name`, and burn `name` should start with a letter and then use letters, numbers, or `_` only.
+Backend object names such as spacecraft `name`, force model `name`, propagator `name`, and burn `name` should start with a letter and then use letters, numbers, or `_` only. This keeps generated GMAT artifacts valid and is also a good portable convention for future backends.
 
 Good:
 
 ```text
-EventSat
+Sat
 EarthFM
 RaiseApogeeTo500km
-event_test_spacecraft_ephemeris
+spacecraft_ephemeris
 ```
 
 Avoid:
@@ -116,7 +105,7 @@ Use this convention block unless there is a specific reason to change it:
 }
 ```
 
-Generated GMAT scripts and viewer CSVs assume these conventions.
+Generated backend artifacts and viewer CSVs assume these conventions unless a backend-specific adapter explicitly documents otherwise.
 
 ## Visualization settings
 
@@ -138,13 +127,13 @@ Behavior:
 
 - `enabled`: writes visualization artifacts.
 - `auto_export_after_run`: refreshes viewer files when `generated_mission.py --run` finishes.
-- `clean_csv`: removes GMAT ReportFile spacer columns where possible.
+- `clean_csv`: removes backend report spacer columns where possible. This is most visible for GMAT ReportFile output.
 - `write_manifest`: writes `visualization_manifest.json`.
-- `include_spice_body_ephemerides`: exports resolved SPICE body ephemerides when available.
+- `include_spice_body_ephemerides`: exports resolved SPICE body ephemerides when available. SPICE is used as a fallback body-ephemeris source when the simulation backend cannot or does not provide the requested body states.
 
 ## Bodies
 
-Bodies are optional for GMAT built-ins, but declaring them improves portability and viewer metadata.
+Bodies are optional for backend built-ins, but declaring them improves portability and viewer metadata.
 
 Example:
 
@@ -180,7 +169,7 @@ Supported body `type` values include:
 star, planet, moon, asteroid, comet, barycenter, custom, fictitious
 ```
 
-For custom or fictitious bodies, AMAT can preserve the declaration for future backend use. The current GMAT backend assumes any body referenced in a GMAT force model is already known to GMAT or otherwise configured externally.
+For custom or fictitious bodies, AMAT preserves the declaration for backend adapters and visualization metadata. A backend may still require its own external body configuration before it can propagate with that body.
 
 ## Reference frames
 
@@ -235,6 +224,51 @@ Example non-Earth body-centered frame:
 }
 ```
 
+Common frame families used by AMAT examples and visualization:
+
+| Family | Examples | Notes |
+|---|---|---|
+| Body-centered equatorial inertial | `EarthMJ2000Eq`, `LunaMJ2000Eq`, `MarsMJ2000Eq`, `SunMJ2000Eq` | Most common trajectory output frame. |
+| Body-centered ecliptic inertial | `EarthMJ2000Ec`, `LunaMJ2000Ec`, `MarsMJ2000Ec`, `SunMJ2000Ec` | Useful for solar-system style views when supported by the backend. |
+| Body-fixed / surface-fixed | `EarthFixed`, `LunaFixed` | Useful for ground tracks and surface-relative 3D views. |
+| Two-body rotating or object-referenced | `EarthLunaRotating`, `LunaEarthRotating` | Useful for cislunar inspection when the backend outputs ephemerides directly in the rotating frame. |
+| Local maneuver frames | `VNB`, `LVLH`, `SpacecraftBody` | Used by burn definitions rather than full trajectory outputs. |
+
+Notes:
+
+- For AMAT's current object-referenced naming convention, the first body in the frame name is the origin/center. `EarthLunaRotating` is Earth-centered with `primary: "Earth"` and `secondary: "Luna"`. `LunaEarthRotating` is Luna-centered with `primary: "Luna"` and `secondary: "Earth"`.
+- Object-referenced frames should be declared explicitly in `reference_frames[]`. The visualizer reads `origin`, `primary`, `secondary`, `axes`, `x_axis`, and `z_axis` from this declaration through `visualization_manifest.json`.
+- A typical cislunar rotating frame uses `type: "object_referenced"`, `axes: "ObjectReferenced"`, `x_axis: "R"`, and `z_axis: "N"`. For GMAT, mirror those fields under `backend_overrides.gmat`.
+
+Example object-referenced frame:
+
+```json
+{
+  "id": "earth_luna_rotating",
+  "name": "EarthLunaRotating",
+  "type": "object_referenced",
+  "origin": "Earth",
+  "primary": "Earth",
+  "secondary": "Luna",
+  "orientation": "ObjectReferenced",
+  "axes": "ObjectReferenced",
+  "x_axis": "R",
+  "z_axis": "N",
+  "backend_overrides": {
+    "gmat": {
+      "name": "EarthLunaRotating",
+      "create_coordinate_system": true,
+      "origin": "Earth",
+      "primary": "Earth",
+      "secondary": "Luna",
+      "axes": "ObjectReferenced",
+      "x_axis": "R",
+      "z_axis": "N"
+    }
+  }
+}
+```
+
 Supported GMAT axis names include:
 
 ```text
@@ -244,18 +278,30 @@ BodyFixed, BodyInertial, GSE, GSM, Topocentric,
 LocalAlignedConstrained, SPICE, ICRF, BodySpinSun, TEME
 ```
 
-Specialized frames may require extra GMAT fields. Put those fields under `backend_overrides.gmat` so AMAT preserves and emits them.
+Specialized frames may require extra backend fields. Put GMAT-specific fields under `backend_overrides.gmat` so AMAT preserves and emits them for the GMAT backend. Future backend adapters should use their own key under `backend_overrides`.
+
+### Visualizer frame contract
+
+The visualizer can load, label, and filter any frame that appears in `visualization_manifest.json`, generated outputs, or a parsed backend script. It does not currently perform general frame transformations. If you want to inspect a trajectory in a frame, the simulation backend must output spacecraft/body ephemeris CSVs already expressed in that frame.
+
+For reliable visualization:
+
+- Output spacecraft ephemeris in every frame you want the viewer to show.
+- Output body ephemerides in the same frame when body locations matter for context.
+- Declare `origin`, `axes`, `primary`, and `secondary` for custom or rotating frames when possible.
+- Use body-fixed frames such as `EarthFixed` for surface-fixed 3D views and ground-track overlays.
+- Do not expect the viewer to derive `EarthFixed` from `EarthMJ2000Eq`, or `EarthLunaRotating` from inertial data, unless a future transform layer is added.
 
 ## Spacecraft
 
-Each spacecraft needs an ID, GMAT object name, epoch, frame, state, and mass.
+Each spacecraft needs an ID, backend object name, epoch, frame, state, and mass.
 
 ### Keplerian state
 
 ```json
 {
   "id": "sat",
-  "name": "EventSat",
+  "name": "Sat",
   "epoch": "01 Jun 2026 00:00:00.000",
   "frame": "EarthMJ2000Eq",
   "state_type": "keplerian",
@@ -294,6 +340,15 @@ Required Keplerian fields:
   "dry_mass_kg": 500.0
 }
 ```
+
+Cartesian states are ordered as:
+
+```text
+position_km = [X, Y, Z]
+velocity_km_s = [VX, VY, VZ]
+```
+
+Both vectors are expressed in the spacecraft `frame`. For example, if `frame` is `EarthMJ2000Eq`, then `position_km` and `velocity_km_s` are Earth-centered MJ2000 equatorial Cartesian components in kilometers and kilometers per second.
 
 ## Force models
 
@@ -348,7 +403,7 @@ none, earth_near_space, inner_solar_system, all_major_bodies, custom
 }
 ```
 
-The current MVP is conservative: keep degree/order low until runtime behavior is confirmed.
+Keep degree/order low until runtime behavior is confirmed for the selected backend and mission duration.
 
 ## Propagators
 
@@ -369,7 +424,11 @@ A propagator selects a force model and integrator settings.
 
 ## Burns
 
-AMAT currently supports impulsive burns.
+Burn definitions describe reusable maneuver models. A mission-sequence maneuver step or event action chooses which spacecraft receives the burn and when it is executed.
+
+The specifications of impulsive and finite burns are defined in `burns[]`. A maneuver step does not contain the burn vector or thrust model; it references a burn by ID.
+
+### Impulsive burn
 
 ```json
 {
@@ -382,7 +441,52 @@ AMAT currently supports impulsive burns.
 }
 ```
 
-The spacecraft that receives the burn is chosen in the mission-sequence maneuver step.
+For an impulsive burn, `delta_v_km_s` is the burn vector in the burn `frame`, ordered as:
+
+```text
+delta_v_km_s = [Element1, Element2, Element3]
+```
+
+In a local `VNB` burn frame, this corresponds to velocity-axis, normal-axis, and binormal-axis components as interpreted by the backend.
+
+Supported burn frame choices:
+
+| Frame kind | Examples | Use |
+|---|---|---|
+| Local orbital frames | `VNB`, `LVLH` | Prograde/normal/radial style maneuvers tied to the spacecraft state. |
+| Spacecraft body frame | `SpacecraftBody` | Body-axis thrust directions when attitude/body axes are meaningful to the backend. |
+| Inertial body-centered frames | `EarthMJ2000Eq`, `EarthMJ2000Ec`, `LunaMJ2000Eq` | Fixed inertial direction burns. |
+| Declared custom frames | Any frame in `reference_frames[]` that the backend can emit/use | Specialized object-referenced or mission-specific maneuver directions. |
+
+For the GMAT backend, local frames are emitted as GMAT `Local` burn coordinate systems. Other frame names are emitted as backend coordinate systems, so they must be known to GMAT or declared in `reference_frames[]`.
+
+### Finite burn
+
+Finite burns are available in MissionSpec. In the GMAT backend, they compile to `ChemicalTank`, `ChemicalThruster`, and `FiniteBurn` resources.
+
+```json
+{
+  "id": "finite_raise_apogee",
+  "name": "FiniteRaiseApogee",
+  "type": "finite",
+  "frame": "VNB",
+  "origin": "Earth",
+  "thrust_N": 490.3325,
+  "isp_s": 320.0,
+  "direction": [1.0, 0.0, 0.0],
+  "decrement_mass": false,
+  "duty_cycle": 1.0,
+  "fuel_mass_kg": 1000.0
+}
+```
+
+For a finite burn, `direction` is a unit-like thrust direction vector in the burn `frame`, ordered as:
+
+```text
+direction = [Direction1, Direction2, Direction3]
+```
+
+AMAT normalizes this vector before backend emission. The maneuver step or event action that invokes a finite burn must include both `propagator` and `duration_s`, because the burn is applied while propagating.
 
 ## Outputs
 
@@ -390,11 +494,11 @@ Outputs are full-run products or viewer artifacts.
 
 ### Full spacecraft ephemeris
 
-Full ephemeris files must start with `_Ephemeris`.
+Full ephemeris files must start with `_Ephemeris` so the visualizer can discover them.
 
 ```json
 {
-  "id": "event_test_spacecraft_ephemeris",
+  "id": "spacecraft_ephemeris",
   "type": "full_ephemeris",
   "enabled": true,
   "spacecraft": "sat",
@@ -415,7 +519,32 @@ Full ephemeris files must start with `_Ephemeris`.
 }
 ```
 
-The compiler expands unqualified parameters relative to the selected spacecraft. For example, `EarthMJ2000Eq.X` becomes `EventSat.EarthMJ2000Eq.X` in GMAT.
+The compiler expands unqualified parameters relative to the selected spacecraft. For example, if the output's spacecraft has `"name": "Sat"`, then `EarthMJ2000Eq.X` becomes a backend-specific spacecraft state parameter for `Sat` in the GMAT backend.
+
+Common spacecraft ephemeris presets can be requested through `state_groups` instead of writing every column manually:
+
+```json
+{
+  "id": "eci_and_fixed_ephemeris",
+  "type": "spacecraft_ephemeris",
+  "spacecraft": "sat",
+  "frames": ["EarthMJ2000Eq", "EarthFixed"],
+  "state_groups": ["elapsed_time", "cartesian", "keplerian"],
+  "path_template": "outputs/_Ephemeris_{spacecraft}_{frame}.csv"
+}
+```
+
+Recommended frame/output combinations:
+
+| Need | Frames | State groups |
+|---|---|---|
+| Earth-centered inertial trajectory | `["EarthMJ2000Eq"]` or `["EarthMJ2000Ec"]` | `["elapsed_time", "cartesian", "keplerian"]` |
+| Luna-centered inertial trajectory | `["LunaMJ2000Eq"]` or `["LunaMJ2000Ec"]` | `["elapsed_time", "cartesian", "keplerian"]` |
+| Body-centered inertial trajectory | `["<Body>MJ2000Eq"]` or `["<Body>MJ2000Ec"]` | `["elapsed_time", "cartesian"]`, plus `keplerian` when the backend supports element reports for that body |
+| Surface-fixed 3D view | `["EarthFixed"]` or another body-fixed frame | `["elapsed_time", "cartesian"]` |
+| Orbit-element assessment | Any supported inertial frame | `["elapsed_time", "keplerian"]` |
+
+For GMAT, Keplerian output has a backend quirk: `SMA`, `ECC`, and `TA` are origin-qualified, while `INC`, `RAAN`, and `AOP` are coordinate-system-qualified. AMAT handles this mapping when you use `state_groups`.
 
 ### Body ephemeris
 
@@ -435,7 +564,7 @@ Body ephemeris files are for visualization of major body locations.
 }
 ```
 
-If resolved SPICE JSON exists, AMAT exports a SPICE-derived CSV. If not, the generated GMAT script may attempt a GMAT ReportFile fallback for the body ephemeris.
+If the simulation backend provides the requested body ephemeris, AMAT uses that backend-resolved output so visualization stays aligned with propagation. If the backend cannot provide it, resolved SPICE data is the fallback source. The manifest records the selected source so the viewer can display provenance.
 
 ### Final state
 
@@ -446,11 +575,13 @@ If resolved SPICE JSON exists, AMAT exports a SPICE-derived CSV. If not, the gen
 }
 ```
 
-This is metadata-oriented in the current MVP. Use checkpoints for reliable state snapshots.
+`final_state` is a declarative output request: it records that the mission wants a final state product for a spacecraft. It is useful as backend-neutral intent and may be used by future backend adapters or summary/report generation.
+
+In the current pipeline, use an explicit checkpoint at the final mission-sequence location when you need a reliable final state CSV for evaluation, targeting acceptance, or visualization.
 
 ## Checkpoints
 
-Checkpoints are sparse one-row state snapshots, not full trajectories.
+Checkpoints are sparse one-row state snapshots instead of full trajectories.
 
 ```json
 {
@@ -473,7 +604,7 @@ Checkpoints are sparse one-row state snapshots, not full trajectories.
 }
 ```
 
-Checkpoint files should not start with `_Ephemeris`.
+Checkpoint files should not start with `_Ephemeris`. That prefix is reserved for full spacecraft trajectories, and using it for checkpoints will confuse visualizer discovery.
 
 Checkpoint files should include at least one timestamp column. Recommended timestamp columns:
 
@@ -494,7 +625,7 @@ Events stop propagation and then execute ordered actions.
   "spacecraft": "sat",
   "propagator": "earth_prop",
   "stop_condition": {
-    "parameter": "EventSat.Earth.TA",
+    "parameter": "Sat.Earth.TA",
     "value": 270,
     "unit": "deg"
   },
@@ -508,7 +639,7 @@ Events stop propagation and then execute ordered actions.
 }
 ```
 
-### Orbital events
+### Event aliases
 
 ```json
 {
@@ -528,15 +659,15 @@ Events stop propagation and then execute ordered actions.
 }
 ```
 
-Supported event aliases:
+Supported event aliases and event types:
 
 ```text
-periapsis, apoapsis
+periapsis, apoapsis, node_crossing
 ```
 
-The current compiler maps these to true-anomaly stop conditions for GMAT. Apoapsis is not valid for hyperbolic trajectories.
+`periapsis` and `apoapsis` use `"type": "orbital_event"` with `"event": "periapsis"` or `"event": "apoapsis"`. The GMAT backend maps these to true-anomaly stop conditions. Apoapsis is not valid for hyperbolic trajectories.
 
-### Node crossing
+For orbital-plane crossings, use `"type": "node_crossing"`. This is a clearer name than treating nodes as generic orbital events because the event is defined by crossing a reference plane:
 
 ```json
 {
@@ -556,7 +687,7 @@ Supported node values:
 ascending, descending, either, both
 ```
 
-Direction-specific enforcement is limited in the current GMAT script backend. Use checkpoint `VZ` to inspect crossing direction when needed.
+Direction-specific enforcement is limited in the GMAT backend. Use checkpoint `VZ` to inspect crossing direction when needed.
 
 ### Event actions
 
@@ -571,11 +702,28 @@ Each action requires `action_id`.
 }
 ```
 
+For finite-burn event actions, include `propagator` and `duration_s`:
+
+```json
+{
+  "action_id": "finite_burn_at_event",
+  "type": "maneuver",
+  "spacecraft": "sat",
+  "burn": "finite_raise_apogee",
+  "propagator": "earth_prop",
+  "duration_s": 745.0
+}
+```
+
 Supported action types:
 
 ```text
 checkpoint, maneuver, report, custom_gmat
 ```
+
+`custom_gmat` is backend-specific. Keep it out of backend-neutral examples unless the mission is intentionally GMAT-only.
+
+`custom_gmat` inserts raw GMAT script commands at that event-action location. It is an escape hatch for backend features that AMAT does not model yet. AMAT does not deeply validate the commands, does not translate them to other backends, and cannot guarantee visualization/evaluation metadata for side effects they create. Prefer normal `propagate`, `maneuver`, `checkpoint`, and `report` actions whenever possible.
 
 ## Mission sequence
 
@@ -636,6 +784,38 @@ Supported step types:
   "burn": "raise_apogee_to_500km"
 }
 ```
+
+A maneuver step invokes a burn definition from `burns[]`; the burn vector or thrust model lives in the burn definition, not in the step. The step supplies:
+
+- `spacecraft`: the spacecraft receiving the burn.
+- `burn`: the burn definition ID to execute.
+- `propagator` and `duration_s`: required only for finite burns.
+
+Impulsive example:
+
+```json
+{
+  "step_id": "impulsive_burn_001",
+  "type": "maneuver",
+  "spacecraft": "sat",
+  "burn": "raise_apogee_to_500km"
+}
+```
+
+Finite-burn example:
+
+```json
+{
+  "step_id": "finite_burn_001",
+  "type": "maneuver",
+  "spacecraft": "sat",
+  "burn": "finite_raise_apogee",
+  "propagator": "earth_prop",
+  "duration_s": 745.0
+}
+```
+
+If you only want to record state without applying a maneuver, use a `checkpoint` step instead.
 
 ### Checkpoint
 
@@ -700,12 +880,14 @@ SPICE dependencies are declared in `external_dependencies[]`.
 }
 ```
 
+Use this when the simulation backend cannot provide a requested body ephemeris, or when you explicitly want a SPICE-derived visualization/reference product. For GMAT-backed propagation, backend-reported body ephemerides are preferred when available because they reflect GMAT's resolved ephemeris and frame handling. SPICE is the fallback or external reference path.
+
 Commands:
 
 ```bash
-python -m compiler spice-requests examples/event_test/mission_spec.json --out generated/event_test
-python -m compiler resolve-spice generated/event_test/dependencies/spice_requests.json --request-id dep_luna_spice --out generated/event_test/dependencies/resolved/dep_luna_spice_ephemeris.json
-python -m compiler export-visualization generated/event_test
+python -m compiler spice-requests examples/cislunar_demo/mission_spec.json --out generated/cislunar_demo/simulation
+python -m compiler resolve-spice generated/cislunar_demo/simulation/dependencies/spice_requests.json --request-id dep_luna_spice --out generated/cislunar_demo/simulation/dependencies/resolved/dep_luna_spice_ephemeris.json
+python -m compiler export-visualization generated/cislunar_demo/simulation
 ```
 
 ## Visualization manifest
@@ -728,49 +910,62 @@ The manifest summarizes:
 
 The viewer should load `_Ephemeris*.csv` as spacecraft trajectories and `_BodyEphemeris*.csv` as body trajectories.
 
-## Complete event-test pattern
+Visualizer-facing restrictions:
 
-A common event-test mission has this shape:
+- Spacecraft trajectory files must use the `_Ephemeris` prefix.
+- Body trajectory files must use the `_BodyEphemeris` prefix.
+- Ground-track files should use the `_GroundTrack` prefix.
+- Checkpoints must not use `_Ephemeris` or `_BodyEphemeris` prefixes.
+- Files should include a usable time column, preferably `ElapsedSecs`; `UTCGregorian` is also useful for labels and reports.
+- The viewer does not transform between arbitrary frames. That should be done upstream in the simulation step, or through a separate frame converter.
+- For a moving body to appear in a frame, provide a matching `body_ephemeris` output in that same frame, for example `{"type": "body_ephemeris", "body": "Luna", "frame": "EarthMJ2000Eq", "path": "outputs/_BodyEphemeris_Luna_EarthMJ2000Eq.csv"}`.
+- For a static context body in a frame, declare frame metadata in `reference_frames[]`; AMAT copies it into `visualization_manifest.json`. At minimum, provide `name`, `origin`, and `axes`. For two-body rotating context, also provide `primary` and `secondary`. The viewer can place the origin at the scene center and place a secondary body as context, but this is not a substitute for a time-varying body ephemeris.
+
+## Complete Mission Pattern
+
+A common mission pattern has this shape:
 
 ```text
-1. Start in circular LEO.
-2. Record initial checkpoint.
-3. Propagate one orbit to the next ascending node.
-4. Burn prograde to raise apogee.
-5. Propagate to apoapsis event.
-6. Burn prograde to raise perigee.
-7. Propagate until TA = 270 deg.
-8. Export spacecraft ephemeris and checkpoint snapshots.
-9. Export Luna body ephemeris if requested.
+1. Define spacecraft, force models, propagators, burns, outputs, checkpoints, and events.
+2. Record an initial checkpoint if the starting state should be auditable.
+3. Propagate by elapsed time or to an event.
+4. Execute impulsive or finite maneuvers by referencing burn definitions.
+5. Record checkpoints after important events or maneuvers.
+6. Continue propagation to the final analysis point.
+7. Record a final checkpoint for evaluation/targeting acceptance.
+8. Export spacecraft ephemerides in every frame the viewer should show.
+9. Export body ephemerides or ground tracks when the viewer needs body context or surface-relative motion.
 ```
 
-Use `examples/event_test/mission_spec.json` as the reference implementation.
+Use `examples/LEO_to_GEO/mission_spec.json` and `examples/MEO_demo/mission_spec.json` as current reference implementations for impulsive/event-driven and finite-burn patterns.
 
 ## Common problems
 
 ### SPICE output missing
 
-Read the printed `visualization_export` block. If it says SPICE resolution failed, either install/verify `spiceypy` and kernels or rely on GMAT body ephemeris fallback if available.
+Read the printed `visualization_export` block. If it says SPICE resolution failed, either install/verify `spiceypy` and kernels or rely on backend-provided body ephemerides when available.
 
-### GMAT rejects the script
+### Backend rejects the generated artifact
 
-If `LoadScript returned: False`, inspect `generated_mission.script` and GMAT's message/log output. Common causes are unsupported frame axes, unsupported body-state report parameters, or missing custom body definitions.
+For GMAT, if `LoadScript returned: False`, inspect `generated_mission.script` and GMAT's message/log output. Common causes are unsupported frame axes, unsupported body-state report parameters, or missing custom body definitions. Other backends should expose equivalent compile/run diagnostics through `compile_result.json` and the generated runner output.
 
-### Body ephemeris source is not SPICE
+### Body ephemeris source is not what you expected
 
-If SPICE resolved JSON is missing, AMAT may use `gmat_reportfile_fallback`. The manifest will label the source so the viewer can display provenance.
+AMAT prefers body ephemerides resolved by the active simulation backend when they are available. If they are missing, AMAT may use a SPICE-derived fallback when resolved SPICE data exists. The manifest labels the source so the viewer can display provenance.
 
 ## Current limitations
 
 AMAT does not yet provide:
 
-- Automated TLI/free-return targeting.
-- Lambert targeting.
-- Optimizers and differential correctors as schema-level tools.
-- Full SOI switching/detection.
-- Finite burn modeling.
+- General low-thrust or finite-burn targeting. Finite burns can be simulated when manually specified, but the analytic targeter still seeds impulsive maneuvers.
+- Automated TLI/free-return targeting as a complete mission-design workflow.
+- General optimizer workflows as MissionSpec-native tools.
+- Full SOI switching/detection in MissionSpec execution.
 - Estimation/covariance workflows.
-- Guaranteed visualization transforms for every custom GMAT frame.
+- General visualization transforms between arbitrary frames.
+- Guaranteed visualization semantics for every backend-specific custom frame.
+- Direction-filtered node crossing enforcement in every backend.
+- A production Orekit backend.
 
 These are intended future layers on top of the current MissionSpec/artifact foundation.
 
