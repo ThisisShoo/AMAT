@@ -72,7 +72,8 @@ def execute_targeting_policy(
 
     The callables keep this backend-neutral. For fast tests they can be pure
     Python functions; in production the evaluator/corrector can compile and run
-    GMAT, then read the propagated final-state vector and STM artifacts.
+    a selected propagation backend, then read the propagated final-state vector
+    and STM artifacts.
     """
 
     history: list[dict[str, Any]] = []

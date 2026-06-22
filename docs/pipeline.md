@@ -1,4 +1,4 @@
-# AMAT Pipeline
+# AMAT Operation Pipeline
 
 This document shows how to run AMAT through the targeting, simulation, and visualization layers.
 

@@ -5,16 +5,16 @@
   "transfer_strategy": {
     "type": "two_impulse_apsidal_transfer",
     "central_body": "Earth",
-    "maneuver_model": "impulsive",
-    "departure_apsis": "periapsis",
-    "arrival_apsis": "apoapsis",
-    "plane_change_policy": {
+    "maneuver_policy": {
       "type": "valid_node_low_speed",
+      "maneuver_model": "impulsive",
+      "departure_apsis": "periapsis",
+      "arrival_apsis": "apoapsis",
       "allow_departure_phasing": true,
       "prefer_apsis_alignment": true,
-      "fallback": "split_at_nearest_valid_node"
-    },
-    "merge_maneuver_angle_tolerance_deg": 2.0
+      "fallback": "split_at_nearest_valid_node",
+      "merge_maneuver_angle_tolerance_deg": 2.0
+    }
   },
   "initial_state": {
     "representation": "circular_orbit",

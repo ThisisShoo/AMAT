@@ -5,13 +5,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from targeter.cislunar import retarget_cislunar_mission_spec
 from targeter.conic_chain import (
     BodyEphemerisSample,
     ConicChainLeg,
     ConicChainNode,
     ConicChainSeed,
-    load_gmat_body_ephemeris_csv,
+    load_body_ephemeris_csv,
     solve_conic_chain_seed,
     solve_ephemeris_lambert_seed,
 )
@@ -73,7 +72,7 @@ def test_conic_chain_rejects_more_than_three_connecting_conics() -> None:
         solve_conic_chain_seed(legs)
 
 
-def test_cislunar_lambert_seed_targets_supplied_body_ephemeris_phase() -> None:
+def test_ephemeris_lambert_seed_targets_supplied_body_ephemeris_phase() -> None:
     samples = _sample_lunar_ephemeris()
 
     seed = solve_ephemeris_lambert_seed(samples, departure_phase_samples=32)
@@ -86,14 +85,14 @@ def test_cislunar_lambert_seed_targets_supplied_body_ephemeris_phase() -> None:
     assert np.linalg.norm(np.asarray(seed.departure_position_km)) == np.linalg.norm(seed.departure_position_km)
 
 
-def test_load_gmat_body_ephemeris_csv_and_retarget_spec(tmp_path: Path) -> None:
+def test_load_body_ephemeris_csv(tmp_path: Path) -> None:
     csv_path = tmp_path / "moon.csv"
     samples = _sample_lunar_ephemeris()
     with csv_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(
             [
-                "CislunarSat.ElapsedSecs",
+                "TransferSat.ElapsedSecs",
                 "Luna.EarthMJ2000Eq.X",
                 "Luna.EarthMJ2000Eq.Y",
                 "Luna.EarthMJ2000Eq.Z",
@@ -105,36 +104,9 @@ def test_load_gmat_body_ephemeris_csv_and_retarget_spec(tmp_path: Path) -> None:
         for sample in samples:
             writer.writerow([sample.elapsed_s, *sample.position_km, *sample.velocity_km_s])
 
-    loaded = load_gmat_body_ephemeris_csv(csv_path)
+    loaded = load_body_ephemeris_csv(csv_path)
     seed = solve_ephemeris_lambert_seed(loaded, departure_phase_samples=32)
-    spec = {
-        "mission_id": "cislunar_demo",
-        "description": "old",
-        "spacecraft": [
-            {
-                "id": "cislunar_sat",
-                "name": "CislunarSat",
-                "state_type": "keplerian",
-                "sma_km": 6678.1363,
-                "ecc": 0.0,
-                "inc_deg": 28.5,
-                "raan_deg": 0.0,
-                "aop_deg": 0.0,
-                "ta_deg": 0.0,
-                "dry_mass_kg": 1000.0,
-            }
-        ],
-        "burns": [{"id": "tli_seed", "frame": "VNB", "origin": "Earth", "delta_v_km_s": [3.13, 0.0, 0.0]}],
-    }
 
-    retargeted = retarget_cislunar_mission_spec(spec, seed)
-
-    sc = retargeted["spacecraft"][0]
-    burn = retargeted["burns"][0]
-    assert sc["state_type"] == "cartesian"
-    assert "sma_km" not in sc
-    assert len(sc["position_km"]) == 3
-    assert len(sc["velocity_km_s"]) == 3
-    assert burn["delta_v_km_s"] != [3.13, 0.0, 0.0]
-    assert "targeting" not in burn
+    assert loaded == samples
+    assert seed.target_elapsed_s in {s.elapsed_s for s in samples}
 

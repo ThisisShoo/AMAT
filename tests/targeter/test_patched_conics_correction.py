@@ -12,7 +12,7 @@ from targeter.patched_conics_correction import (
 )
 
 
-BODY_MU = 4902.800066
+BODY_MU = 4902.800118
 BODY_RADIUS = 1000.0
 TARGET_ALTITUDE = 500.0
 TARGET_RADIUS = BODY_RADIUS + TARGET_ALTITUDE

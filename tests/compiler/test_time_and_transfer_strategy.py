@@ -27,7 +27,7 @@ TARGET_PROBLEM = {
         "type": "hohmann_transfer",
         "central_body": "Earth",
         "maneuver_model": "impulsive",
-        "plane_change_policy": "concurrent_minimum_delta_v",
+        "maneuver_policy": "valid_node_low_speed",
     },
     "initial_state": {
         "representation": "circular_orbit",
@@ -217,8 +217,11 @@ def test_inclined_case_merges_plane_change_at_apoapsis_node(tmp_path):
 
 def test_valid_node_low_speed_policy_phases_circular_departure_to_arrival_node(tmp_path):
     raw = read_json(_example(tmp_path))
-    raw["transfer_strategy"]["plane_change_policy"] = {
+    raw["transfer_strategy"]["maneuver_policy"] = {
         "type": "valid_node_low_speed",
+        "maneuver_model": "impulsive",
+        "departure_apsis": "periapsis",
+        "arrival_apsis": "apoapsis",
         "allow_departure_phasing": True,
         "prefer_apsis_alignment": True,
         "fallback": "split_at_nearest_valid_node",
@@ -230,8 +233,8 @@ def test_valid_node_low_speed_policy_phases_circular_departure_to_arrival_node(t
     p = canonicalize_target_problem(raw)
     candidate = generate_hohmann_candidate(p)
 
-    assert p["transfer_strategy"]["plane_change_policy"] == "valid_node_low_speed"
-    assert p["transfer_strategy"]["plane_change_policy_config"]["allow_departure_phasing"] is True
+    assert p["transfer_strategy"]["maneuver_policy"] == "valid_node_low_speed"
+    assert p["transfer_strategy"]["maneuver_policy_config"]["allow_departure_phasing"] is True
     assert candidate["analytic_assessment"]["departure_phasing_applied"] is True
     assert candidate["analytic_assessment"]["plane_change_merge_target"] == "arrival"
     assert len(candidate["maneuvers"]) == 2
@@ -260,7 +263,7 @@ def test_valid_node_low_speed_policy_phases_circular_departure_to_arrival_node(t
     )
     v_before = hohmann_guess._transfer_velocity_vector(
         transfer_basis,
-        hohmann_guess.EARTH_MU_KM3_S2,
+        p["transfer_strategy"]["central_body_mu"]["value"],
         assessment["transfer_sma_km"],
         assessment["transfer_eccentricity"],
         ta,
@@ -303,9 +306,44 @@ def test_circular_target_altitude_canonicalizes_to_radius_plus_altitude(tmp_path
     assert p["target"]["sma"]["value"] == 8378.1363
 
 
+def test_luna_centered_target_problem_uses_lunar_constants(tmp_path):
+    raw = read_json(_example(tmp_path))
+    raw["problem_id"] = "lunar_low_to_high"
+    raw["mission_id"] = "lunar_low_to_high"
+    raw["transfer_strategy"]["central_body"] = "Luna"
+    raw["transfer_strategy"]["type"] = "two_impulse_apsidal_transfer"
+    raw["initial_state"]["frame"] = "LunaMJ2000Eq"
+    raw["target"] = {
+        "type": "circular_orbit",
+        "altitude": {"value": 2000.0, "unit": "km"},
+        "inclination": {"value": 10.0, "unit": "deg"},
+    }
+
+    p = canonicalize_target_problem(raw)
+    candidate = generate_hohmann_candidate(p)
+    spec = materialize_mission_spec(p, candidate)
+
+    assert p["transfer_strategy"]["central_body_radius"] == {"value": 1737.4, "unit": "km"}
+    assert p["transfer_strategy"]["central_body_mu"] == {"value": 4902.800118, "unit": "km^3/s^2"}
+    assert p["initial_state"]["sma"]["value"] == pytest.approx(2037.4)
+    assert p["target"]["sma"]["value"] == pytest.approx(3737.4)
+    assert spec["force_models"][0]["central_body"] == "Luna"
+    assert spec["propagators"][0]["id"] == "luna_prop"
+    assert spec["outputs"][0]["frames"] == ["LunaMJ2000Eq", "LunaFixed"]
+    assert spec["outputs"][2]["body"] == "Luna"
+
+
 def test_off_node_plane_change_is_seeded_at_transfer_arc_node(tmp_path):
     raw = read_json(_example(tmp_path))
-    raw["transfer_strategy"]["plane_change_policy"] = "node_near_apoapsis"
+    raw["transfer_strategy"]["maneuver_policy"] = {
+        "type": "valid_node_low_speed",
+        "maneuver_model": "impulsive",
+        "departure_apsis": "periapsis",
+        "arrival_apsis": "apoapsis",
+        "allow_departure_phasing": False,
+        "prefer_apsis_alignment": False,
+        "fallback": "split_at_nearest_valid_node",
+    }
     raw["initial_state"]["inclination"] = {"value": 23.0, "unit": "deg"}
     raw["initial_state"]["aop"] = {"value": 30.0, "unit": "deg"}
     raw["initial_state"]["true_anomaly"] = {"value": 0.0, "unit": "deg"}
@@ -382,4 +420,29 @@ def test_elliptical_initial_state_supported_at_selected_apsis(tmp_path):
     sc = spec["spacecraft"][0]
     assert sc["sma_km"] == 10000.0
     assert sc["ecc"] == 0.2
+
+
+def test_keplerian_initial_state_can_depart_away_from_apsis(tmp_path):
+    raw = read_json(_example(tmp_path))
+    raw["transfer_strategy"]["type"] = "two_impulse_apsidal_transfer"
+    raw["initial_state"] = {
+        "representation": "keplerian",
+        "sma": {"value": 10000.0, "unit": "km"},
+        "eccentricity": 0.2,
+        "inclination": {"value": 0.0, "unit": "deg"},
+        "raan": {"value": 0.0, "unit": "deg"},
+        "aop": {"value": 0.0, "unit": "deg"},
+        "true_anomaly": {"value": 45.0, "unit": "deg"},
+        "epoch": "2026-01-01T00:00:00Z",
+        "frame": "EarthMJ2000Eq",
+    }
+
+    p = canonicalize_target_problem(raw)
+    candidate = generate_hohmann_candidate(p)
+    spec = materialize_mission_spec(p, candidate)
+
+    assert p["initial_state"]["true_anomaly"]["value"] == 45.0
+    assert candidate["maneuvers"][0]["event_type"] == "immediate"
+    assert candidate["maneuvers"][0]["true_anomaly_deg"] == 45.0
+    assert spec["mission_sequence"][1]["steps"][0]["type"] == "maneuver"
 

@@ -7,16 +7,9 @@ from typing import Any
 import numpy as np
 
 from compiler.io import read_json
-from targeter.constants import EARTH_RADIUS_KM, LUNA_RADIUS_KM
+from targeter.constants import get_body_constants
 from targeter.domain import canonicalize_target_problem
 from visualzer.gmat_report_parser import infer_object_frame_from_columns, parse_gmat_report, resolve_column
-
-
-BODY_RADII_KM = {
-    "Earth": EARTH_RADIUS_KM,
-    "Luna": LUNA_RADIUS_KM,
-    "Moon": LUNA_RADIUS_KM,
-}
 
 
 def _quantity_value(value: Any) -> float:
@@ -77,7 +70,8 @@ def _burn_total_delta_v(mission_spec: dict[str, Any] | None) -> float | None:
 def _body_radius(body: str | None) -> float | None:
     if not body:
         return None
-    return BODY_RADII_KM.get(body)
+    constants = get_body_constants(body)
+    return constants.radius_km if constants else None
 
 
 def _origin_from_frame(frame: str | None, default: str = "Earth") -> str:
@@ -85,6 +79,10 @@ def _origin_from_frame(frame: str | None, default: str = "Earth") -> str:
         return default
     if frame.endswith("MJ2000Eq"):
         return frame[: -len("MJ2000Eq")] or default
+    if frame.endswith("MJ2000Ec"):
+        return frame[: -len("MJ2000Ec")] or default
+    if frame.endswith("Fixed"):
+        return frame[: -len("Fixed")] or default
     if frame.startswith("Earth"):
         return "Earth"
     if frame.startswith("Luna"):
@@ -339,8 +337,8 @@ def _constraint_residuals(problem: dict[str, Any], metrics: dict[str, Any]) -> l
 def evaluate_simulation(problem: dict[str, Any], simulation_dir: str | Path) -> dict[str, Any]:
     """Evaluate a completed AMAT simulation against a TargetProblem.
 
-    This milestone intentionally consumes existing artifacts only. It does not
-    compile, run GMAT, or correct variables.
+    This consumes existing artifacts only. It does not compile, run a
+    propagation backend, or correct variables.
     """
     p = canonicalize_target_problem(problem)
     sim, outputs = _simulation_paths(simulation_dir)

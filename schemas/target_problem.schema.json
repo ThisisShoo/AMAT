@@ -13,21 +13,28 @@
       "required": ["type"],
       "properties": {
         "type": {"enum": ["hohmann_transfer", "two_impulse_apsidal_transfer"]},
-        "central_body": {"const": "Earth"},
+        "central_body": {"type": "string", "minLength": 1},
+        "central_body_radius": {"$ref": "#/$defs/quantity"},
+        "central_body_mu": {"$ref": "#/$defs/quantity"},
+        "stationary_orbit_radius": {"$ref": "#/$defs/quantity"},
         "maneuver_model": {"enum": ["impulsive", "finite"]},
         "departure_apsis": {"enum": ["periapsis", "apoapsis"]},
         "arrival_apsis": {"enum": ["periapsis", "apoapsis"]},
-        "plane_change_policy": {
+        "maneuver_policy": {
           "oneOf": [
-            {"enum": ["valid_node_low_speed", "node_near_apoapsis", "concurrent_minimum_delta_v", "arrival_only", "departure_only"]},
+            {"enum": ["valid_node_low_speed"]},
             {
               "type": "object",
               "required": ["type"],
               "properties": {
-                "type": {"enum": ["valid_node_low_speed", "node_near_apoapsis", "concurrent_minimum_delta_v", "arrival_only", "departure_only"]},
+                "type": {"enum": ["valid_node_low_speed"]},
+                "maneuver_model": {"enum": ["impulsive", "finite"]},
+                "departure_apsis": {"enum": ["periapsis", "apoapsis"]},
+                "arrival_apsis": {"enum": ["periapsis", "apoapsis"]},
                 "allow_departure_phasing": {"type": "boolean"},
                 "prefer_apsis_alignment": {"type": "boolean"},
-                "fallback": {"enum": ["split_at_nearest_valid_node"]}
+                "fallback": {"enum": ["split_at_nearest_valid_node"]},
+                "merge_maneuver_angle_tolerance_deg": {"type": "number", "minimum": 0}
               },
               "additionalProperties": false
             }
@@ -42,7 +49,7 @@
       "required": ["representation"],
       "properties": {
         "representation": {"enum": ["circular_orbit", "keplerian"]},
-        "central_body": {"const": "Earth"},
+        "central_body": {"type": "string", "minLength": 1},
         "altitude": {"$ref": "#/$defs/quantity"},
         "sma": {"$ref": "#/$defs/quantity"},
         "eccentricity": {"type": "number", "minimum": 0, "exclusiveMaximum": 1},

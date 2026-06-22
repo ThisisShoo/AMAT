@@ -3,8 +3,6 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from targeter.constants import EARTH_MU_KM3_S2
-
 DEFAULT_MERGE_ANGLE_TOLERANCE_DEG = 2.0
 PHASED_DEPARTURE_ECCENTRICITY_TOLERANCE = 1e-8
 
@@ -274,9 +272,9 @@ def _select_arrival_aligned_departure(
 
 
 def _can_phase_departure_to_node(state: dict[str, Any], strategy: dict[str, Any]) -> bool:
-    policy = strategy.get("plane_change_policy_config", {})
+    policy = strategy.get("maneuver_policy_config", {})
     return (
-        strategy.get("plane_change_policy") == "valid_node_low_speed"
+        strategy.get("maneuver_policy") == "valid_node_low_speed"
         and bool(policy.get("allow_departure_phasing"))
         and bool(policy.get("prefer_apsis_alignment"))
         and strategy.get("departure_apsis") == "periapsis"
@@ -380,13 +378,14 @@ def generate_hohmann_candidate(problem: dict[str, Any]) -> dict[str, Any]:
     state = problem["initial_state"]
     target = problem["target"]
     strategy = problem["transfer_strategy"]
-    mu = EARTH_MU_KM3_S2
+    mu = float(strategy["central_body_mu"]["value"])
 
     a_initial = state["sma"]["value"]
     e_initial = state["eccentricity"]
     a_target = target["sma"]["value"]
     e_target = target["eccentricity"]
-    r_depart = _apsis_radius(a_initial, e_initial, strategy["departure_apsis"])
+    departure_ta = float(state["true_anomaly"]["value"])
+    r_depart = _radius_at_true_anomaly(a_initial, e_initial, departure_ta)
     r_arrive = _apsis_radius(a_target, e_target, strategy["arrival_apsis"])
     a_transfer = (r_depart + r_arrive) / 2.0
 
@@ -405,7 +404,6 @@ def generate_hohmann_candidate(problem: dict[str, Any]) -> dict[str, Any]:
         state["raan"]["value"],
         state["aop"]["value"],
     )
-    departure_ta = float(state["true_anomaly"]["value"])
     phased_departure_node = (
         _select_arrival_aligned_departure(state, target) if plane_change > 1e-10 and _can_phase_departure_to_node(state, strategy) else None
     )
@@ -471,12 +469,13 @@ def generate_hohmann_candidate(problem: dict[str, Any]) -> dict[str, Any]:
         dv2_b = 0.0
     tof = math.pi * math.sqrt(a_transfer**3 / mu)
 
+    immediate_departure = phased_departure_node is None and state["eccentricity"] > 0.0
     maneuvers: list[dict[str, Any]] = [
         {
             "maneuver_id": "transfer_injection",
             "maneuver_type": "combined_impulsive" if plane_merge == "departure" else "tangential_impulsive",
-            "event": "phased_departure_node" if phased_departure_node is not None else strategy["departure_apsis"],
-            "event_type": "parameter_reaches" if phased_departure_node is not None else "orbital_event",
+            "event": "phased_departure_node" if phased_departure_node is not None else ("initial_state" if immediate_departure else strategy["departure_apsis"]),
+            "event_type": "parameter_reaches" if phased_departure_node is not None else ("immediate" if immediate_departure else "orbital_event"),
             "true_anomaly_deg": departure_ta,
             "frame": "VNB",
             "components_km_s": [dv1_v, dv1_n, dv1_b],

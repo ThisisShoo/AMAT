@@ -4,8 +4,8 @@ from targeter.errors import TargetingError
 from targeter.evaluation import build_acceptance_result, evaluate_simulation
 from targeter.io import read_json, write_json
 from targeter.service import canonicalize_file, solve_file, validate_file
-from targeter.cislunar import load_gmat_body_ephemeris_csv, retarget_cislunar_mission_spec, solve_ephemeris_lambert_seed
-from targeter.conic_chain import solve_single_leg_ephemeris_lambert_seed
+from targeter.conic_chain import load_body_ephemeris_csv, solve_single_leg_ephemeris_lambert_seed
+from targeter.constants import get_body_constants
 from targeter.execution import execute_closed_loop_file
 
 def main(argv: list[str] | None = None) -> int:
@@ -22,15 +22,7 @@ def main(argv: list[str] | None = None) -> int:
     cl.add_argument("--correction-backend", default=None)
     cl.add_argument("--max-iterations", type=int, default=None)
     cl.add_argument("--run", action="store_true")
-    cs = sub.add_parser("cislunar-seed", help="Retarget a cislunar MissionSpec from a GMAT body ephemeris CSV")
-    cs.add_argument("mission_spec")
-    cs.add_argument("--body-ephemeris", required=True)
-    cs.add_argument("--out", required=True)
-    cs.add_argument("--seed-out", default=None)
-    cs.add_argument("--min-tof-s", type=float, default=2.5 * 86400.0)
-    cs.add_argument("--max-tof-s", type=float, default=7.0 * 86400.0)
-    cs.add_argument("--phase-samples", type=int, default=96)
-    cc = sub.add_parser("conic-chain-seed", help="Generate a cross-SOI conic-chain seed from a GMAT body ephemeris CSV")
+    cc = sub.add_parser("conic-chain-seed", help="Generate a cross-SOI conic-chain seed from a backend-produced body ephemeris CSV")
     cc.add_argument("--body-ephemeris", required=True)
     cc.add_argument("--seed-out", required=True)
     cc.add_argument("--body", default="Luna")
@@ -38,6 +30,9 @@ def main(argv: list[str] | None = None) -> int:
     cc.add_argument("--departure-body", default="Earth")
     cc.add_argument("--target-body", default=None)
     cc.add_argument("--central-body", default="Earth")
+    cc.add_argument("--central-mu-km3-s2", type=float, default=None)
+    cc.add_argument("--central-radius-km", type=float, default=None)
+    cc.add_argument("--departure-altitude-km", type=float, default=300.0)
     cc.add_argument("--min-tof-s", type=float, default=2.5 * 86400.0)
     cc.add_argument("--max-tof-s", type=float, default=7.0 * 86400.0)
     cc.add_argument("--phase-samples", type=int, default=96)
@@ -77,37 +72,21 @@ def main(argv: list[str] | None = None) -> int:
                 run=args.run,
                 max_iterations=args.max_iterations,
             )
-        elif args.cmd == "cislunar-seed":
-            spec = read_json(args.mission_spec)
-            samples = load_gmat_body_ephemeris_csv(args.body_ephemeris, body="Luna", frame="EarthMJ2000Eq")
-            seed = solve_ephemeris_lambert_seed(
-                samples,
-                min_tof_s=args.min_tof_s,
-                max_tof_s=args.max_tof_s,
-                departure_phase_samples=args.phase_samples,
-            )
-            retargeted = retarget_cislunar_mission_spec(spec, seed)
-            write_json(args.out, retargeted)
-            artifacts = {"mission_spec": args.out}
-            if args.seed_out:
-                write_json(args.seed_out, seed.to_dict())
-                artifacts["seed"] = args.seed_out
-            result = {
-                "ok": True,
-                "status": "completed",
-                "mission_id": retargeted.get("mission_id"),
-                "target_elapsed_s": seed.target_elapsed_s,
-                "tli_delta_v_magnitude_km_s": seed.tli_delta_v_magnitude_km_s,
-                "arrival_v_inf_magnitude_km_s": seed.arrival_v_inf_magnitude_km_s,
-                "artifacts": artifacts,
-            }
         else:
-            samples = load_gmat_body_ephemeris_csv(args.body_ephemeris, body=args.body, frame=args.frame)
+            body_constants = get_body_constants(args.central_body)
+            central_mu = args.central_mu_km3_s2 or (body_constants.mu_km3_s2 if body_constants else None)
+            central_radius = args.central_radius_km or (body_constants.radius_km if body_constants else None)
+            if central_mu is None or central_radius is None:
+                raise ValueError("custom central body conic-chain seeds require --central-mu-km3-s2 and --central-radius-km")
+            samples = load_body_ephemeris_csv(args.body_ephemeris, body=args.body, frame=args.frame)
             seed = solve_single_leg_ephemeris_lambert_seed(
                 samples,
                 departure_body=args.departure_body,
                 target_body=args.target_body or args.body,
                 central_body=args.central_body,
+                leo_altitude_km=args.departure_altitude_km,
+                central_mu_km3_s2=central_mu,
+                central_radius_km=central_radius,
                 min_tof_s=args.min_tof_s,
                 max_tof_s=args.max_tof_s,
                 departure_phase_samples=args.phase_samples,

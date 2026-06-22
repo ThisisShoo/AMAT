@@ -1,8 +1,8 @@
 # AMAT Targeting
 
-AMAT's targeting layer turns a semantic `target_problem.json` into targeting artifacts and a concrete MissionSpec that the simulation layer can compile and run.
+This document explains how to write and run AMAT `target_problem.json` files.
 
-Targeting is intentionally separate from simulation. The targeting layer can generate an analytic seed and a MissionSpec handoff, but GMAT execution and final verification happen downstream through the normal simulation pipeline.
+Targeting turns a desired orbital outcome into a candidate MissionSpec. It is separate from simulation, optimization, and visualization. A successful targeting solve means AMAT produced a structurally valid candidate; final acceptance still depends on evaluating propagated simulation outputs.
 
 ## Layer Boundary
 
@@ -10,110 +10,340 @@ Targeting is intentionally separate from simulation. The targeting layer can gen
 TargetProblem
   -> validation and canonicalization
   -> targeting formulation
-  -> analytic initial candidate
+  -> analytic seed candidate
   -> MissionSpec materialization
-  -> selected simulation backend
-  -> simulation evaluation
+  -> optional simulation-backed evaluation
+  -> optional correction loop
 ```
 
-A successful targeting solve means AMAT produced a structurally valid initial candidate. It does not by itself prove that GMAT propagation will meet every requirement.
+The targeter does not own propagation. It can call a simulation backend through a swappable adapter during closed-loop workflows, but the TargetProblem itself should stay backend-neutral.
 
-The executable closed loop keeps targeting policy, simulation, and correction modules separate. For example, `simulation_backend` can be `gmat` while `correction_backend` is `stm`; a future workflow can swap either side independently.
+## TargetProblem Structure
 
-## Current Scope
+Minimal shape:
 
-The current targeting implementation supports selected impulsive transfer seeds:
+```json
+{
+  "schema_version": "1.0.0",
+  "problem_id": "my_transfer",
+  "mission_id": "my_transfer",
+  "transfer_strategy": {},
+  "initial_state": {},
+  "target": {},
+  "limits": {},
+  "execution": {},
+  "verification": {},
+  "metadata": {}
+}
+```
 
-- Earth-centered Keplerian initial states.
-- GEO and GEO-like circular target orbits.
-- Circular coplanar Hohmann-style transfers.
-- Generalized apsidal transfer seeds.
-- Node-aware impulsive plane-change placement.
-- Ephemeris-aware conic-chain Lambert seeding from GMAT-reported body ephemerides.
-- Closed-loop STM correction hooks that re-evaluate after each applied correction.
-- MissionSpec materialization for downstream simulation.
-- Simulation evaluation against completed GMAT outputs.
+Top-level sections:
 
-It does not yet provide a general global optimizer, trajectory architecture synthesis, free-return design, low-thrust transcription, or estimation.
+| Field | Required | Purpose |
+|---|---:|---|
+| `schema_version` | Yes | Must be `1.0.0`. |
+| `problem_id` | Yes | Stable targeting problem ID. |
+| `mission_id` | No | Mission/artifact ID. Defaults to `problem_id`. |
+| `transfer_strategy` | Yes | Transfer family, central body, and maneuver policy. |
+| `initial_state` | Yes | Starting orbit/state for the analytic seed. |
+| `target` | Yes | Desired final orbit/state constraints. |
+| `limits` | No | Mission-wide limits such as delta-v or minimum altitude. |
+| `execution` | No | Backend and artifact behavior for evaluation/closed loop. |
+| `verification` | No | Acceptance level metadata. |
+| `metadata` | No | Human/project metadata. |
 
-## TargetProblem Concepts
+## Transfer Strategy
 
-`target_problem.json` records what must be achieved and what controls targeting may change. Solver-specific tuning belongs outside the problem definition.
+`transfer_strategy` selects the transfer family, central body, and maneuver placement policy.
 
-Important sections include:
+Current supported form:
 
-- `architecture_ref`: the selected transfer architecture or mission-design family.
-- `initial_state`: the spacecraft state, body, frame, epoch, representation, values, and units.
-- `allowed_controls`: physical controls that a later formulation may vary.
-- `metrics`: backend-neutral quantities such as `spacecraft.final.orbit.sma`.
-- `constraints`: endpoint, path, variable-bound, event, or operational requirements.
-- `limits`: mission-wide limits such as maximum total delta-v or elapsed time.
-- `fidelity_policy`: intended targeting and acceptance models.
-- `verification_policy`: required independence level for acceptance.
+```json
+{
+  "type": "two_impulse_apsidal_transfer",
+  "central_body": "Earth",
+  "maneuver_policy": {
+    "type": "valid_node_low_speed",
+    "maneuver_model": "impulsive",
+    "departure_apsis": "periapsis",
+    "arrival_apsis": "apoapsis",
+    "allow_departure_phasing": true,
+    "prefer_apsis_alignment": true,
+    "fallback": "split_at_nearest_valid_node",
+    "merge_maneuver_angle_tolerance_deg": 2.0
+  }
+}
+```
 
-Semantic metric IDs are intentionally not GMAT column names. The evaluation layer maps public metrics onto generated output files after simulation.
+### Transfer Type
+
+| Value | Status | Meaning |
+|---|---|---|
+| `two_impulse_apsidal_transfer` | Supported | General two-impulse seed between selected endpoint geometry. Preferred public name. |
+| `hohmann_transfer` | Supported alias | Circular coplanar cases reduce to classical Hohmann behavior. Internally uses the same apsidal-transfer seed path. |
+| `bi_elliptic_transfer` | Incoming feature | Not implemented as a TargetProblem solve. |
+| `lambert_transfer` | Incoming feature | Lambert solving exists inside conic-chain seed helpers, but not as a general TargetProblem strategy. |
+| `patched_conic_transfer` | Incoming feature | Building blocks exist; not exposed as a complete TargetProblem strategy. |
+| `conic_chain_transfer` | Incoming feature | Seed helpers exist for up to three connecting conics; full TargetProblem integration is incomplete. |
+| `low_thrust_transcription` | Incoming feature | Not implemented. |
+
+Hohmann and Lambert are not interchangeable. Hohmann is a special two-impulse transfer case. Lambert is a boundary-value solve used by cross-SOI seed helpers and future transfer strategies.
+
+### Central Body
+
+Built-in body constants use NASA/JPL Solar System Dynamics values. Planetary `GM` values come from JPL DE440 astrodynamic parameters; radii come from JPL planetary and satellite physical-parameter tables. For the giant planets and Pluto, the listed `GM` is the system gravitational parameter.
+
+| `central_body` | Radius km | GM km^3/s^2 |
+|---|---:|---:|
+| `Sun` | 695700.0 | 132712440041.27942 |
+| `Mercury` | 2440.53 | 22031.868551 |
+| `Venus` | 6051.8 | 324858.592 |
+| `Earth` | 6378.1363 | 398600.435507 |
+| `Luna` or `Moon` | 1737.4 | 4902.800118 |
+| `Mars` | 3396.19 | 42828.375816 |
+| `Jupiter` | 71492.0 | 126712764.1 |
+| `Saturn` | 60268.0 | 37940584.8418 |
+| `Uranus` | 25559.0 | 5794556.4 |
+| `Neptune` | 24764.0 | 6836527.10058 |
+| `Pluto` | 1188.3 | 975.5 |
+| Custom string | required | required |
+
+Custom-body fields:
+
+| Field | Unit | Required | Meaning |
+|---|---|---:|---|
+| `central_body_radius` | `km` | Custom bodies only | Radius used for altitude conversion and body-intersection checks. |
+| `central_body_mu` | `km^3/s^2` | Custom bodies only | Gravitational parameter used by the analytic two-body seed. |
+| `stationary_orbit_radius` | `km` | No | Radius used by `geostationary_orbit`-style defaults. Earth supplies this automatically. |
+
+Known-body constants can be overridden by explicitly providing these fields. If `initial_state.central_body` is supplied, it must match `transfer_strategy.central_body`.
+
+## Maneuver Policy
+
+`maneuver_policy` combines the maneuver model, endpoint event choices, and plane-change placement behavior.
+
+String shorthand:
+
+```json
+"maneuver_policy": "valid_node_low_speed"
+```
+
+Structured form:
+
+```json
+"maneuver_policy": {
+  "type": "valid_node_low_speed",
+  "maneuver_model": "impulsive",
+  "departure_apsis": "periapsis",
+  "arrival_apsis": "apoapsis",
+  "allow_departure_phasing": true,
+  "prefer_apsis_alignment": true,
+  "fallback": "split_at_nearest_valid_node",
+  "merge_maneuver_angle_tolerance_deg": 2.0
+}
+```
+
+Available policies:
+
+| Policy | Behavior |
+|---|---|
+| `valid_node_low_speed` | Places plane-change work on the intersection line between the current and target orbital planes. It prefers low-speed opportunities and merges with an energy burn only when the node and burn opportunity are within `merge_maneuver_angle_tolerance_deg`. If phasing is enabled for a circular departure, AMAT may wait in the departure orbit so arrival occurs at a valid node. Otherwise it inserts a separate node plane-change burn. |
+
+Policy fields:
+
+| Field | Values | Default | Meaning |
+|---|---|---|---|
+| `type` | `valid_node_low_speed` | required | Maneuver placement policy. |
+| `maneuver_model` | `impulsive`, `finite` | `impulsive` | Targeter accepts `finite`, but analytic seeds remain impulsive. |
+| `departure_apsis` | `periapsis`, `apoapsis` | `periapsis` | Departure endpoint used by circular starts and apsidal endpoint logic. |
+| `arrival_apsis` | `periapsis`, `apoapsis` | `apoapsis` | Arrival endpoint used by the transfer seed. |
+| `allow_departure_phasing` | `true`, `false` | `true` | Permit waiting in a circular departure orbit to align arrival with a target-plane node. |
+| `prefer_apsis_alignment` | `true`, `false` | `true` | Prefer merging plane correction with an apsidal energy burn when geometry allows. |
+| `fallback` | `split_at_nearest_valid_node` | `split_at_nearest_valid_node` | Separate plane-change fallback when merger is invalid. |
+| `merge_maneuver_angle_tolerance_deg` | number >= 0 | `2.0` | Angular tolerance for treating two maneuver opportunities as coincident. |
+
+Example:
+
+```json
+{
+  "type": "two_impulse_apsidal_transfer",
+  "central_body": "Mars",
+  "maneuver_policy": {
+    "type": "valid_node_low_speed",
+    "maneuver_model": "impulsive",
+    "departure_apsis": "periapsis",
+    "arrival_apsis": "apoapsis",
+    "allow_departure_phasing": false,
+    "prefer_apsis_alignment": true,
+    "fallback": "split_at_nearest_valid_node"
+  }
+}
+```
+
+## Initial State
+
+Supported representations:
+
+| `representation` | Status | Notes |
+|---|---|---|
+| `circular_orbit` | Supported | Uses `altitude` and the selected central-body radius to compute `sma`. |
+| `keplerian` | Supported | Can start at any supplied `true_anomaly`; the first transfer burn is immediate if the state is not at an apsis. |
+
+Circular-orbit form:
+
+```json
+{
+  "representation": "circular_orbit",
+  "central_body": "<central-body-name>",
+  "altitude": {"value": 300.0, "unit": "km"},
+  "inclination": {"value": 0.0, "unit": "deg"},
+  "raan": {"value": 0.0, "unit": "deg"},
+  "aop": {"value": 0.0, "unit": "deg"},
+  "true_anomaly": {"value": 0.0, "unit": "deg"},
+  "epoch": "2026-01-01T00:00:00Z",
+  "frame": "<central-body-name>MJ2000Eq"
+}
+```
+
+Keplerian form:
+
+```json
+{
+  "representation": "keplerian",
+  "central_body": "<central-body-name>",
+  "sma": {"value": 6678.1363, "unit": "km"},
+  "eccentricity": 0.0,
+  "inclination": {"value": 0.0, "unit": "deg"},
+  "raan": {"value": 0.0, "unit": "deg"},
+  "aop": {"value": 0.0, "unit": "deg"},
+  "true_anomaly": {"value": 45.0, "unit": "deg"},
+  "epoch": "2026-01-01T00:00:00Z",
+  "frame": "<central-body-name>MJ2000Eq"
+}
+```
+
+If `frame` is omitted, AMAT defaults to `<central_body>MJ2000Eq`.
+
+## Target
+
+Supported target types:
+
+| Value | Status | Meaning |
+|---|---|---|
+| `geostationary_orbit` | Earth default supported | Defaults to Earth GEO radius, near-zero eccentricity, and near-equatorial inclination. For other bodies, provide `sma` or `transfer_strategy.stationary_orbit_radius`. |
+| `circular_orbit` | Supported | Target circular orbit by `altitude` or `sma`. |
+| `keplerian_orbit` | Supported | Target final Keplerian orbit terms directly. |
+| Cartesian state target | Incoming feature | Prefer Keplerian target fields for now. |
+
+Common target fields:
+
+```json
+{
+  "type": "keplerian_orbit",
+  "sma": {"value": 42164.1696, "unit": "km"},
+  "eccentricity": 0.0,
+  "eccentricity_max": 0.0001,
+  "inclination": {"value": 0.0, "unit": "deg"},
+  "inclination_max": {"value": 0.05, "unit": "deg"},
+  "raan": {"value": 0.0, "unit": "deg"},
+  "aop": {"value": 0.0, "unit": "deg"},
+  "argument_of_latitude": {"value": 45.0, "unit": "deg"},
+  "argument_of_latitude_max": {"value": 0.1, "unit": "deg"}
+}
+```
+
+Notes:
+
+- `argument_of_latitude` is optional. Use it when the final location in the orbital plane matters, such as targeting a specific body-fixed ground-track relationship.
+- `raan` and `aop` are physically undefined for exactly equatorial or circular orbits. Evaluation suppresses undefined RAAN/AOP residuals when target and achieved inclination/eccentricity are within tolerance.
+- `altitude` targets are converted using `transfer_strategy.central_body_radius`.
+
+## Limits, Execution, and Verification
+
+Example:
+
+```json
+{
+  "limits": {
+    "maximum_total_delta_v": {"value": 4.5, "unit": "km/s"},
+    "minimum_altitude": {"value": 200.0, "unit": "km"}
+  },
+  "execution": {
+    "backend": "<simulation-backend-id>",
+    "targeting_fidelity": "two_body",
+    "acceptance_fidelity": "operational",
+    "artifact_persistence": "accepted_iterations"
+  },
+  "verification": {
+    "required_level": "L1",
+    "run_acceptance_simulation": false
+  }
+}
+```
+
+Execution fields are backend-neutral intent. The closed-loop implementation selects simulation and correction adapters by ID; available adapter IDs are implementation details rather than TargetProblem concepts.
 
 ## Commands
+
+This section only covers `targeter` commands.
 
 Validate a target problem:
 
 ```bash
-python -m targeter validate examples/LEO_to_GEO/target_problem.json
+python -m targeter validate path/to/target_problem.json
 ```
 
 Solve for an initial candidate:
 
 ```bash
-python -m targeter solve examples/LEO_to_GEO/target_problem.json \
-  --out generated/LEO_to_GEO/targeting
+python -m targeter solve path/to/target_problem.json --out generated/<mission_id>/targeting
 ```
 
-Compile the materialized MissionSpec:
+Evaluate a completed simulation against a target problem:
 
 ```bash
-python -m compiler compile generated/LEO_to_GEO/targeting/candidate_mission_spec.json \
-  --out generated/LEO_to_GEO/simulation
+python -m targeter evaluate path/to/target_problem.json \
+  --simulation-dir generated/<mission_id>/simulation \
+  --out generated/<mission_id>/targeting
 ```
 
-Run GMAT:
+Create the first closed-loop iteration without running the simulation backend:
 
 ```bash
-python generated/LEO_to_GEO/simulation/generated_mission.py --run
-```
-
-Evaluate the simulation result:
-
-```bash
-python -m targeter evaluate examples/LEO_to_GEO/target_problem.json \
-  --simulation-dir generated/LEO_to_GEO/simulation \
-  --out generated/LEO_to_GEO/targeting
-```
-
-Compile the first closed-loop iteration without running the simulation backend:
-
-```bash
-python -m targeter closed-loop examples/LEO_to_GEO/target_problem.json \
-  --out generated/LEO_to_GEO/targeting
+python -m targeter closed-loop path/to/target_problem.json \
+  --out generated/<mission_id>/targeting
 ```
 
 Run the closed loop with explicit modules:
 
 ```bash
-python -m targeter closed-loop examples/LEO_to_GEO/target_problem.json \
-  --simulation-backend gmat \
+python -m targeter closed-loop path/to/target_problem.json \
+  --simulation-backend <backend-id> \
   --correction-backend stm \
   --max-iterations 3 \
   --run \
-  --out generated/LEO_to_GEO/targeting
+  --out generated/<mission_id>/targeting
 ```
 
-If GMAT propagation does not produce the STM assessment requested by the correction module, the loop stops with `missing_stm_assessment` rather than inventing sensitivities.
+Generate a cross-SOI conic-chain seed from a backend-produced body ephemeris:
 
-For the complete end-to-end workflow, see [pipeline.md](pipeline.md).
+```bash
+python -m targeter conic-chain-seed \
+  --body-ephemeris path/to/_BodyEphemeris_Target_Frame.csv \
+  --body <body-name> \
+  --frame <frame-name> \
+  --departure-body <origin-body-name> \
+  --target-body <target-body-name> \
+  --central-body <central-body-name> \
+  --central-mu-km3-s2 <mu-for-custom-central-body> \
+  --central-radius-km <radius-for-custom-central-body> \
+  --departure-altitude-km <parking-orbit-altitude> \
+  --seed-out generated/<mission_id>/targeting/conic_chain_seed.json
+```
 
-## Targeting Outputs
+## Targeting Artifacts
 
-`solve` writes targeting artifacts such as:
+`solve` writes:
 
 ```text
 generated/<mission_id>/targeting/
@@ -126,7 +356,7 @@ generated/<mission_id>/targeting/
   provenance.json
 ```
 
-`evaluate` consumes completed simulation outputs and adds:
+`evaluate` consumes completed simulation outputs and writes:
 
 ```text
 simulation_evaluation.json
@@ -143,87 +373,46 @@ AMAT stores absolute epochs as UTC ISO 8601 strings:
 YYYY-MM-DDTHH:MM:SS.sssZ
 ```
 
-Backend adapters render those values only when generating backend artifacts. For GMAT, AMAT converts the canonical epoch into GMAT's UTCGregorian form, for example:
+Backend adapters render those values only when generating backend artifacts. This keeps TargetProblem and MissionSpec files backend-neutral.
 
-```text
-2026-01-01T00:00:00.000Z
-  -> 01 Jan 2026 00:00:00.000
-```
+## Techniques
 
-This keeps TargetProblem and MissionSpec files backend-neutral.
+### Analytic Apsidal Seed
 
-## Transfer Strategy Terms
+The current TargetProblem solve path generates a two-impulse seed. Circular coplanar cases reduce to the classical Hohmann result; the implementation also handles selected elliptical starts, elliptical targets, and node-aware plane-change placement.
 
-AMAT uses `transfer_strategy` for a selected mission-design method such as:
+This is a seed, not a proof of final propagated accuracy. Use `targeter evaluate` or a closed-loop run to compare propagated outputs against the target.
 
-- Hohmann transfer.
-- Generalized two-impulse apsidal transfer.
-- Bi-elliptic transfer.
-- Lambert transfer.
-- Patched-conic transfer.
-- Multiple-shooting transfer.
-- Low-thrust transcription.
+### Conic-Chain Seed
 
-`trajectory architecture` refers to the larger topology made of phases, encounters, legs, nodes, and maneuver opportunities.
+A conic chain is an ordered sequence of up to three connecting patched conics. It is intended for cross-SOI transfers such as planet-to-moon, moon-to-planet, and interplanetary-style chains with an intermediate encounter leg.
 
-## Plane-Change Policy
+Lambert solving appears here as a geometric leg solver. It is not currently exposed as a general top-level `transfer_strategy.type`.
 
-For impulsive non-coplanar transfers, AMAT's default policy is `valid_node_low_speed`.
+### Correction And Closed Loop
 
-The policy is:
+Closed-loop targeting separates three pieces:
 
-- Plane-change work must occur on a valid intersection line between the current and target orbital planes unless a later high-fidelity correction layer explicitly owns the miss.
-- If timing is flexible and the departure orbit is circular enough for the analytic model, AMAT may wait in the departure orbit so the transfer arrival apsis lies on that node line.
-- AMAT prefers low-speed opportunities, so an aligned arrival apsis can merge circularization and plane correction.
-- AMAT does not force concurrent burns. It merges effects only when the valid node and energy-change opportunity coincide within `merge_maneuver_angle_tolerance_deg`.
-- If apsis alignment is unavailable, AMAT falls back to a separate plane-change maneuver at the nearest valid node on the transfer arc.
+1. Seed generation.
+2. Simulation-backed evaluation.
+3. Correction.
 
-The structured form is:
+The STM correction backend consumes backend-produced STM assessment artifacts. If the simulation backend does not produce the requested STM assessment, the loop stops with `missing_stm_assessment` rather than inventing sensitivities.
 
-```json
-"plane_change_policy": {
-  "type": "valid_node_low_speed",
-  "allow_departure_phasing": true,
-  "prefer_apsis_alignment": true,
-  "fallback": "split_at_nearest_valid_node"
-}
-```
+The closed-loop runner is backend-neutral at the orchestration level: `simulation_backend` and `correction_backend` are separate selections.
 
-Legacy policy names such as `node_near_apoapsis`, `concurrent_minimum_delta_v`, `arrival_only`, and `departure_only` remain accepted for compatibility. `node_near_apoapsis` preserves the older behavior: it does not phase the departure orbit, and it places a separate plane-change maneuver at the valid node closest to the transfer arrival apsis when the node does not coincide with an energy burn.
+## Current Limitations
 
-## Cross-SOI Conic Chains
+AMAT targeting does not yet provide:
 
-Cross-SOI seeds live in `targeter/conic_chain.py`. A conic chain is an ordered sequence of up to three connecting patched conics. That is enough for planet-to-moon, moon-to-planet, and interplanetary-style chains with an intermediate encounter leg while keeping the analytic seed separate from the later correction pass.
+- General Lambert transfer as a TargetProblem strategy.
+- General patched-conic or conic-chain TargetProblem materialization.
+- Native finite-burn targeting. Finite burns can be simulated in MissionSpec, but analytic targeting still seeds impulsive maneuvers.
+- Full SOI switching/detection as part of TargetProblem execution.
+- General optimizer integration as a TargetProblem solve mode.
+- Multiple production simulation backend adapters.
+- Guaranteed propagation support for arbitrary custom central bodies. The targeter can materialize a candidate with custom body constants, but the selected compiler/simulation backend must also support that body.
 
-The seed layer uses resolved body ephemerides as input to Lambert helpers. This keeps targeting, propagation, and visualization aligned to the same body phases when those ephemerides come from the GMAT simulation layer.
+## Data Sources
 
-`targeter/cislunar.py` remains a cislunar MissionSpec compatibility wrapper. Generic cross-SOI seed concepts belong in `conic_chain.py`.
-
-## STM Closed Loop
-
-The correction strategy is:
-
-1. Generate a patched-conics or conic-chain seed.
-2. Optionally refine the SOI/hyperbola handoff.
-3. Run the high-fidelity simulation/evaluation layer.
-4. Use STM artifacts to compute a correction.
-5. Apply the correction and evaluate again until the residual meets tolerance or the iteration limit is reached.
-
-The closed-loop runner is backend-neutral. In production, its evaluator can compile/run GMAT and read final-state plus STM artifacts; in tests, the same loop can use pure Python models.
-
-## Cislunar Compatibility Command
-
-The cislunar command uses GMAT's resolved Luna ephemeris as input to the conic-chain Lambert helper, then writes the existing demo MissionSpec shape.
-
-The command shape is:
-
-```bash
-python -m targeter cislunar-seed examples/cislunar_demo/mission_spec.json \
-  --body-ephemeris generated/cislunar_demo/simulation/outputs/_BodyEphemeris_Luna_EarthMJ2000Eq.csv \
-  --out examples/cislunar_demo/mission_spec.json \
-  --seed-out generated/cislunar_demo/targeting/cislunar_lambert_seed.json
-```
-
-Use this after an initial GMAT run has produced the body ephemeris file. The generated seed JSON records the selected Luna sample, TLI magnitude, and arrival v-infinity.
-
-
+Built-in `GM` values use [NASA/JPL Solar System Dynamics astrodynamic parameters](https://ssd.jpl.nasa.gov/astro_par.html). Built-in planetary radii use [NASA/JPL planetary physical parameters](https://ssd.jpl.nasa.gov/planets/phys_par.html). Luna/Moon radius and `GM` use [NASA/JPL planetary satellite physical parameters](https://ssd.jpl.nasa.gov/sats/phys_par/).

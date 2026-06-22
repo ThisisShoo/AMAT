@@ -61,8 +61,8 @@ def build_targeting_formulation(problem: dict[str, Any]) -> dict[str, Any]:
         "maneuver_plan": {
             "impulse_count": 2,
             "prefer_concurrent_effects": False,
-            "plane_change_policy": strategy["plane_change_policy"],
-            "plane_change_policy_config": strategy.get("plane_change_policy_config", {"type": strategy["plane_change_policy"]}),
+            "maneuver_policy": strategy["maneuver_policy"],
+            "maneuver_policy_config": strategy.get("maneuver_policy_config", {"type": strategy["maneuver_policy"]}),
             "departure_event": strategy["departure_apsis"],
             "arrival_event": strategy["arrival_apsis"],
             "placement_rule": "plane changes must occur on a valid plane-intersection line unless explicitly delegated to a later high-fidelity correction layer",

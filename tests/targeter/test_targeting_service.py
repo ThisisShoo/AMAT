@@ -16,7 +16,7 @@ TARGET_PROBLEM = {
         "type": "hohmann_transfer",
         "central_body": "Earth",
         "maneuver_model": "impulsive",
-        "plane_change_policy": "concurrent_minimum_delta_v"
+        "maneuver_policy": "valid_node_low_speed"
     },
     "initial_state": {
         "representation": "circular_orbit",
@@ -74,3 +74,31 @@ def test_target_argument_of_latitude_is_optional_constraint():
         constraint["metric_id"] == "spacecraft.final.orbit.argument_of_latitude"
         for constraint in formulation["constraints"]
     )
+
+
+def test_custom_central_body_requires_and_uses_constants(tmp_path):
+    raw = json.loads(json.dumps(TARGET_PROBLEM))
+    raw["problem_id"] = "custom_body_transfer"
+    raw["mission_id"] = "custom_body_transfer"
+    raw["transfer_strategy"]["central_body"] = "DemoBody"
+    raw["transfer_strategy"]["central_body_radius"] = {"value": 1000.0, "unit": "km"}
+    raw["transfer_strategy"]["central_body_mu"] = {"value": 20000.0, "unit": "km^3/s^2"}
+    raw["transfer_strategy"]["type"] = "two_impulse_apsidal_transfer"
+    raw["initial_state"]["frame"] = "DemoBodyMJ2000Eq"
+    raw["target"] = {
+        "type": "circular_orbit",
+        "altitude": {"value": 5000.0, "unit": "km"},
+        "inclination": {"value": 0.0, "unit": "deg"},
+    }
+    path = tmp_path / "custom_target_problem.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+
+    result = solve_file(path, tmp_path)
+    problem = read_json(tmp_path / "target_problem.canonical.json")
+    spec = read_json(tmp_path / "candidate_mission_spec.json")
+
+    assert result["status"] == "analytically_feasible"
+    assert problem["initial_state"]["sma"] == {"value": 1300.0, "unit": "km"}
+    assert problem["target"]["sma"] == {"value": 6000.0, "unit": "km"}
+    assert spec["force_models"][0]["central_body"] == "DemoBody"
+    assert spec["propagators"][0]["id"] == "demoBody_prop"

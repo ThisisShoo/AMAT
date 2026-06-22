@@ -80,9 +80,6 @@ class EphemerisLambertSeed:
         return asdict(self)
 
 
-CislunarLambertSeed = EphemerisLambertSeed
-
-
 def _norm(vector: Sequence[float]) -> float:
     return float(np.linalg.norm(np.asarray(vector, dtype=float)))
 
@@ -103,7 +100,7 @@ def _body_column_prefix(fieldnames: Sequence[str], body: str, frame: str) -> str
     raise ValueError(f"Could not find {body} {frame} Cartesian columns. Available body prefixes: {matches}")
 
 
-def load_gmat_body_ephemeris_csv(path: str | Path, *, body: str = "Luna", frame: str = "EarthMJ2000Eq") -> list[BodyEphemerisSample]:
+def load_body_ephemeris_csv(path: str | Path, *, body: str = "Luna", frame: str = "EarthMJ2000Eq") -> list[BodyEphemerisSample]:
     p = Path(path)
     samples: list[BodyEphemerisSample] = []
     with p.open(newline="", encoding="utf-8") as f:
@@ -153,9 +150,14 @@ def _circular_departure_node(
     body: str,
     leo_altitude_km: float,
     central_mu_km3_s2: float,
+    central_radius_km: float = EARTH_RADIUS_KM,
     elapsed_s: float = 0.0,
 ) -> tuple[ConicChainNode, np.ndarray]:
-    radius = EARTH_RADIUS_KM + float(leo_altitude_km)
+    if central_radius_km <= 0.0:
+        raise ValueError("central_radius_km must be positive")
+    if central_mu_km3_s2 <= 0.0:
+        raise ValueError("central_mu_km3_s2 must be positive")
+    radius = float(central_radius_km) + float(leo_altitude_km)
     circular_speed = math.sqrt(central_mu_km3_s2 / radius)
     r2 = np.asarray(sample.position_km, dtype=float)
     v_body = np.asarray(sample.velocity_km_s, dtype=float)
@@ -181,6 +183,7 @@ def solve_single_leg_ephemeris_lambert_seed(
     central_body: str = "Earth",
     leo_altitude_km: float = 300.0,
     central_mu_km3_s2: float = EARTH_MU_KM3_S2,
+    central_radius_km: float = EARTH_RADIUS_KM,
     min_tof_s: float = 2.5 * 86400.0,
     max_tof_s: float = 7.0 * 86400.0,
     departure_phase_samples: int = 96,
@@ -192,6 +195,7 @@ def solve_single_leg_ephemeris_lambert_seed(
         body_samples,
         leo_altitude_km=leo_altitude_km,
         central_mu_km3_s2=central_mu_km3_s2,
+        central_radius_km=central_radius_km,
         min_tof_s=min_tof_s,
         max_tof_s=max_tof_s,
         departure_phase_samples=departure_phase_samples,
@@ -246,6 +250,7 @@ def solve_ephemeris_lambert_seed(
     *,
     leo_altitude_km: float = 300.0,
     central_mu_km3_s2: float = EARTH_MU_KM3_S2,
+    central_radius_km: float = EARTH_RADIUS_KM,
     min_tof_s: float = 2.5 * 86400.0,
     max_tof_s: float = 7.0 * 86400.0,
     departure_phase_samples: int = 96,
@@ -255,7 +260,11 @@ def solve_ephemeris_lambert_seed(
 
     if departure_phase_samples < 8:
         raise ValueError("departure_phase_samples must be at least 8")
-    radius = EARTH_RADIUS_KM + float(leo_altitude_km)
+    if central_radius_km <= 0.0:
+        raise ValueError("central_radius_km must be positive")
+    if central_mu_km3_s2 <= 0.0:
+        raise ValueError("central_mu_km3_s2 must be positive")
+    radius = float(central_radius_km) + float(leo_altitude_km)
     circular_speed = math.sqrt(central_mu_km3_s2 / radius)
 
     best: EphemerisLambertSeed | None = None

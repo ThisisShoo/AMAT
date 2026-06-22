@@ -16,7 +16,7 @@ def _problem() -> dict:
             "maneuver_model": "impulsive",
             "departure_apsis": "periapsis",
             "arrival_apsis": "apoapsis",
-            "plane_change_policy": "concurrent_minimum_delta_v",
+            "maneuver_policy": "valid_node_low_speed",
         },
         "initial_state": {
             "representation": "circular_orbit",

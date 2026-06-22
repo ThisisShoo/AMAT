@@ -15,10 +15,18 @@ def _event_name(maneuver: dict[str, Any]) -> str:
     return str(event).replace("_", " ")
 
 
+def _object_id(prefix: str, body: str) -> str:
+    return f"{body[:1].lower()}{body[1:]}_{prefix}"
+
+
 def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
     state = problem["initial_state"]
     strategy = problem["transfer_strategy"]
     execution = problem.get("execution", {})
+    central_body = strategy["central_body"]
+    force_model_id = _object_id("fm", central_body)
+    propagator_id = _object_id("prop", central_body)
+    fixed_frame = f"{central_body}Fixed"
     frame = state["frame"]
     sc_id = "sat"
     sc_name = "TargetSat"
@@ -63,7 +71,7 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
                 "type": "parameter_reaches",
                 "description": "Event-driven initial parking-orbit coast before transfer targeting events.",
                 "spacecraft": sc_id,
-                "propagator": "earth_prop",
+                "propagator": propagator_id,
                 "stop_condition": {
                     "parameter": "ElapsedSecs",
                     "value": initial_coast_s,
@@ -96,13 +104,25 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
                 "include_header": True,
             }
         )
+        if maneuver.get("event_type") == "immediate":
+            phases.append(
+                {
+                    "phase_id": f"phase_{index + 1 + phase_index_offset:03d}_{maneuver_id}",
+                    "name": f"{_event_name(maneuver).capitalize()} maneuver",
+                    "steps": [
+                        {"step_id": f"burn_{maneuver_id}", "type": "maneuver", "spacecraft": sc_id, "burn": maneuver_id},
+                        {"step_id": f"report_{checkpoint_id}", "type": "checkpoint", "checkpoint_id": checkpoint_id},
+                    ],
+                }
+            )
+            continue
         if maneuver.get("event_type") == "parameter_reaches":
             event = {
                 "id": event_id,
                 "type": "parameter_reaches",
                 "description": f"Seeded {_event_name(maneuver)} for {maneuver_id}",
                 "spacecraft": sc_id,
-                "propagator": "earth_prop",
+                "propagator": propagator_id,
                 "stop_condition": {
                     "parameter": f"{strategy['central_body']}.TA",
                     "value": maneuver["true_anomaly_deg"],
@@ -119,7 +139,7 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
                 "event": maneuver["event"],
                 "central_body": strategy["central_body"],
                 "spacecraft": sc_id,
-                "propagator": "earth_prop",
+                "propagator": propagator_id,
                 "actions": [
                     {"action_id": f"burn_{maneuver_id}", "type": "maneuver", "spacecraft": sc_id, "burn": maneuver_id},
                     {"action_id": f"report_{checkpoint_id}", "type": "checkpoint", "checkpoint_id": checkpoint_id},
@@ -160,16 +180,16 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
             "ta_deg": state["true_anomaly"]["value"],
             "dry_mass_kg": 1000.0,
         }],
-        "force_models": [{"id": "earth_fm", "name": "EarthFM", "central_body": "Earth", "gravity": {"type": "point_mass"}}],
-        "propagators": [{"id": "earth_prop", "name": "EarthProp", "force_model": "earth_fm", "integrator": "RungeKutta89", "accuracy": 1e-11, "initial_step_s": 60.0, "min_step_s": 0.1, "max_step_s": 300.0}],
+        "force_models": [{"id": force_model_id, "name": f"{central_body}FM", "central_body": central_body, "gravity": {"type": "point_mass"}}],
+        "propagators": [{"id": propagator_id, "name": f"{central_body}Prop", "force_model": force_model_id, "integrator": "RungeKutta89", "accuracy": 1e-11, "initial_step_s": 60.0, "min_step_s": 0.1, "max_step_s": 300.0}],
         "burns": burns,
         "checkpoints": checkpoints,
         "events": events,
         "mission_sequence": phases,
         "outputs": [
-            {"id": "targeted_ephemeris", "type": "spacecraft_ephemeris", "spacecraft": sc_id, "path_template": "outputs/_Ephemeris_{spacecraft}_{frame}.csv", "step_s": 300.0, "frames": [frame, "EarthFixed"], "state_groups": ["cartesian", "keplerian", "elapsed_time"]},
+            {"id": "targeted_ephemeris", "type": "spacecraft_ephemeris", "spacecraft": sc_id, "path_template": "outputs/_Ephemeris_{spacecraft}_{frame}.csv", "step_s": 300.0, "frames": [frame, fixed_frame], "state_groups": ["cartesian", "keplerian", "elapsed_time"]},
             {"id": "targeted_final_state", "type": "final_state", "spacecraft": sc_id, "path": "outputs/final_state.csv", "state_groups": ["cartesian", "keplerian", "elapsed_time"]},
-            {"id": "earth_ground_track", "type": "ground_track", "spacecraft": sc_id, "body": "Earth", "path": "outputs/_GroundTrack_{spacecraft}_{body}.csv"},
+            {"id": f"{central_body.lower()}_ground_track", "type": "ground_track", "spacecraft": sc_id, "body": central_body, "path": "outputs/_GroundTrack_{spacecraft}_{body}.csv"},
         ],
         "visualization": {"enabled": True, "auto_export_after_run": True, "clean_csv": True, "write_manifest": True, "include_spice_body_ephemerides": False},
     }
@@ -182,7 +202,7 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
                 "step_id": "propagate_post_insertion_two_days",
                 "type": "propagate",
                 "spacecraft": sc_id,
-                "propagator": "earth_prop",
+                "propagator": propagator_id,
                 "duration_s": TWO_DAYS_S,
             }
         ],
