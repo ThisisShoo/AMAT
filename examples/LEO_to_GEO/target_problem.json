@@ -8,8 +8,12 @@
     "maneuver_policy": {
       "type": "valid_node_low_speed",
       "maneuver_model": "impulsive",
-      "departure_apsis": "periapsis",
-      "arrival_apsis": "apoapsis",
+      "departure_event": {
+        "type": "initial_state"
+      },
+      "arrival_event": {
+        "type": "apoapsis"
+      },
       "allow_departure_phasing": true,
       "prefer_apsis_alignment": true,
       "fallback": "split_at_nearest_valid_node",

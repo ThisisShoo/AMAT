@@ -26,7 +26,7 @@ def build_targeting_result(problem: dict[str, Any], formulation: dict[str, Any],
         "solver": formulation["solver_policy"],
         "warnings": [
             "This result is assessed only under a two-body impulsive model.",
-            "Concurrent plane-change estimates assume compatible apsidal/node geometry.",
+            "Plane-change placement is event-driven and must be verified by propagation.",
             "Run the generated MissionSpec before claiming simulation feasibility.",
         ],
     }

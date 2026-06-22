@@ -220,8 +220,8 @@ def test_valid_node_low_speed_policy_phases_circular_departure_to_arrival_node(t
     raw["transfer_strategy"]["maneuver_policy"] = {
         "type": "valid_node_low_speed",
         "maneuver_model": "impulsive",
-        "departure_apsis": "periapsis",
-        "arrival_apsis": "apoapsis",
+        "departure_event": {"type": "initial_state"},
+        "arrival_event": {"type": "apoapsis"},
         "allow_departure_phasing": True,
         "prefer_apsis_alignment": True,
         "fallback": "split_at_nearest_valid_node",
@@ -338,8 +338,8 @@ def test_off_node_plane_change_is_seeded_at_transfer_arc_node(tmp_path):
     raw["transfer_strategy"]["maneuver_policy"] = {
         "type": "valid_node_low_speed",
         "maneuver_model": "impulsive",
-        "departure_apsis": "periapsis",
-        "arrival_apsis": "apoapsis",
+        "departure_event": {"type": "initial_state"},
+        "arrival_event": {"type": "apoapsis"},
         "allow_departure_phasing": False,
         "prefer_apsis_alignment": False,
         "fallback": "split_at_nearest_valid_node",
@@ -445,4 +445,115 @@ def test_keplerian_initial_state_can_depart_away_from_apsis(tmp_path):
     assert candidate["maneuvers"][0]["event_type"] == "immediate"
     assert candidate["maneuvers"][0]["true_anomaly_deg"] == 45.0
     assert spec["mission_sequence"][1]["steps"][0]["type"] == "maneuver"
+
+
+def test_cartesian_initial_state_is_supported_and_materialized_as_cartesian(tmp_path):
+    raw = read_json(_example(tmp_path))
+    radius = 6678.1363
+    raw["initial_state"] = {
+        "representation": "cartesian",
+        "position_km": [radius, 0.0, 0.0],
+        "velocity_km_s": [0.0, math.sqrt(398600.435507 / radius), 0.0],
+        "epoch": "2026-01-01T00:00:00Z",
+        "frame": "EarthMJ2000Eq",
+    }
+
+    p = canonicalize_target_problem(raw)
+    candidate = generate_hohmann_candidate(p)
+    spec = materialize_mission_spec(p, candidate)
+
+    assert p["initial_state"]["sma"]["value"] == pytest.approx(radius)
+    assert p["initial_state"]["eccentricity"] == pytest.approx(0.0, abs=1e-12)
+    assert p["initial_state"]["inclination"]["value"] == pytest.approx(0.0, abs=1e-12)
+    assert p["initial_state"]["true_anomaly"]["value"] == pytest.approx(0.0, abs=1e-12)
+    assert spec["spacecraft"][0]["state_type"] == "cartesian"
+    assert spec["spacecraft"][0]["position_km"] == [radius, 0.0, 0.0]
+    assert spec["spacecraft"][0]["velocity_km_s"][0] == 0.0
+    assert spec["spacecraft"][0]["velocity_km_s"][1] == pytest.approx(math.sqrt(398600.435507 / radius))
+    assert spec["spacecraft"][0]["velocity_km_s"][2] == 0.0
+
+
+def test_cometary_initial_and_target_states_are_supported(tmp_path):
+    raw = read_json(_example(tmp_path))
+    raw["transfer_strategy"]["type"] = "two_impulse_apsidal_transfer"
+    raw["initial_state"] = {
+        "representation": "cometary",
+        "periapsis_radius": {"value": 8000.0, "unit": "km"},
+        "eccentricity": 0.2,
+        "inclination": {"value": 5.0, "unit": "deg"},
+        "raan": {"value": 10.0, "unit": "deg"},
+        "aop": {"value": 20.0, "unit": "deg"},
+        "true_anomaly": {"value": 30.0, "unit": "deg"},
+        "epoch": "2026-01-01T00:00:00Z",
+        "frame": "EarthMJ2000Eq",
+    }
+    raw["target"] = {
+        "type": "cometary_state",
+        "periapsis_radius": {"value": 42164.1696, "unit": "km"},
+        "eccentricity": 0.0,
+        "inclination": {"value": 0.0, "unit": "deg"},
+        "raan": {"value": 0.0, "unit": "deg"},
+        "aop": {"value": 0.0, "unit": "deg"},
+    }
+
+    p = canonicalize_target_problem(raw)
+    candidate = generate_hohmann_candidate(p)
+    spec = materialize_mission_spec(p, candidate)
+
+    assert p["initial_state"]["sma"]["value"] == pytest.approx(10000.0)
+    assert p["target"]["sma"]["value"] == pytest.approx(42164.1696)
+    assert candidate["generation_status"] == "candidate_generated"
+    assert spec["spacecraft"][0]["state_type"] == "keplerian"
+
+
+def test_maneuver_policy_can_depart_at_explicit_true_anomaly(tmp_path):
+    raw = read_json(_example(tmp_path))
+    raw["transfer_strategy"]["maneuver_policy"] = {
+        "type": "valid_node_low_speed",
+        "departure_event": {"type": "true_anomaly", "value": {"value": 45.0, "unit": "deg"}},
+        "arrival_event": {"type": "true_anomaly", "value": {"value": 180.0, "unit": "deg"}},
+        "allow_departure_phasing": False,
+    }
+
+    p = canonicalize_target_problem(raw)
+    candidate = generate_hohmann_candidate(p)
+    spec = materialize_mission_spec(p, candidate)
+
+    assert candidate["maneuvers"][0]["event_type"] == "parameter_reaches"
+    assert candidate["maneuvers"][0]["true_anomaly_deg"] == 45.0
+    assert candidate["maneuvers"][-1]["event_type"] == "parameter_reaches"
+    departure_event = next(e for e in spec["events"] if e["id"] == "event_transfer_injection")
+    arrival_event = next(e for e in spec["events"] if e["id"] == "event_orbit_insertion")
+    assert departure_event["stop_condition"] == {"parameter": "Earth.TA", "value": 45.0}
+    assert arrival_event["stop_condition"] == {"parameter": "Earth.TA", "value": 180.0}
+
+
+def test_maneuver_policy_node_shortcuts_resolve_to_true_anomaly(tmp_path):
+    raw = read_json(_example(tmp_path))
+    raw["transfer_strategy"]["maneuver_policy"] = {
+        "type": "valid_node_low_speed",
+        "departure_event": {"type": "ascending_node"},
+        "arrival_event": {"type": "descending_node"},
+        "allow_departure_phasing": False,
+    }
+    raw["initial_state"]["aop"] = {"value": 30.0, "unit": "deg"}
+    raw["target"]["type"] = "keplerian_state"
+    raw["target"]["sma"] = {"value": 42164.1696, "unit": "km"}
+    raw["target"]["eccentricity"] = 0.0
+    raw["target"]["aop"] = {"value": 20.0, "unit": "deg"}
+
+    p = canonicalize_target_problem(raw)
+    candidate = generate_hohmann_candidate(p)
+    spec = materialize_mission_spec(p, candidate)
+
+    assert p["transfer_strategy"]["departure_true_anomaly"] == 330.0
+    assert p["transfer_strategy"]["arrival_true_anomaly"] == 160.0
+    assert p["transfer_strategy"]["departure_event"]["resolved_true_anomaly"] == {"value": 330.0, "unit": "deg"}
+    assert p["transfer_strategy"]["arrival_event"]["resolved_true_anomaly"] == {"value": 160.0, "unit": "deg"}
+    assert candidate["maneuvers"][0]["event_type"] == "parameter_reaches"
+    assert candidate["maneuvers"][-1]["event_type"] == "parameter_reaches"
+    departure_event = next(e for e in spec["events"] if e["id"] == "event_transfer_injection")
+    arrival_event = next(e for e in spec["events"] if e["id"] == "event_orbit_insertion")
+    assert departure_event["stop_condition"] == {"parameter": "Earth.TA", "value": 330.0}
+    assert arrival_event["stop_condition"] == {"parameter": "Earth.TA", "value": 160.0}
 

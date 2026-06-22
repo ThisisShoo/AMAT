@@ -42,6 +42,22 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
         }
         for maneuver in maneuvers
     ]
+    if state.get("representation") == "cartesian":
+        spacecraft_state = {
+            "state_type": "cartesian",
+            "position_km": state["position_km"],
+            "velocity_km_s": state["velocity_km_s"],
+        }
+    else:
+        spacecraft_state = {
+            "state_type": "keplerian",
+            "sma_km": state["sma"]["value"],
+            "ecc": state["eccentricity"],
+            "inc_deg": state["inclination"]["value"],
+            "raan_deg": state["raan"]["value"],
+            "aop_deg": state["aop"]["value"],
+            "ta_deg": state["true_anomaly"]["value"],
+        }
     checkpoints = [
         {"id": "initial_state", "spacecraft": sc_id, "frame": frame, "state_groups": ["keplerian", "cartesian", "elapsed_time"], "parameters": ["ElapsedSecs"], "path": "outputs/initial_state.csv", "include_header": True},
     ]
@@ -171,14 +187,8 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
             "name": sc_name,
             "epoch": state["epoch"],
             "frame": frame,
-            "state_type": "keplerian",
-            "sma_km": state["sma"]["value"],
-            "ecc": state["eccentricity"],
-            "inc_deg": state["inclination"]["value"],
-            "raan_deg": state["raan"]["value"],
-            "aop_deg": state["aop"]["value"],
-            "ta_deg": state["true_anomaly"]["value"],
             "dry_mass_kg": 1000.0,
+            **spacecraft_state,
         }],
         "force_models": [{"id": force_model_id, "name": f"{central_body}FM", "central_body": central_body, "gravity": {"type": "point_mass"}}],
         "propagators": [{"id": propagator_id, "name": f"{central_body}Prop", "force_model": force_model_id, "integrator": "RungeKutta89", "accuracy": 1e-11, "initial_step_s": 60.0, "min_step_s": 0.1, "max_step_s": 300.0}],

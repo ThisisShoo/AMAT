@@ -13,10 +13,12 @@ def _problem() -> dict:
         "transfer_strategy": {
             "type": "hohmann_transfer",
             "central_body": "Earth",
-            "maneuver_model": "impulsive",
-            "departure_apsis": "periapsis",
-            "arrival_apsis": "apoapsis",
-            "maneuver_policy": "valid_node_low_speed",
+            "maneuver_policy": {
+                "type": "valid_node_low_speed",
+                "maneuver_model": "impulsive",
+                "departure_event": {"type": "initial_state"},
+                "arrival_event": {"type": "apoapsis"},
+            },
         },
         "initial_state": {
             "representation": "circular_orbit",

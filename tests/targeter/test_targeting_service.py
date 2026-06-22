@@ -76,6 +76,51 @@ def test_target_argument_of_latitude_is_optional_constraint():
     )
 
 
+def test_initial_state_frame_defaults_to_earth_equatorial():
+    raw = json.loads(json.dumps(TARGET_PROBLEM))
+    raw["initial_state"].pop("frame")
+
+    problem = canonicalize_target_problem(raw)
+
+    assert problem["initial_state"]["frame"] == "EarthMJ2000Eq"
+
+
+def test_initial_state_frame_defaults_to_ecliptic_for_non_earth_body():
+    raw = json.loads(json.dumps(TARGET_PROBLEM))
+    raw["problem_id"] = "mars_transfer"
+    raw["mission_id"] = "mars_transfer"
+    raw["transfer_strategy"]["central_body"] = "Mars"
+    raw["transfer_strategy"]["type"] = "two_impulse_apsidal_transfer"
+    raw["initial_state"].pop("frame")
+    raw["target"] = {
+        "type": "circular_orbit",
+        "altitude": {"value": 5000.0, "unit": "km"},
+        "inclination": {"value": 0.0, "unit": "deg"},
+    }
+
+    problem = canonicalize_target_problem(raw)
+
+    assert problem["initial_state"]["frame"] == "MarsMJ2000Ec"
+
+
+def test_explicit_initial_state_frame_is_preserved_for_non_earth_body():
+    raw = json.loads(json.dumps(TARGET_PROBLEM))
+    raw["problem_id"] = "mars_transfer"
+    raw["mission_id"] = "mars_transfer"
+    raw["transfer_strategy"]["central_body"] = "Mars"
+    raw["transfer_strategy"]["type"] = "two_impulse_apsidal_transfer"
+    raw["initial_state"]["frame"] = "MarsMJ2000Eq"
+    raw["target"] = {
+        "type": "circular_orbit",
+        "altitude": {"value": 5000.0, "unit": "km"},
+        "inclination": {"value": 0.0, "unit": "deg"},
+    }
+
+    problem = canonicalize_target_problem(raw)
+
+    assert problem["initial_state"]["frame"] == "MarsMJ2000Eq"
+
+
 def test_custom_central_body_requires_and_uses_constants(tmp_path):
     raw = json.loads(json.dumps(TARGET_PROBLEM))
     raw["problem_id"] = "custom_body_transfer"

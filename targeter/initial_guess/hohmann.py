@@ -277,9 +277,16 @@ def _can_phase_departure_to_node(state: dict[str, Any], strategy: dict[str, Any]
         strategy.get("maneuver_policy") == "valid_node_low_speed"
         and bool(policy.get("allow_departure_phasing"))
         and bool(policy.get("prefer_apsis_alignment"))
-        and strategy.get("departure_apsis") == "periapsis"
+        and strategy.get("departure_event", {}).get("type") in {"initial_state", "periapsis", "apoapsis"}
         and abs(float(state.get("eccentricity", 0.0))) <= PHASED_DEPARTURE_ECCENTRICITY_TOLERANCE
     )
+
+
+def _event_label(event: dict[str, Any]) -> str:
+    event_type = event["type"]
+    if event_type == "true_anomaly":
+        return "target_true_anomaly"
+    return str(event_type)
 
 
 def _pure_plane_change_components(speed: float, signed_angle_deg: float) -> tuple[float, float, float]:
@@ -384,9 +391,15 @@ def generate_hohmann_candidate(problem: dict[str, Any]) -> dict[str, Any]:
     e_initial = state["eccentricity"]
     a_target = target["sma"]["value"]
     e_target = target["eccentricity"]
-    departure_ta = float(state["true_anomaly"]["value"])
+    departure_event = strategy["departure_event"]
+    arrival_event = strategy["arrival_event"]
+    departure_ta = (
+        float(state["true_anomaly"]["value"])
+        if departure_event["type"] == "initial_state"
+        else float(strategy["departure_true_anomaly"])
+    )
     r_depart = _radius_at_true_anomaly(a_initial, e_initial, departure_ta)
-    r_arrive = _apsis_radius(a_target, e_target, strategy["arrival_apsis"])
+    r_arrive = _radius_at_true_anomaly(a_target, e_target, float(strategy["arrival_true_anomaly"]))
     a_transfer = (r_depart + r_arrive) / 2.0
 
     v_initial = _speed(mu, r_depart, a_initial)
@@ -413,7 +426,7 @@ def generate_hohmann_candidate(problem: dict[str, Any]) -> dict[str, Any]:
         arrival_ta = 180.0
     else:
         transfer_basis = initial_basis
-        arrival_ta = _normalize_angle_deg(departure_ta + 180.0)
+        arrival_ta = float(strategy["arrival_true_anomaly"])
 
     merge_tolerance = float(strategy.get("merge_maneuver_angle_tolerance_deg", DEFAULT_MERGE_ANGLE_TOLERANCE_DEG))
     if plane_change > 1e-10 and phased_departure_node is not None:
@@ -469,13 +482,21 @@ def generate_hohmann_candidate(problem: dict[str, Any]) -> dict[str, Any]:
         dv2_b = 0.0
     tof = math.pi * math.sqrt(a_transfer**3 / mu)
 
-    immediate_departure = phased_departure_node is None and state["eccentricity"] > 0.0
+    immediate_departure = phased_departure_node is None and departure_event["type"] == "initial_state"
+    if phased_departure_node is not None:
+        departure_event_type = "parameter_reaches"
+    elif immediate_departure:
+        departure_event_type = "immediate"
+    elif departure_event["type"] in {"periapsis", "apoapsis"}:
+        departure_event_type = "orbital_event"
+    else:
+        departure_event_type = "parameter_reaches"
     maneuvers: list[dict[str, Any]] = [
         {
             "maneuver_id": "transfer_injection",
             "maneuver_type": "combined_impulsive" if plane_merge == "departure" else "tangential_impulsive",
-            "event": "phased_departure_node" if phased_departure_node is not None else ("initial_state" if immediate_departure else strategy["departure_apsis"]),
-            "event_type": "parameter_reaches" if phased_departure_node is not None else ("immediate" if immediate_departure else "orbital_event"),
+            "event": "phased_departure_node" if phased_departure_node is not None else ("initial_state" if immediate_departure else _event_label(departure_event)),
+            "event_type": departure_event_type,
             "true_anomaly_deg": departure_ta,
             "frame": "VNB",
             "components_km_s": [dv1_v, dv1_n, dv1_b],
@@ -520,8 +541,8 @@ def generate_hohmann_candidate(problem: dict[str, Any]) -> dict[str, Any]:
         {
             "maneuver_id": "orbit_insertion",
             "maneuver_type": "combined_impulsive" if plane_merge == "arrival" else "tangential_impulsive",
-            "event": strategy["arrival_apsis"],
-            "event_type": "orbital_event",
+            "event": _event_label(arrival_event),
+            "event_type": "orbital_event" if arrival_event["type"] in {"periapsis", "apoapsis"} else "parameter_reaches",
             "true_anomaly_deg": arrival_ta,
             "frame": "VNB",
             "components_km_s": [dv2_v, dv2_n, dv2_b],

@@ -65,8 +65,8 @@ Current supported form:
   "maneuver_policy": {
     "type": "valid_node_low_speed",
     "maneuver_model": "impulsive",
-    "departure_apsis": "periapsis",
-    "arrival_apsis": "apoapsis",
+    "departure_event": {"type": "initial_state"},
+    "arrival_event": {"type": "apoapsis"},
     "allow_departure_phasing": true,
     "prefer_apsis_alignment": true,
     "fallback": "split_at_nearest_valid_node",
@@ -134,8 +134,8 @@ Structured form:
 "maneuver_policy": {
   "type": "valid_node_low_speed",
   "maneuver_model": "impulsive",
-  "departure_apsis": "periapsis",
-  "arrival_apsis": "apoapsis",
+  "departure_event": {"type": "initial_state"},
+  "arrival_event": {"type": "apoapsis"},
   "allow_departure_phasing": true,
   "prefer_apsis_alignment": true,
   "fallback": "split_at_nearest_valid_node",
@@ -155,8 +155,8 @@ Policy fields:
 |---|---|---|---|
 | `type` | `valid_node_low_speed` | required | Maneuver placement policy. |
 | `maneuver_model` | `impulsive`, `finite` | `impulsive` | Targeter accepts `finite`, but analytic seeds remain impulsive. |
-| `departure_apsis` | `periapsis`, `apoapsis` | `periapsis` | Departure endpoint used by circular starts and apsidal endpoint logic. |
-| `arrival_apsis` | `periapsis`, `apoapsis` | `apoapsis` | Arrival endpoint used by the transfer seed. |
+| `departure_event` | endpoint event object | `{"type": "initial_state"}` | Event or state used for the first transfer burn. |
+| `arrival_event` | endpoint event object | `{"type": "apoapsis"}` | Event used for the arrival/insertion burn. |
 | `allow_departure_phasing` | `true`, `false` | `true` | Permit waiting in a circular departure orbit to align arrival with a target-plane node. |
 | `prefer_apsis_alignment` | `true`, `false` | `true` | Prefer merging plane correction with an apsidal energy burn when geometry allows. |
 | `fallback` | `split_at_nearest_valid_node` | `split_at_nearest_valid_node` | Separate plane-change fallback when merger is invalid. |
@@ -171,14 +171,32 @@ Example:
   "maneuver_policy": {
     "type": "valid_node_low_speed",
     "maneuver_model": "impulsive",
-    "departure_apsis": "periapsis",
-    "arrival_apsis": "apoapsis",
+    "departure_event": {
+      "type": "true_anomaly",
+      "value": {"value": 35.0, "unit": "deg"}
+    },
+    "arrival_event": {
+      "type": "apoapsis"
+    },
     "allow_departure_phasing": false,
     "prefer_apsis_alignment": true,
     "fallback": "split_at_nearest_valid_node"
   }
 }
 ```
+
+Endpoint event objects:
+
+| Object | Valid for | Resolves to |
+|---|---|---|
+| `{"type": "initial_state"}` | Departure only | The supplied initial state's `true_anomaly`. |
+| `{"type": "true_anomaly", "value": {"value": 35, "unit": "deg"}}` | Departure and arrival | The supplied true anomaly. |
+| `{"type": "periapsis"}` | Departure and arrival | True anomaly `0 deg`. |
+| `{"type": "apoapsis"}` | Departure and arrival | True anomaly `180 deg`. |
+| `{"type": "ascending_node"}` | Departure and arrival | True anomaly `-aop mod 360 deg` for the relevant endpoint orbit. |
+| `{"type": "descending_node"}` | Departure and arrival | True anomaly `180 - aop mod 360 deg` for the relevant endpoint orbit. |
+
+AMAT canonicalizes every endpoint event to a resolved true anomaly before seed generation. Apsis and node objects are shortcuts; they do not create a second endpoint-event representation.
 
 ## Initial State
 
@@ -188,6 +206,8 @@ Supported representations:
 |---|---|---|
 | `circular_orbit` | Supported | Uses `altitude` and the selected central-body radius to compute `sma`. |
 | `keplerian` | Supported | Can start at any supplied `true_anomaly`; the first transfer burn is immediate if the state is not at an apsis. |
+| `cartesian` | Supported | Uses `position_km` and `velocity_km_s`; AMAT derives equivalent Keplerian elements for the analytic seed and preserves the Cartesian state in the materialized MissionSpec. |
+| `cometary` | Supported | Uses periapsis radius, eccentricity, and angular elements; AMAT derives equivalent Keplerian elements for the analytic seed. Bound elliptic inputs are required. |
 
 Circular-orbit form:
 
@@ -201,7 +221,7 @@ Circular-orbit form:
   "aop": {"value": 0.0, "unit": "deg"},
   "true_anomaly": {"value": 0.0, "unit": "deg"},
   "epoch": "2026-01-01T00:00:00Z",
-  "frame": "<central-body-name>MJ2000Eq"
+  "frame": "<default-inertial-frame>"
 }
 ```
 
@@ -218,11 +238,41 @@ Keplerian form:
   "aop": {"value": 0.0, "unit": "deg"},
   "true_anomaly": {"value": 45.0, "unit": "deg"},
   "epoch": "2026-01-01T00:00:00Z",
-  "frame": "<central-body-name>MJ2000Eq"
+  "frame": "<default-inertial-frame>"
 }
 ```
 
-If `frame` is omitted, AMAT defaults to `<central_body>MJ2000Eq`.
+Cartesian form:
+
+```json
+{
+  "representation": "cartesian",
+  "central_body": "<central-body-name>",
+  "position_km": [6678.1363, 0.0, 0.0],
+  "velocity_km_s": [0.0, 7.7258, 0.0],
+  "epoch": "2026-01-01T00:00:00Z",
+  "frame": "<default-inertial-frame>"
+}
+```
+
+Cometary form:
+
+```json
+{
+  "representation": "cometary",
+  "central_body": "<central-body-name>",
+  "periapsis_radius": {"value": 8000.0, "unit": "km"},
+  "eccentricity": 0.2,
+  "inclination": {"value": 5.0, "unit": "deg"},
+  "raan": {"value": 10.0, "unit": "deg"},
+  "aop": {"value": 20.0, "unit": "deg"},
+  "true_anomaly": {"value": 30.0, "unit": "deg"},
+  "epoch": "2026-01-01T00:00:00Z",
+  "frame": "<default-inertial-frame>"
+}
+```
+
+If `frame` is omitted, AMAT defaults to `EarthMJ2000Eq` for Earth-centered problems and `<central_body>MJ2000Ec` for every other central body.
 
 ## Target
 
@@ -232,14 +282,15 @@ Supported target types:
 |---|---|---|
 | `geostationary_orbit` | Earth default supported | Defaults to Earth GEO radius, near-zero eccentricity, and near-equatorial inclination. For other bodies, provide `sma` or `transfer_strategy.stationary_orbit_radius`. |
 | `circular_orbit` | Supported | Target circular orbit by `altitude` or `sma`. |
-| `keplerian_orbit` | Supported | Target final Keplerian orbit terms directly. |
-| Cartesian state target | Incoming feature | Prefer Keplerian target fields for now. |
+| `keplerian_state` | Supported | Target final Keplerian orbit terms directly. |
+| `cartesian_state` | Supported | Target by `position_km` and `velocity_km_s`; AMAT derives equivalent orbital elements for seed generation and acceptance constraints. |
+| `cometary_state` | Supported | Target by periapsis radius, eccentricity, and angular elements; AMAT derives equivalent Keplerian elements. Bound elliptic inputs are required. |
 
 Common target fields:
 
 ```json
 {
-  "type": "keplerian_orbit",
+  "type": "keplerian_state",
   "sma": {"value": 42164.1696, "unit": "km"},
   "eccentricity": 0.0,
   "eccentricity_max": 0.0001,
@@ -257,6 +308,7 @@ Notes:
 - `argument_of_latitude` is optional. Use it when the final location in the orbital plane matters, such as targeting a specific body-fixed ground-track relationship.
 - `raan` and `aop` are physically undefined for exactly equatorial or circular orbits. Evaluation suppresses undefined RAAN/AOP residuals when target and achieved inclination/eccentricity are within tolerance.
 - `altitude` targets are converted using `transfer_strategy.central_body_radius`.
+- Cartesian and cometary target inputs are canonicalized to Keplerian fields before formulation. The current analytic seed supports bound elliptic endpoint orbits only.
 
 ## Limits, Execution, and Verification
 
@@ -287,59 +339,16 @@ Execution fields are backend-neutral intent. The closed-loop implementation sele
 
 This section only covers `targeter` commands.
 
-Validate a target problem:
+| Task | Command |
+|---|---|
+| Validate a TargetProblem | `python -m targeter validate path/to/target_problem.json` |
+| Solve an analytic candidate | `python -m targeter solve path/to/target_problem.json --out generated/<mission_id>/targeting` |
+| Evaluate completed simulation outputs | `python -m targeter evaluate path/to/target_problem.json --simulation-dir generated/<mission_id>/simulation --out generated/<mission_id>/targeting` |
+| Prepare a closed-loop iteration | `python -m targeter closed-loop path/to/target_problem.json --out generated/<mission_id>/targeting` |
+| Run closed loop with explicit modules | `python -m targeter closed-loop path/to/target_problem.json --simulation-backend <backend-id> --correction-backend stm --max-iterations 3 --run --out generated/<mission_id>/targeting` |
+| Generate a conic-chain seed | `python -m targeter conic-chain-seed --body-ephemeris path/to/_BodyEphemeris_Target_Frame.csv --body <body-name> --frame <frame-name> --departure-body <origin-body-name> --target-body <target-body-name> --central-body <central-body-name> --departure-altitude-km <parking-orbit-altitude> --seed-out generated/<mission_id>/targeting/conic_chain_seed.json` |
 
-```bash
-python -m targeter validate path/to/target_problem.json
-```
-
-Solve for an initial candidate:
-
-```bash
-python -m targeter solve path/to/target_problem.json --out generated/<mission_id>/targeting
-```
-
-Evaluate a completed simulation against a target problem:
-
-```bash
-python -m targeter evaluate path/to/target_problem.json \
-  --simulation-dir generated/<mission_id>/simulation \
-  --out generated/<mission_id>/targeting
-```
-
-Create the first closed-loop iteration without running the simulation backend:
-
-```bash
-python -m targeter closed-loop path/to/target_problem.json \
-  --out generated/<mission_id>/targeting
-```
-
-Run the closed loop with explicit modules:
-
-```bash
-python -m targeter closed-loop path/to/target_problem.json \
-  --simulation-backend <backend-id> \
-  --correction-backend stm \
-  --max-iterations 3 \
-  --run \
-  --out generated/<mission_id>/targeting
-```
-
-Generate a cross-SOI conic-chain seed from a backend-produced body ephemeris:
-
-```bash
-python -m targeter conic-chain-seed \
-  --body-ephemeris path/to/_BodyEphemeris_Target_Frame.csv \
-  --body <body-name> \
-  --frame <frame-name> \
-  --departure-body <origin-body-name> \
-  --target-body <target-body-name> \
-  --central-body <central-body-name> \
-  --central-mu-km3-s2 <mu-for-custom-central-body> \
-  --central-radius-km <radius-for-custom-central-body> \
-  --departure-altitude-km <parking-orbit-altitude> \
-  --seed-out generated/<mission_id>/targeting/conic_chain_seed.json
-```
+For custom central bodies in `conic-chain-seed`, also provide `--central-mu-km3-s2` and `--central-radius-km`.
 
 ## Targeting Artifacts
 
@@ -377,39 +386,25 @@ Backend adapters render those values only when generating backend artifacts. Thi
 
 ## Techniques
 
-### Analytic Apsidal Seed
+AMAT currently uses three targeting techniques:
 
-The current TargetProblem solve path generates a two-impulse seed. Circular coplanar cases reduce to the classical Hohmann result; the implementation also handles selected elliptical starts, elliptical targets, and node-aware plane-change placement.
+| Technique | Purpose |
+|---|---|
+| Analytic two-impulse seed | Produces the initial candidate for same-central-body transfers. Circular coplanar cases reduce to classical Hohmann behavior; elliptical endpoints and node-aware plane changes are also supported. |
+| Conic-chain seed | Produces patched-conic cross-SOI seeds from backend-produced body ephemerides. Lambert solving is used inside this helper, but is not yet a top-level `transfer_strategy.type`. |
+| Closed-loop correction | Runs simulation-backed evaluation and delegates correction to a selected correction module. The STM backend consumes backend-produced STM artifacts and stops if those artifacts are unavailable. |
 
-This is a seed, not a proof of final propagated accuracy. Use `targeter evaluate` or a closed-loop run to compare propagated outputs against the target.
-
-### Conic-Chain Seed
-
-A conic chain is an ordered sequence of up to three connecting patched conics. It is intended for cross-SOI transfers such as planet-to-moon, moon-to-planet, and interplanetary-style chains with an intermediate encounter leg.
-
-Lambert solving appears here as a geometric leg solver. It is not currently exposed as a general top-level `transfer_strategy.type`.
-
-### Correction And Closed Loop
-
-Closed-loop targeting separates three pieces:
-
-1. Seed generation.
-2. Simulation-backed evaluation.
-3. Correction.
-
-The STM correction backend consumes backend-produced STM assessment artifacts. If the simulation backend does not produce the requested STM assessment, the loop stops with `missing_stm_assessment` rather than inventing sensitivities.
-
-The closed-loop runner is backend-neutral at the orchestration level: `simulation_backend` and `correction_backend` are separate selections.
+These techniques produce candidates and corrections, not proof of final high-fidelity success. Use `targeter evaluate` or a closed-loop run to compare propagated outputs against the TargetProblem.
 
 ## Current Limitations
 
-AMAT targeting does not yet provide:
+Current TargetProblem limitations:
 
 - General Lambert transfer as a TargetProblem strategy.
-- General patched-conic or conic-chain TargetProblem materialization.
-- Native finite-burn targeting. Finite burns can be simulated in MissionSpec, but analytic targeting still seeds impulsive maneuvers.
+- General patched-conic or conic-chain materialization from a TargetProblem.
+- Native finite-burn seed generation. Finite burns can be simulated in MissionSpec, but analytic targeting still seeds impulsive maneuvers.
 - Full SOI switching/detection as part of TargetProblem execution.
-- General optimizer integration as a TargetProblem solve mode.
+- Optimizer-backed TargetProblem solve modes.
 - Multiple production simulation backend adapters.
 - Guaranteed propagation support for arbitrary custom central bodies. The targeter can materialize a candidate with custom body constants, but the selected compiler/simulation backend must also support that body.
 
