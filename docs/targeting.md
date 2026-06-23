@@ -346,7 +346,7 @@ Notes:
 
 - `argument_of_latitude` is optional. Use it when the final location in the orbital plane matters, such as targeting a specific body-fixed ground-track relationship.
 
-## Phase Policy
+## Phasing Policy
 
 Use `transfer_strategy.phase_policy` when the final position along the target orbit matters and orbit shape targeting alone is insufficient.
 
@@ -383,7 +383,7 @@ Current strategy support:
 | `transfer_time_adjustment` | Incoming feature | Adjust transfer duration or arrival branch. |
 | `resonant` | Incoming feature | Use resonant cycles for repeated body-relative geometry. |
 | `multi_revolution_transfer` | Incoming feature | Select multi-revolution transfer branches. |
-| `optimized` | Incoming feature | Refine analytic phase seeds through STM or optimizer. |
+<!-- | `optimized` | Incoming feature | Refine analytic phase seeds through STM or optimizer. | -->
 
 The selector writes `phase_strategy_decision.json` during `targeter solve` when a phase policy is present. The initial implemented strategy is body-neutral: it uses the target central body's gravitational parameter and semi-major axis, not Earth/GEO constants.
 - `raan` and `aop` are physically undefined for exactly equatorial or circular orbits. Evaluation suppresses undefined RAAN/AOP residuals when target and achieved inclination/eccentricity are within tolerance.
