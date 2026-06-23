@@ -111,13 +111,13 @@ If the result is outside tolerance, use the evaluation artifact to decide whethe
 ### 7. Render The Visualization
 
 ```bash
-python -m visualzer view --mission-dir generated/LEO_to_GEO/simulation
+python -m visualizer view --mission-dir generated/LEO_to_GEO/simulation
 ```
 
 or, when using the standard generated layout:
 
 ```bash
-python -m visualzer view LEO_to_GEO
+python -m visualizer view LEO_to_GEO
 ```
 
 The viewer writes:
@@ -155,7 +155,7 @@ python generated/LEO_to_GEO/simulation/generated_mission.py --run
 ### 4. Render
 
 ```bash
-python -m visualzer view --mission-dir generated/LEO_to_GEO/simulation
+python -m visualizer view --mission-dir generated/LEO_to_GEO/simulation
 ```
 
 The same pattern applies to the current demonstration examples:
@@ -163,13 +163,13 @@ The same pattern applies to the current demonstration examples:
 ```bash
 python -m compiler compile examples/cislunar_demo/mission_spec.json --out generated/cislunar_demo/simulation
 python generated/cislunar_demo/simulation/generated_mission.py --run
-python -m visualzer view --mission-dir generated/cislunar_demo/simulation
+python -m visualizer view --mission-dir generated/cislunar_demo/simulation
 ```
 
 ```bash
 python -m compiler compile examples/MEO_demo/mission_spec.json --out generated/MEO_demo/simulation
 python generated/MEO_demo/simulation/generated_mission.py --run
-python -m visualzer view --mission-dir generated/MEO_demo/simulation
+python -m visualizer view --mission-dir generated/MEO_demo/simulation
 ```
 
 ## Visualization Refresh Only
@@ -178,7 +178,7 @@ If GMAT outputs already exist and only viewer artifacts need regeneration:
 
 ```bash
 python -m compiler export-visualization generated/cislunar_demo/simulation
-python -m visualzer view --mission-dir generated/cislunar_demo/simulation
+python -m visualizer view --mission-dir generated/cislunar_demo/simulation
 ```
 
 Use this after changing visualization code, body textures, frame declarations, or manifest generation.

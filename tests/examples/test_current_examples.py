@@ -14,7 +14,6 @@ from targeter.execution import execute_closed_loop
 
 
 EXAMPLES = [
-    Path("examples/LEO_to_GEO/mission_spec.json"),
     Path("examples/cislunar_demo/mission_spec.json"),
     Path("examples/MEO_demo/mission_spec.json"),
 ]
@@ -29,6 +28,19 @@ def _validate(path: Path) -> dict:
     failures = [c for c in checks if c.get("status") != "passed"]
     assert failures == []
     return spec
+
+
+def _write_leo_to_geo_candidate(tmp_path: Path) -> Path:
+    from targeter.domain import canonicalize_target_problem
+    from targeter.initial_guess import generate_hohmann_candidate
+    from targeter.materialization import materialize_mission_spec
+
+    problem = canonicalize_target_problem(read_json(Path("examples/LEO_to_GEO/target_problem.json")))
+    candidate = generate_hohmann_candidate(problem)
+    spec = canonicalize(materialize_mission_spec(problem, candidate))
+    spec_path = tmp_path / "LEO_to_GEO_candidate_mission_spec.json"
+    spec_path.write_text(json.dumps(spec), encoding="utf-8")
+    return spec_path
 
 
 @pytest.mark.parametrize("path", EXAMPLES)
@@ -136,7 +148,7 @@ def test_cislunar_compile_requests_force_model_body_ephemerides_from_gmat(tmp_pa
 
 
 def test_leo_to_geo_initial_coast_is_event_driven_before_transfer_injection(tmp_path: Path) -> None:
-    spec_path = Path("examples/LEO_to_GEO/mission_spec.json")
+    spec_path = _write_leo_to_geo_candidate(tmp_path)
     result = compile_bundle(spec_path, tmp_path / "LEO_to_GEO", "gmat")
     assert result["compile_result"]["status"] == "success", result["compile_result"]
 
@@ -144,12 +156,13 @@ def test_leo_to_geo_initial_coast_is_event_driven_before_transfer_injection(tmp_
 
     assert "Propagate EarthProp(TargetSat) { TargetSat.ElapsedSecs = 10800.0 };" in script
     assert script.index("TargetSat.ElapsedSecs = 10800.0") < script.index("Maneuver TransferInjection(TargetSat);")
-    assert "Propagate EarthProp(TargetSat) { TargetSat.Earth.TA = 150.0 };" in script
+    assert "argument_of_latitude:compiled_as_circular_true_anomaly" in script
+    assert "Propagate EarthProp(TargetSat) { TargetSat.Earth.TA = 180.0 };" in script
     assert "Maneuver TransferInjection(TargetSat);" in script
 
 
 def test_generated_artifacts_do_not_embed_workspace_absolute_paths(tmp_path: Path) -> None:
-    spec_path = Path("examples/LEO_to_GEO/mission_spec.json")
+    spec_path = _write_leo_to_geo_candidate(tmp_path)
     out_dir = tmp_path / "LEO_to_GEO"
     result = compile_bundle(spec_path, out_dir, "gmat")
     assert result["compile_result"]["status"] == "success", result["compile_result"]
@@ -169,7 +182,7 @@ def test_generated_artifacts_do_not_embed_workspace_absolute_paths(tmp_path: Pat
 
 
 def test_leo_to_geo_plane_change_is_combined_with_apogee_insertion(tmp_path: Path) -> None:
-    spec_path = Path("examples/LEO_to_GEO/mission_spec.json")
+    spec_path = _write_leo_to_geo_candidate(tmp_path)
     spec = _validate(spec_path)
 
     initial_coast = next(event for event in spec["events"] if event["id"] == "event_initial_coast")
@@ -180,7 +193,9 @@ def test_leo_to_geo_plane_change_is_combined_with_apogee_insertion(tmp_path: Pat
     assert initial_coast["type"] == "parameter_reaches"
     assert initial_coast["stop_condition"] == {"parameter": "ElapsedSecs", "value": 10800.0}
     assert transfer_event["type"] == "parameter_reaches"
-    assert transfer_event["stop_condition"] == {"parameter": "Earth.TA", "value": 150.0}
+    assert transfer_event["stop_condition"]["parameter"] == "Earth.ArgumentOfLatitude"
+    assert transfer_event["stop_condition"]["value"] == 180.0
+    assert transfer_event["stop_condition"]["true_anomaly_reference_deg"] == 150.0
     assert insertion_event["type"] == "orbital_event"
     assert insertion_event["event"] == "apoapsis"
     assert geo_burn["delta_v_km_s"][1] != 0.0
@@ -191,14 +206,14 @@ def test_leo_to_geo_plane_change_is_combined_with_apogee_insertion(tmp_path: Pat
 
     script = (tmp_path / "LEO_to_GEO" / "generated_mission.script").read_text(encoding="utf-8")
 
-    assert "Propagate EarthProp(TargetSat) { TargetSat.Earth.TA = 150.0 };" in script
+    assert "Propagate EarthProp(TargetSat) { TargetSat.Earth.TA = 180.0 };" in script
     assert "Maneuver OrbitInsertion(TargetSat);" in script
     assert "Maneuver PlaneChangeAtNode(TargetSat);" not in script
     assert "Propagate EarthProp(TargetSat) { TargetSat.ElapsedSecs = 172800.0 };" in script
 
 
 def test_surface_fixed_ephemeris_uses_inertial_keplerian_angles(tmp_path: Path) -> None:
-    spec_path = Path("examples/LEO_to_GEO/mission_spec.json")
+    spec_path = _write_leo_to_geo_candidate(tmp_path)
     result = compile_bundle(spec_path, tmp_path / "LEO_to_GEO", "gmat")
     assert result["compile_result"]["status"] == "success", result["compile_result"]
 

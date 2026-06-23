@@ -8,6 +8,7 @@ from targeter.domain import canonicalize_target_problem, validate_target_problem
 from targeter.initial_guess import generate_hohmann_candidate
 from targeter.io import read_json, write_json
 from targeter.materialization import materialize_mission_spec
+from targeter.phase import apply_phase_strategy
 
 
 def execute_closed_loop_file(
@@ -55,7 +56,7 @@ def execute_closed_loop(
     out_dir.mkdir(parents=True, exist_ok=True)
     write_json(out_dir / "target_problem.canonical.json", problem)
 
-    candidate = generate_hohmann_candidate(problem)
+    candidate = apply_phase_strategy(problem, generate_hohmann_candidate(problem))
     iterations: list[dict[str, Any]] = []
     status = "max_iterations"
     termination_reason = "maximum_iterations_reached"

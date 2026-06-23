@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from visualzer.checkpoint_loader import interpolate_checkpoints, load_checkpoints
-from visualzer.models import Checkpoint, EphemerisTrace, FrameInfo, GroundTrack, MissionPaths, MissionScene
-from visualzer.three_renderer import render_three_html
+from visualizer.checkpoint_loader import interpolate_checkpoints, load_checkpoints
+from visualizer.models import Checkpoint, EphemerisTrace, FrameInfo, GroundTrack, MissionPaths, MissionScene
+from visualizer.three_renderer import render_three_html
 
 
 def test_three_renderer_writes_viewer_with_finite_burns(tmp_path: Path) -> None:

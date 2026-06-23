@@ -19,6 +19,21 @@ def _object_id(prefix: str, body: str) -> str:
     return f"{body[:1].lower()}{body[1:]}_{prefix}"
 
 
+def _maneuver_stop_condition(maneuver: dict[str, Any], central_body: str) -> dict[str, Any]:
+    if maneuver.get("angle_kind") == "argument_of_latitude":
+        return {
+            "parameter": f"{central_body}.ArgumentOfLatitude",
+            "value": maneuver["argument_of_latitude_deg"],
+            "angle_kind": "argument_of_latitude",
+            "true_anomaly_reference_deg": maneuver.get("true_anomaly_reference_deg", maneuver.get("true_anomaly_deg")),
+        }
+    return {
+        "parameter": f"{central_body}.TA",
+        "value": maneuver["true_anomaly_deg"],
+        "angle_kind": "true_anomaly",
+    }
+
+
 def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
     state = problem["initial_state"]
     strategy = problem["transfer_strategy"]
@@ -62,6 +77,7 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
         {"id": "initial_state", "spacecraft": sc_id, "frame": frame, "state_groups": ["keplerian", "cartesian", "elapsed_time"], "parameters": ["ElapsedSecs"], "path": "outputs/initial_state.csv", "include_header": True},
     ]
     events = []
+    phase_counter = 1
     phases = [
         {"phase_id": "phase_001_initial", "name": "Initial state", "steps": [{"step_id": "checkpoint_initial", "type": "checkpoint", "checkpoint_id": "initial_state"}]},
     ]
@@ -105,6 +121,7 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
             }
         )
         phase_index_offset = 1
+        phase_counter = 2
     for index, maneuver in enumerate(maneuvers, start=1):
         maneuver_id = maneuver["maneuver_id"]
         checkpoint_id = f"post_{maneuver_id}"
@@ -121,9 +138,10 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
             }
         )
         if maneuver.get("event_type") == "immediate":
+            phase_counter += 1
             phases.append(
                 {
-                    "phase_id": f"phase_{index + 1 + phase_index_offset:03d}_{maneuver_id}",
+                    "phase_id": f"phase_{phase_counter:03d}_{maneuver_id}",
                     "name": f"{_event_name(maneuver).capitalize()} maneuver",
                     "steps": [
                         {"step_id": f"burn_{maneuver_id}", "type": "maneuver", "spacecraft": sc_id, "burn": maneuver_id},
@@ -131,6 +149,23 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
                     ],
                 }
             )
+            if maneuver.get("post_maneuver_coast_s"):
+                phase_counter += 1
+                phases.append(
+                    {
+                        "phase_id": f"phase_{phase_counter:03d}_{maneuver_id}_coast",
+                        "name": f"{_event_name(maneuver).capitalize()} coast",
+                        "steps": [
+                            {
+                                "step_id": f"coast_after_{maneuver_id}",
+                                "type": "propagate",
+                                "spacecraft": sc_id,
+                                "propagator": propagator_id,
+                                "duration_s": float(maneuver["post_maneuver_coast_s"]),
+                            }
+                        ],
+                    }
+                )
             continue
         if maneuver.get("event_type") == "parameter_reaches":
             event = {
@@ -139,10 +174,7 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
                 "description": f"Seeded {_event_name(maneuver)} for {maneuver_id}",
                 "spacecraft": sc_id,
                 "propagator": propagator_id,
-                "stop_condition": {
-                    "parameter": f"{strategy['central_body']}.TA",
-                    "value": maneuver["true_anomaly_deg"],
-                },
+                "stop_condition": _maneuver_stop_condition(maneuver, strategy["central_body"]),
                 "actions": [
                     {"action_id": f"burn_{maneuver_id}", "type": "maneuver", "spacecraft": sc_id, "burn": maneuver_id},
                     {"action_id": f"report_{checkpoint_id}", "type": "checkpoint", "checkpoint_id": checkpoint_id},
@@ -162,13 +194,31 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
                 ],
             }
         events.append(event)
+        phase_counter += 1
         phases.append(
             {
-                "phase_id": f"phase_{index + 1 + phase_index_offset:03d}_{maneuver_id}",
+                "phase_id": f"phase_{phase_counter:03d}_{maneuver_id}",
                 "name": f"{_event_name(maneuver).capitalize()} maneuver",
                 "steps": [{"step_id": f"step_{maneuver_id}", "type": "event_action", "event_id": event_id}],
             }
         )
+        if maneuver.get("post_maneuver_coast_s"):
+            phase_counter += 1
+            phases.append(
+                {
+                    "phase_id": f"phase_{phase_counter:03d}_{maneuver_id}_coast",
+                    "name": f"{_event_name(maneuver).capitalize()} coast",
+                    "steps": [
+                        {
+                            "step_id": f"coast_after_{maneuver_id}",
+                            "type": "propagate",
+                            "spacecraft": sc_id,
+                            "propagator": propagator_id,
+                            "duration_s": float(maneuver["post_maneuver_coast_s"]),
+                        }
+                    ],
+                }
+            )
     spec = {
         "schema_version": "0.2.0",
         "mission_id": problem["mission_id"],
@@ -205,7 +255,7 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
     }
     append_mission_sequence_phase(
         spec,
-        phase_id=f"phase_{len(maneuvers) + 2 + phase_index_offset:03d}_post_insertion_coast",
+        phase_id=f"phase_{phase_counter + 1:03d}_post_insertion_coast",
         name="Post-insertion two-day propagation",
         steps=[
             {
@@ -217,6 +267,7 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
             }
         ],
     )
+    phase_counter += 1
     checkpoints.append(
         {
             "id": "final_state_checkpoint",
@@ -230,7 +281,7 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
     )
     append_mission_sequence_phase(
         spec,
-        phase_id=f"phase_{len(maneuvers) + 3 + phase_index_offset:03d}_final_state",
+        phase_id=f"phase_{phase_counter + 1:03d}_final_state",
         name="Final state",
         steps=[{"step_id": "checkpoint_final_state", "type": "checkpoint", "checkpoint_id": "final_state_checkpoint"}],
     )

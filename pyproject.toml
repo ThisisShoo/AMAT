@@ -59,21 +59,21 @@ gmatpyplus = "https://github.com/weasdown/gmatpyplus"
 compiler = "compiler.cli:main"
 targeter = "targeter.cli:main"
 optimizer = "optimizer.cli:main"
-visualzer = "visualzer.cli:main"
+visualizer = "visualizer.cli:main"
 amat = "compiler.cli:main"
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["compiler*", "visualzer*", "targeter*", "optimizer*"]
+include = ["compiler*", "visualizer*", "targeter*", "optimizer*"]
 
 [tool.setuptools.package-data]
 compiler = [
   "backends/gmat/*.json",
   "backends/gmat/templates/*.j2"
 ]
-visualzer = [
+visualizer = [
   "assets/*.json"
 ]
 

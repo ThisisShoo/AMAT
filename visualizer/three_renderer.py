@@ -13,7 +13,7 @@ from .models import Checkpoint, EphemerisTrace, MissionPaths, MissionScene
 
 def _load_body_assets() -> dict[str, Any]:
     try:
-        p = files("visualzer.assets").joinpath("bodies.json")
+        p = files("visualizer.assets").joinpath("bodies.json")
         return json.loads(p.read_text(encoding="utf-8"))
     except Exception:
         return {}

@@ -703,8 +703,13 @@ def event_descriptors(spec: dict) -> list[dict]:
 
         if event_type == "parameter_reaches":
             stop = ev.get("stop_condition", {})
-            stop_parameter = _resolve_param(sc_name, stop.get("parameter", "ElapsedSecs"), default_frame)
-            stop_value = stop.get("value")
+            raw_parameter = stop.get("parameter", "ElapsedSecs")
+            central_body = ev.get("central_body") or _origin_from_gmat_frame(default_frame)
+            if stop.get("angle_kind") == "argument_of_latitude" or str(raw_parameter).endswith(".ArgumentOfLatitude"):
+                stop_parameter, stop_value = _argument_of_latitude_stop(sc, central_body, stop, notes)
+            else:
+                stop_parameter = _resolve_param(sc_name, raw_parameter, default_frame)
+                stop_value = stop.get("value")
 
         elif event_type == "orbital_event":
             central_body = ev.get("central_body") or _origin_from_gmat_frame(default_frame)
@@ -746,6 +751,21 @@ def _angle_close_deg(a: float | int | None, b: float | int | None, tolerance: fl
         return False
     delta = (float(a) - float(b) + 180.0) % 360.0 - 180.0
     return abs(delta) <= tolerance
+
+
+def _argument_of_latitude_stop(sc: dict, central_body: str, stop: dict, notes: list[str]) -> tuple[str, float]:
+    value = float(stop.get("value", 0.0))
+    ecc = float(sc.get("ecc", 0.0) or 0.0)
+    reference_ta = stop.get("true_anomaly_reference_deg")
+    if abs(ecc) <= 1.0e-8:
+        notes.append("argument_of_latitude:compiled_as_circular_true_anomaly")
+        return f"{sc['name']}.{central_body}.TA", value
+    if reference_ta is not None:
+        notes.append("argument_of_latitude:compiled_as_reference_true_anomaly")
+        return f"{sc['name']}.{central_body}.TA", float(reference_ta)
+    aop = float(sc.get("aop_deg", 0.0) or 0.0)
+    notes.append("argument_of_latitude:compiled_as_true_anomaly_via_aop")
+    return f"{sc['name']}.{central_body}.TA", (value - aop) % 360.0
 
 
 def zero_distance_event_action_steps(spec: dict) -> set[int]:

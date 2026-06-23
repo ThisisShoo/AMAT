@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from visualzer.ephemeris_loader import load_spacecraft_ephemerides
+from visualizer.ephemeris_loader import load_spacecraft_ephemerides
 
 
 def _write_ephemeris(path: Path, frame: str) -> None:

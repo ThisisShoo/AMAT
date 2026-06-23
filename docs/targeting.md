@@ -187,16 +187,55 @@ Example:
 
 Endpoint event objects:
 
-| Object | Valid for | Resolves to |
-|---|---|---|
-| `{"type": "initial_state"}` | Departure only | The supplied initial state's `true_anomaly`. |
-| `{"type": "true_anomaly", "value": {"value": 35, "unit": "deg"}}` | Departure and arrival | The supplied true anomaly. |
-| `{"type": "periapsis"}` | Departure and arrival | True anomaly `0 deg`. |
-| `{"type": "apoapsis"}` | Departure and arrival | True anomaly `180 deg`. |
-| `{"type": "ascending_node"}` | Departure and arrival | True anomaly `-aop mod 360 deg` for the relevant endpoint orbit. |
-| `{"type": "descending_node"}` | Departure and arrival | True anomaly `180 - aop mod 360 deg` for the relevant endpoint orbit. |
+| Object                                                                     | Valid for             | Resolves to                                                                                                                |
+| -------------------------------------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `{"type": "initial_state"}`                                                | Departure only        | The supplied initial state's `true_anomaly`.                                                                               |
+| `{"type": "true_anomaly", "value": {"value": 35, "unit": "deg"}}`          | Departure and arrival | The supplied true anomaly.                                                                                                 |
+| `{"type": "argument_of_latitude", "value": {"value": 180, "unit": "deg"}}` | Departure and arrival | The supplied argument of latitude, converted to true anomaly with `true_anomaly = argument_of_latitude - aop mod 360 deg`. |
+| `{"type": "periapsis"}`                                                    | Departure and arrival | True anomaly `0 deg`.                                                                                                      |
+| `{"type": "apoapsis"}`                                                     | Departure and arrival | True anomaly `180 deg`.                                                                                                    |
+| `{"type": "apsis", "kind": "periapsis"}`                                   | Departure and arrival | Canonicalizes to `{"type": "periapsis"}`.                                                                                  |
+| `{"type": "apsis", "kind": "apoapsis"}`                                    | Departure and arrival | Canonicalizes to `{"type": "apoapsis"}`.                                                                                   |
+| `{"type": "ascending_node"}`                                               | Departure and arrival | True anomaly `-aop mod 360 deg` for the relevant endpoint orbit.                                                           |
+| `{"type": "descending_node"}`                                              | Departure and arrival | True anomaly `180 - aop mod 360 deg` for the relevant endpoint orbit.                                                      |
+| `{"type": "node", "kind": "ascending"}`                                    | Departure and arrival | Canonicalizes to `{"type": "ascending_node"}`.                                                                             |
+| `{"type": "node", "kind": "descending"}`                                   | Departure and arrival | Canonicalizes to `{"type": "descending_node"}`.                                                                            |
+
+Grouped endpoint events may either select a specific member or defer selection to the targeter.
+
+| Object | Meaning |
+|---|---|
+| `{"type": "apsis"}` | Select the next apsis, either periapsis or apoapsis, whichever is encountered first in the forward direction. |
+| `{"type": "apsis", "kind": "periapsis"}` | Select periapsis explicitly. |
+| `{"type": "apsis", "kind": "apoapsis"}` | Select apoapsis explicitly. |
+| `{"type": "node"}` | Select the next orbital node, either ascending or descending, whichever is encountered first in the forward direction. |
+| `{"type": "node", "kind": "ascending"}` | Select the ascending node explicitly. |
+| `{"type": "node", "kind": "descending"}` | Select the descending node explicitly. |
+
+When `kind` is omitted, AMAT resolves the grouped endpoint to the next concrete event before seed generation. The resolved event is stored as `resolved_specific_type`, and the corresponding true anomaly is stored as `resolved_true_anomaly`.
+
+Example using grouped endpoint events:
+
+```json
+"maneuver_policy": {
+  "type": "valid_node_low_speed",
+  "maneuver_model": "impulsive",
+  "departure_event": {
+    "type": "node",
+    "kind": "ascending"
+  },
+  "arrival_event": {
+    "type": "apsis",
+    "kind": "apoapsis"
+  },
+  "allow_departure_phasing": false,
+  "prefer_apsis_alignment": true,
+  "fallback": "split_at_nearest_valid_node"
+}
+```
 
 AMAT canonicalizes every endpoint event to a resolved true anomaly before seed generation. Apsis and node objects are shortcuts; they do not create a second endpoint-event representation.
+
 
 ## Initial State
 
@@ -306,6 +345,47 @@ Common target fields:
 Notes:
 
 - `argument_of_latitude` is optional. Use it when the final location in the orbital plane matters, such as targeting a specific body-fixed ground-track relationship.
+
+## Phase Policy
+
+Use `transfer_strategy.phase_policy` when the final position along the target orbit matters and orbit shape targeting alone is insufficient.
+
+```json
+"phase_policy": {
+  "mode": "auto",
+  "allowed_strategies": ["coast_to_phase", "in_plane_drift"],
+  "objective": "min_delta_v",
+  "max_revolutions": 5,
+  "restore_target_orbit": true
+}
+```
+
+Supported fields:
+
+| Field | Values | Meaning |
+|---|---|---|
+| `mode` | `auto`, `explicit`, `disabled` | Enables or disables phase strategy selection. |
+| `allowed_strategies` | Array | Candidate strategies the selector may consider. |
+| `objective` | String | Selection objective. `min_delta_v` is the current practical objective. |
+| `max_revolutions` | Integer | Maximum drift-orbit revolutions for analytic in-plane phasing. |
+| `max_delta_v_km_s` | Number or `null` | Optional phasing delta-v cap. |
+| `restore_target_orbit` | Boolean | Whether the phase strategy must return to the target orbit after phasing. |
+| `target` | `argument_of_latitude` today; broader phase terms incoming | The phase parameter being targeted. |
+| `at` | String | The evaluation point, currently `final_state`. |
+
+Current strategy support:
+
+| Strategy | Status | Behavior |
+|---|---|---|
+| `coast_to_phase` | Selector-aware | Rejected when the final-state propagation duration is fixed. |
+| `in_plane_drift` | Implemented | Adds an in-plane burn, drift coast, and restore burn around the target body. |
+| `departure_epoch_shift` | Incoming feature | Shift departure timing to satisfy phase before transfer. |
+| `transfer_time_adjustment` | Incoming feature | Adjust transfer duration or arrival branch. |
+| `resonant` | Incoming feature | Use resonant cycles for repeated body-relative geometry. |
+| `multi_revolution_transfer` | Incoming feature | Select multi-revolution transfer branches. |
+| `optimized` | Incoming feature | Refine analytic phase seeds through STM or optimizer. |
+
+The selector writes `phase_strategy_decision.json` during `targeter solve` when a phase policy is present. The initial implemented strategy is body-neutral: it uses the target central body's gravitational parameter and semi-major axis, not Earth/GEO constants.
 - `raan` and `aop` are physically undefined for exactly equatorial or circular orbits. Evaluation suppresses undefined RAAN/AOP residuals when target and achieved inclination/eccentricity are within tolerance.
 - `altitude` targets are converted using `transfer_strategy.central_body_radius`.
 - Cartesian and cometary target inputs are canonicalized to Keplerian fields before formulation. The current analytic seed supports bound elliptic endpoint orbits only.

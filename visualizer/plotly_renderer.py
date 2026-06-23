@@ -25,7 +25,7 @@ BODY_SURFACE_LIGHTING = {
 
 def _load_body_assets() -> dict:
     try:
-        p = files("visualzer.assets").joinpath("bodies.json")
+        p = files("visualizer.assets").joinpath("bodies.json")
         return json.loads(p.read_text(encoding="utf-8"))
     except Exception:
         return {}

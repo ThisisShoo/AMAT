@@ -1749,6 +1749,16 @@
               "unit": {
                 "type": "string"
               },
+              "angle_kind": {
+                "type": "string",
+                "enum": [
+                  "true_anomaly",
+                  "argument_of_latitude"
+                ]
+              },
+              "true_anomaly_reference_deg": {
+                "type": "number"
+              },
               "description": {
                 "type": "string"
               }

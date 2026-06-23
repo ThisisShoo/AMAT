@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from visualzer.discovery import discover_mission
+from visualizer.discovery import discover_mission
 
 
 def _make_outputs(path: Path) -> Path:

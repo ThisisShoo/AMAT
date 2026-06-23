@@ -9,7 +9,7 @@
       "type": "valid_node_low_speed",
       "maneuver_model": "impulsive",
       "departure_event": {
-        "type": "initial_state"
+        "type": "node"
       },
       "arrival_event": {
         "type": "apoapsis"

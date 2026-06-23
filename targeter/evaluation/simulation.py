@@ -9,7 +9,7 @@ import numpy as np
 from compiler.io import read_json
 from targeter.constants import get_body_constants
 from targeter.domain import canonicalize_target_problem
-from visualzer.gmat_report_parser import infer_object_frame_from_columns, parse_gmat_report, resolve_column
+from visualizer.gmat_report_parser import infer_object_frame_from_columns, parse_gmat_report, resolve_column
 
 
 def _quantity_value(value: Any) -> float:
@@ -156,8 +156,9 @@ def _declared_ephemeris_paths(outputs_dir: Path, spacecraft: str | None = None) 
             continue
         raw_template = out.get("path_template")
         if raw_template:
+            output_spacecraft = out.get("spacecraft") or spacecraft or "sat"
             for frame in out.get("frames", []) or []:
-                path = outputs_dir.parent / str(raw_template).format(frame=frame)
+                path = outputs_dir.parent / str(raw_template).format(spacecraft=output_spacecraft, frame=frame)
                 if path.exists():
                     paths.append(path)
     return sorted(dict.fromkeys(paths))

@@ -289,7 +289,9 @@ def test_valid_node_low_speed_policy_phases_circular_departure_to_arrival_node(t
     transfer_event = next(e for e in spec["events"] if e["id"] == "event_transfer_injection")
     insertion_burn = next(b for b in spec["burns"] if b["id"] == "orbit_insertion")
     assert transfer_event["type"] == "parameter_reaches"
-    assert transfer_event["stop_condition"]["parameter"] == "Earth.TA"
+    assert transfer_event["stop_condition"]["parameter"] == "Earth.ArgumentOfLatitude"
+    assert transfer_event["stop_condition"]["value"] == 180.0
+    assert transfer_event["stop_condition"]["true_anomaly_reference_deg"] == 150.0
     assert insertion_burn["delta_v_km_s"][1] != 0.0
 
 
@@ -365,7 +367,7 @@ def test_off_node_plane_change_is_seeded_at_transfer_arc_node(tmp_path):
     spec = materialize_mission_spec(p, candidate)
     node_event = next(e for e in spec["events"] if e["id"] == "event_plane_change_at_node")
     assert node_event["type"] == "parameter_reaches"
-    assert node_event["stop_condition"] == {"parameter": "Earth.TA", "value": 150.0}
+    assert node_event["stop_condition"] == {"parameter": "Earth.TA", "value": 150.0, "angle_kind": "true_anomaly"}
     ground_track = next(out for out in spec["outputs"] if out["type"] == "ground_track")
     assert ground_track == {
         "id": "earth_ground_track",
@@ -524,8 +526,8 @@ def test_maneuver_policy_can_depart_at_explicit_true_anomaly(tmp_path):
     assert candidate["maneuvers"][-1]["event_type"] == "parameter_reaches"
     departure_event = next(e for e in spec["events"] if e["id"] == "event_transfer_injection")
     arrival_event = next(e for e in spec["events"] if e["id"] == "event_orbit_insertion")
-    assert departure_event["stop_condition"] == {"parameter": "Earth.TA", "value": 45.0}
-    assert arrival_event["stop_condition"] == {"parameter": "Earth.TA", "value": 180.0}
+    assert departure_event["stop_condition"] == {"parameter": "Earth.TA", "value": 45.0, "angle_kind": "true_anomaly"}
+    assert arrival_event["stop_condition"] == {"parameter": "Earth.TA", "value": 180.0, "angle_kind": "true_anomaly"}
 
 
 def test_maneuver_policy_node_shortcuts_resolve_to_true_anomaly(tmp_path):
@@ -550,10 +552,46 @@ def test_maneuver_policy_node_shortcuts_resolve_to_true_anomaly(tmp_path):
     assert p["transfer_strategy"]["arrival_true_anomaly"] == 160.0
     assert p["transfer_strategy"]["departure_event"]["resolved_true_anomaly"] == {"value": 330.0, "unit": "deg"}
     assert p["transfer_strategy"]["arrival_event"]["resolved_true_anomaly"] == {"value": 160.0, "unit": "deg"}
+    assert p["transfer_strategy"]["departure_event"]["resolved_argument_of_latitude"] == {"value": 0.0, "unit": "deg"}
+    assert p["transfer_strategy"]["arrival_event"]["resolved_argument_of_latitude"] == {"value": 180.0, "unit": "deg"}
     assert candidate["maneuvers"][0]["event_type"] == "parameter_reaches"
     assert candidate["maneuvers"][-1]["event_type"] == "parameter_reaches"
     departure_event = next(e for e in spec["events"] if e["id"] == "event_transfer_injection")
     arrival_event = next(e for e in spec["events"] if e["id"] == "event_orbit_insertion")
-    assert departure_event["stop_condition"] == {"parameter": "Earth.TA", "value": 330.0}
-    assert arrival_event["stop_condition"] == {"parameter": "Earth.TA", "value": 160.0}
+    assert departure_event["stop_condition"] == {
+        "parameter": "Earth.ArgumentOfLatitude",
+        "value": 0.0,
+        "angle_kind": "argument_of_latitude",
+        "true_anomaly_reference_deg": 330.0,
+    }
+    assert arrival_event["stop_condition"] == {
+        "parameter": "Earth.ArgumentOfLatitude",
+        "value": 180.0,
+        "angle_kind": "argument_of_latitude",
+        "true_anomaly_reference_deg": 160.0,
+    }
 
+
+def test_maneuver_policy_can_depart_at_explicit_argument_of_latitude(tmp_path):
+    raw = read_json(_example(tmp_path))
+    raw["initial_state"]["aop"] = {"value": 30.0, "unit": "deg"}
+    raw["transfer_strategy"]["maneuver_policy"] = {
+        "type": "valid_node_low_speed",
+        "departure_event": {"type": "argument_of_latitude", "value": {"value": 180.0, "unit": "deg"}},
+        "arrival_event": {"type": "apoapsis"},
+        "allow_departure_phasing": False,
+    }
+
+    p = canonicalize_target_problem(raw)
+    candidate = generate_hohmann_candidate(p)
+    spec = materialize_mission_spec(p, candidate)
+    script = GmatCompiler().render_gmat_script(canonicalize(spec), tmp_path)
+
+    assert p["transfer_strategy"]["departure_true_anomaly"] == 150.0
+    assert p["transfer_strategy"]["departure_event"]["resolved_argument_of_latitude"] == {"value": 180.0, "unit": "deg"}
+    assert candidate["maneuvers"][0]["angle_kind"] == "argument_of_latitude"
+    departure_event = next(e for e in spec["events"] if e["id"] == "event_transfer_injection")
+    assert departure_event["stop_condition"]["parameter"] == "Earth.ArgumentOfLatitude"
+    assert departure_event["stop_condition"]["value"] == 180.0
+    assert "argument_of_latitude:compiled_as_circular_true_anomaly" in script
+    assert "Propagate EarthProp(TargetSat) { TargetSat.Earth.TA = 180.0 };" in script

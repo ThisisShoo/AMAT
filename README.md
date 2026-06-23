@@ -38,7 +38,7 @@ Verify that the CLIs import:
 python -m compiler --help
 python -m targeter --help
 python -m optimizer --help
-python -m visualzer --help
+python -m visualizer --help
 ```
 
 Installed console entry points are also declared:
@@ -47,7 +47,7 @@ Installed console entry points are also declared:
 compiler --help
 targeter --help
 optimizer --help
-visualzer --help
+visualizer --help
 amat --help
 ```
 
@@ -98,7 +98,7 @@ At this point AMAT is installed and can generate mission artifacts. To confirm t
 
 ```bash
 python generated/LEO_to_GEO/simulation/generated_mission.py --run
-python -m visualzer view --mission-dir generated/LEO_to_GEO/simulation
+python -m visualizer view --mission-dir generated/LEO_to_GEO/simulation
 ```
 
 The viewer writes:

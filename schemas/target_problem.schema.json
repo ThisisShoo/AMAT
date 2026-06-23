@@ -17,6 +17,7 @@
         "central_body_radius": {"$ref": "#/$defs/quantity"},
         "central_body_mu": {"$ref": "#/$defs/quantity"},
         "stationary_orbit_radius": {"$ref": "#/$defs/quantity"},
+        "phase_policy": {"$ref": "#/$defs/phase_policy"},
         "maneuver_policy": {
           "oneOf": [
             {"enum": ["valid_node_low_speed"]},
@@ -95,7 +96,10 @@
     "quantity": {
       "type": "object",
       "required": ["value", "unit"],
-      "properties": {"value": {"type": "number"}, "unit": {"type": "string", "minLength": 1}},
+      "properties": {
+        "value": {"type": "number"},
+        "unit": {"type": "string", "minLength": 1}
+      },
       "additionalProperties": false
     },
     "vector3": {
@@ -108,8 +112,30 @@
       "type": "object",
       "required": ["type"],
       "properties": {
-        "type": {"enum": ["initial_state", "true_anomaly", "periapsis", "apoapsis", "ascending_node", "descending_node"]},
-        "value": {"$ref": "#/$defs/quantity"}
+        "type": {
+          "enum": [
+            "initial_state",
+            "true_anomaly",
+            "argument_of_latitude",
+            "periapsis",
+            "apoapsis",
+            "ascending_node",
+            "descending_node",
+            "apsis",
+            "node"
+          ]
+        },
+        "value": {"$ref": "#/$defs/quantity"},
+        "kind": {
+          "enum": [
+            "periapsis",
+            "apoapsis",
+            "ascending",
+            "descending",
+            "ascending_node",
+            "descending_node"
+          ]
+        }
       },
       "additionalProperties": false
     },
@@ -117,8 +143,57 @@
       "type": "object",
       "required": ["type"],
       "properties": {
-        "type": {"enum": ["true_anomaly", "periapsis", "apoapsis", "ascending_node", "descending_node"]},
-        "value": {"$ref": "#/$defs/quantity"}
+        "type": {
+          "enum": [
+            "true_anomaly",
+            "argument_of_latitude",
+            "periapsis",
+            "apoapsis",
+            "ascending_node",
+            "descending_node",
+            "apsis",
+            "node"
+          ]
+        },
+        "value": {"$ref": "#/$defs/quantity"},
+        "kind": {
+          "enum": [
+            "periapsis",
+            "apoapsis",
+            "ascending",
+            "descending",
+            "ascending_node",
+            "descending_node"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "phase_policy": {
+      "type": "object",
+      "properties": {
+        "mode": {"enum": ["auto", "explicit", "disabled"]},
+        "enabled": {"type": "boolean"},
+        "allowed_strategies": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "coast_to_phase",
+              "departure_epoch_shift",
+              "transfer_time_adjustment",
+              "in_plane_drift",
+              "resonant",
+              "multi_revolution_transfer",
+              "optimized"
+            ]
+          }
+        },
+        "objective": {"type": "string"},
+        "restore_target_orbit": {"type": "boolean"},
+        "max_revolutions": {"type": "integer", "minimum": 1},
+        "max_delta_v_km_s": {"type": ["number", "null"], "minimum": 0},
+        "target": {"enum": ["argument_of_latitude", "true_anomaly", "mean_anomaly", "longitude", "relative_phase", "time_of_arrival"]},
+        "at": {"type": "string"}
       },
       "additionalProperties": false
     }

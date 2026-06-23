@@ -1,9 +1,0 @@
-{
-  "candidate_id": "analytic_node_aware_impulsive_001",
-  "problem_id": "elliptical_LEO_to_GEO",
-  "reason": "SimulationEvaluation is the next implementation milestone. The generated MissionSpec must be compiled and run before requirements can be accepted.",
-  "required_verification_level": "L1",
-  "schema_version": "1.0.0",
-  "simulation_status": "not_run",
-  "verification_status": "not_run"
-}

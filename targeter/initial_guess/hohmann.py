@@ -110,6 +110,10 @@ def _forward_arc_deg(start: float, end: float) -> float:
     return (end - start) % 360.0
 
 
+def _true_anomaly_to_argument_of_latitude(state: dict[str, Any], ta_deg: float) -> float:
+    return _normalize_angle_deg(float(state["aop"]["value"]) + ta_deg)
+
+
 def _is_on_forward_arc(angle: float, start: float, end: float, tolerance: float = 1e-8) -> bool:
     span = _forward_arc_deg(start, end)
     progress = _forward_arc_deg(start, angle)
@@ -203,7 +207,13 @@ def _plane_intersection_true_anomalies(
         ta = _normalize_angle_deg(
             math.degrees(math.atan2(_dot(direction, initial_basis["q"]), _dot(direction, initial_basis["p"])))
         )
-        nodes.append({"ta_deg": ta, "rhat": direction})
+        nodes.append(
+            {
+                "ta_deg": ta,
+                "argument_of_latitude_deg": _true_anomaly_to_argument_of_latitude(state, ta),
+                "rhat": direction,
+            }
+        )
     return nodes
 
 
@@ -267,6 +277,8 @@ def _select_arrival_aligned_departure(
         departure_ta = _normalize_angle_deg(arrival_ta - 180.0)
         node["arrival_true_anomaly_deg"] = arrival_ta
         node["departure_true_anomaly_deg"] = departure_ta
+        node["arrival_argument_of_latitude_deg"] = _true_anomaly_to_argument_of_latitude(state, arrival_ta)
+        node["departure_argument_of_latitude_deg"] = _true_anomaly_to_argument_of_latitude(state, departure_ta)
         node["departure_phase_wait_deg"] = _forward_arc_deg(float(state["true_anomaly"]["value"]), departure_ta)
     return min(nodes, key=lambda node: float(node["departure_phase_wait_deg"]))
 
@@ -283,10 +295,24 @@ def _can_phase_departure_to_node(state: dict[str, Any], strategy: dict[str, Any]
 
 
 def _event_label(event: dict[str, Any]) -> str:
-    event_type = event["type"]
-    if event_type == "true_anomaly":
-        return "target_true_anomaly"
-    return str(event_type)
+    return str(event.get("resolved_specific_type", event["type"]))
+
+
+def _event_uses_argument_of_latitude(event: dict[str, Any]) -> bool:
+    event_type = event.get("resolved_specific_type", event["type"])
+    return event_type in {"argument_of_latitude", "ascending_node", "descending_node"}
+
+
+def _event_is_node(event: dict[str, Any]) -> bool:
+    return event.get("resolved_specific_type", event["type"]) in {"ascending_node", "descending_node"}
+
+
+def _event_argument_of_latitude(event: dict[str, Any], orbit: dict[str, Any], ta_deg: float) -> float:
+    if "resolved_argument_of_latitude" in event:
+        return float(event["resolved_argument_of_latitude"]["value"])
+    if event.get("type") == "argument_of_latitude":
+        return float(event["value"]["value"])
+    return _true_anomaly_to_argument_of_latitude(orbit, ta_deg)
 
 
 def _pure_plane_change_components(speed: float, signed_angle_deg: float) -> tuple[float, float, float]:
@@ -420,8 +446,17 @@ def generate_hohmann_candidate(problem: dict[str, Any]) -> dict[str, Any]:
     phased_departure_node = (
         _select_arrival_aligned_departure(state, target) if plane_change > 1e-10 and _can_phase_departure_to_node(state, strategy) else None
     )
+    explicit_departure_node = (
+        plane_change > 1e-10
+        and phased_departure_node is None
+        and _event_is_node(departure_event)
+        and bool(strategy.get("maneuver_policy_config", {}).get("prefer_apsis_alignment"))
+    )
     if phased_departure_node is not None:
         departure_ta = float(phased_departure_node["departure_true_anomaly_deg"])
+        transfer_basis = _rotate_basis_to_true_anomaly(initial_basis, departure_ta)
+        arrival_ta = 180.0
+    elif explicit_departure_node:
         transfer_basis = _rotate_basis_to_true_anomaly(initial_basis, departure_ta)
         arrival_ta = 180.0
     else:
@@ -429,7 +464,7 @@ def generate_hohmann_candidate(problem: dict[str, Any]) -> dict[str, Any]:
         arrival_ta = float(strategy["arrival_true_anomaly"])
 
     merge_tolerance = float(strategy.get("merge_maneuver_angle_tolerance_deg", DEFAULT_MERGE_ANGLE_TOLERANCE_DEG))
-    if plane_change > 1e-10 and phased_departure_node is not None:
+    if plane_change > 1e-10 and (phased_departure_node is not None or explicit_departure_node):
         plane_node = {
             "ta_deg": arrival_ta,
             "rhat": _scale(transfer_basis["p"], -1.0),
@@ -487,26 +522,35 @@ def generate_hohmann_candidate(problem: dict[str, Any]) -> dict[str, Any]:
         departure_event_type = "parameter_reaches"
     elif immediate_departure:
         departure_event_type = "immediate"
-    elif departure_event["type"] in {"periapsis", "apoapsis"}:
+    elif departure_event.get("resolved_specific_type", departure_event["type"]) in {"periapsis", "apoapsis"}:
         departure_event_type = "orbital_event"
     else:
         departure_event_type = "parameter_reaches"
-    maneuvers: list[dict[str, Any]] = [
-        {
-            "maneuver_id": "transfer_injection",
-            "maneuver_type": "combined_impulsive" if plane_merge == "departure" else "tangential_impulsive",
-            "event": "phased_departure_node" if phased_departure_node is not None else ("initial_state" if immediate_departure else _event_label(departure_event)),
-            "event_type": departure_event_type,
-            "true_anomaly_deg": departure_ta,
-            "frame": "VNB",
-            "components_km_s": [dv1_v, dv1_n, dv1_b],
-            "magnitude_km_s": dv1,
-            "concurrent_effects": ["energy_change"] + (["plane_change"] if plane_merge == "departure" else []),
-            "plane_change_deg": plane_change if plane_merge == "departure" else 0.0,
-            "signed_vnb_normal_rotation_deg": departure_normal_angle,
-            "departure_phase_wait_deg": float(phased_departure_node["departure_phase_wait_deg"]) if phased_departure_node else 0.0,
-        },
-    ]
+    transfer_maneuver = {
+        "maneuver_id": "transfer_injection",
+        "maneuver_type": "combined_impulsive" if plane_merge == "departure" else "tangential_impulsive",
+        "event": "phased_departure_node" if phased_departure_node is not None else ("initial_state" if immediate_departure else _event_label(departure_event)),
+        "event_type": departure_event_type,
+        "true_anomaly_deg": departure_ta,
+        "frame": "VNB",
+        "components_km_s": [dv1_v, dv1_n, dv1_b],
+        "magnitude_km_s": dv1,
+        "concurrent_effects": ["energy_change"] + (["plane_change"] if plane_merge == "departure" else []),
+        "plane_change_deg": plane_change if plane_merge == "departure" else 0.0,
+        "signed_vnb_normal_rotation_deg": departure_normal_angle,
+        "departure_phase_wait_deg": float(phased_departure_node["departure_phase_wait_deg"]) if phased_departure_node else 0.0,
+    }
+    if phased_departure_node is not None:
+        transfer_maneuver["angle_kind"] = "argument_of_latitude"
+        transfer_maneuver["argument_of_latitude_deg"] = float(phased_departure_node["departure_argument_of_latitude_deg"])
+        transfer_maneuver["true_anomaly_reference_deg"] = departure_ta
+    elif _event_uses_argument_of_latitude(departure_event):
+        transfer_maneuver["angle_kind"] = "argument_of_latitude"
+        transfer_maneuver["argument_of_latitude_deg"] = _event_argument_of_latitude(departure_event, state, departure_ta)
+        transfer_maneuver["true_anomaly_reference_deg"] = departure_ta
+    else:
+        transfer_maneuver["angle_kind"] = "true_anomaly"
+    maneuvers: list[dict[str, Any]] = [transfer_maneuver]
     plane_change_dv = 0.0
     if plane_node and plane_merge is None:
         plane_dv_v, plane_dv_n, plane_dv_b, plane_change_dv = _node_plane_change_components(
@@ -524,6 +568,7 @@ def generate_hohmann_candidate(problem: dict[str, Any]) -> dict[str, Any]:
                 "event": "plane_intersection_near_apoapsis",
                 "event_type": "parameter_reaches",
                 "true_anomaly_deg": plane_node_ta,
+                "angle_kind": "true_anomaly",
                 "frame": "VNB",
                 "components_km_s": [plane_dv_v, plane_dv_n, plane_dv_b],
                 "magnitude_km_s": plane_change_dv,
@@ -537,21 +582,30 @@ def generate_hohmann_candidate(problem: dict[str, Any]) -> dict[str, Any]:
                 },
             }
         )
-    maneuvers.append(
-        {
-            "maneuver_id": "orbit_insertion",
-            "maneuver_type": "combined_impulsive" if plane_merge == "arrival" else "tangential_impulsive",
-            "event": _event_label(arrival_event),
-            "event_type": "orbital_event" if arrival_event["type"] in {"periapsis", "apoapsis"} else "parameter_reaches",
-            "true_anomaly_deg": arrival_ta,
-            "frame": "VNB",
-            "components_km_s": [dv2_v, dv2_n, dv2_b],
-            "magnitude_km_s": dv2,
-            "concurrent_effects": ["energy_change"] + (["plane_change"] if plane_merge == "arrival" else []),
-            "plane_change_deg": plane_change if plane_merge == "arrival" else 0.0,
-            "signed_vnb_normal_rotation_deg": arrival_normal_angle,
-        }
-    )
+    arrival_maneuver = {
+        "maneuver_id": "orbit_insertion",
+        "maneuver_type": "combined_impulsive" if plane_merge == "arrival" else "tangential_impulsive",
+        "event": _event_label(arrival_event),
+        "event_type": (
+            "orbital_event"
+            if arrival_event.get("resolved_specific_type", arrival_event["type"]) in {"periapsis", "apoapsis"}
+            else "parameter_reaches"
+        ),
+        "true_anomaly_deg": arrival_ta,
+        "frame": "VNB",
+        "components_km_s": [dv2_v, dv2_n, dv2_b],
+        "magnitude_km_s": dv2,
+        "concurrent_effects": ["energy_change"] + (["plane_change"] if plane_merge == "arrival" else []),
+        "plane_change_deg": plane_change if plane_merge == "arrival" else 0.0,
+        "signed_vnb_normal_rotation_deg": arrival_normal_angle,
+    }
+    if _event_uses_argument_of_latitude(arrival_event):
+        arrival_maneuver["angle_kind"] = "argument_of_latitude"
+        arrival_maneuver["argument_of_latitude_deg"] = _event_argument_of_latitude(arrival_event, target, arrival_ta)
+        arrival_maneuver["true_anomaly_reference_deg"] = arrival_ta
+    else:
+        arrival_maneuver["angle_kind"] = "true_anomaly"
+    maneuvers.append(arrival_maneuver)
 
     strict_hohmann = e_initial == 0.0 and e_target == 0.0 and plane_change == 0.0
     model = "two_body_impulsive_coplanar_hohmann" if strict_hohmann else "two_body_impulsive_node_aware_plane_change"
@@ -585,7 +639,17 @@ def generate_hohmann_candidate(problem: dict[str, Any]) -> dict[str, Any]:
             "merge_maneuver_angle_tolerance_deg": merge_tolerance,
             "departure_phasing_applied": phased_departure_node is not None,
             "departure_true_anomaly_deg": departure_ta,
+            "departure_argument_of_latitude_deg": (
+                float(phased_departure_node["departure_argument_of_latitude_deg"])
+                if phased_departure_node
+                else _true_anomaly_to_argument_of_latitude(state, departure_ta)
+            ),
             "arrival_true_anomaly_deg": arrival_ta,
+            "arrival_argument_of_latitude_deg": (
+                float(arrival_event["value"]["value"])
+                if arrival_event.get("type") == "argument_of_latitude"
+                else _true_anomaly_to_argument_of_latitude(target, arrival_ta)
+            ),
             "departure_phase_wait_deg": float(phased_departure_node["departure_phase_wait_deg"]) if phased_departure_node else 0.0,
             "total_delta_v_km_s": sum(float(m["magnitude_km_s"]) for m in maneuvers),
         },

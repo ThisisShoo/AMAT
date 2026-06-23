@@ -15,10 +15,30 @@ SUPPORTED_TRANSFER_STRATEGIES = {
 SUPPORTED_TARGETS = {"geostationary_orbit", "circular_orbit", "keplerian_state", "cartesian_state", "cometary_state"}
 SUPPORTED_INITIAL_STATES = {"circular_orbit", "keplerian", "cartesian", "cometary"}
 SUPPORTED_ENDPOINT_SHORTCUTS = {"periapsis", "apoapsis", "ascending_node", "descending_node"}
-SUPPORTED_DEPARTURE_EVENT_TYPES = {"initial_state", "true_anomaly"} | SUPPORTED_ENDPOINT_SHORTCUTS
-SUPPORTED_ARRIVAL_EVENT_TYPES = {"true_anomaly"} | SUPPORTED_ENDPOINT_SHORTCUTS
+SUPPORTED_ENDPOINT_GROUPS = {"apsis", "node"}
+
+SUPPORTED_DEPARTURE_EVENT_TYPES = (
+    {"initial_state", "true_anomaly", "argument_of_latitude"}
+    | SUPPORTED_ENDPOINT_SHORTCUTS
+    | SUPPORTED_ENDPOINT_GROUPS
+)
+
+SUPPORTED_ARRIVAL_EVENT_TYPES = (
+    {"true_anomaly", "argument_of_latitude"}
+    | SUPPORTED_ENDPOINT_SHORTCUTS
+    | SUPPORTED_ENDPOINT_GROUPS
+)
 SUPPORTED_MANEUVER_POLICIES = {
     "valid_node_low_speed",
+}
+SUPPORTED_PHASE_STRATEGIES = {
+    "coast_to_phase",
+    "departure_epoch_shift",
+    "transfer_time_adjustment",
+    "in_plane_drift",
+    "resonant",
+    "multi_revolution_transfer",
+    "optimized",
 }
 
 
@@ -107,6 +127,24 @@ def _normalize_angle_deg(value: float) -> float:
     return value % 360.0
 
 
+def _forward_angle_deg(reference_deg: float, candidate_deg: float, *, include_current: bool = False) -> float:
+    delta = _normalize_angle_deg(candidate_deg - reference_deg)
+    if not include_current and delta <= 1e-9:
+        return 360.0
+    return delta
+
+
+def _select_next_true_anomaly(
+    reference_true_anomaly_deg: float,
+    candidates: dict[str, float],
+) -> tuple[str, float]:
+    selected_type, selected_ta = min(
+        candidates.items(),
+        key=lambda item: _forward_angle_deg(reference_true_anomaly_deg, item[1]),
+    )
+    return selected_type, selected_ta
+
+
 def _dot(a: list[float], b: list[float]) -> float:
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 
@@ -193,6 +231,7 @@ def _cometary_to_keplerian(obj: dict[str, Any], path: str) -> dict[str, Any]:
 
 def _canonical_event(raw: Any, path: str, *, departure: bool, default: dict[str, Any]) -> dict[str, Any]:
     allowed = SUPPORTED_DEPARTURE_EVENT_TYPES if departure else SUPPORTED_ARRIVAL_EVENT_TYPES
+
     if raw is None:
         event = deepcopy(default)
     elif isinstance(raw, dict):
@@ -203,45 +242,179 @@ def _canonical_event(raw: Any, path: str, *, departure: bool, default: dict[str,
     event_type = event.get("type")
     if event_type not in allowed:
         raise TargetingError(f"{path}.type must be one of {sorted(allowed)}")
-    if event_type == "true_anomaly":
+
+    if event_type in {"true_anomaly", "argument_of_latitude"}:
         event["value"] = _angle(event.get("value"), f"{path}.value")
-    elif "value" in event:
-        raise TargetingError(f"{path}.value is only valid when type is true_anomaly")
+        if "kind" in event:
+            raise TargetingError(f"{path}.kind is only valid when type is apsis or node")
+        return event
+
+    if "value" in event:
+        raise TargetingError(
+            f"{path}.value is only valid when type is true_anomaly or argument_of_latitude"
+        )
+
+    if event_type == "apsis":
+        kind = event.get("kind")
+        if kind is None:
+            return event
+        if kind not in {"periapsis", "apoapsis"}:
+            raise TargetingError(
+                f"{path}.kind must be 'periapsis' or 'apoapsis' when type is 'apsis'"
+            )
+        return {
+            "type": kind,
+            "requested_type": "apsis",
+            "requested_kind": kind,
+        }
+
+    if event_type == "node":
+        kind = event.get("kind")
+        if kind is None:
+            return event
+
+        node_kind = {
+            "ascending": "ascending_node",
+            "descending": "descending_node",
+            "ascending_node": "ascending_node",
+            "descending_node": "descending_node",
+        }.get(kind)
+
+        if node_kind is None:
+            raise TargetingError(
+                f"{path}.kind must be 'ascending' or 'descending' when type is 'node'"
+            )
+
+        return {
+            "type": node_kind,
+            "requested_type": "node",
+            "requested_kind": kind,
+        }
+
+    if "kind" in event:
+        raise TargetingError(f"{path}.kind is only valid when type is apsis or node")
+
     return event
 
 
-def _resolve_event_true_anomaly(event: dict[str, Any], orbit: dict[str, Any], path: str) -> float:
+def _true_anomaly_to_argument_of_latitude(orbit: dict[str, Any], true_anomaly_deg: float) -> float:
+    return _normalize_angle_deg(float(orbit["aop"]["value"]) + true_anomaly_deg)
+
+
+def _argument_of_latitude_to_true_anomaly(orbit: dict[str, Any], argument_of_latitude_deg: float) -> float:
+    return _normalize_angle_deg(argument_of_latitude_deg - float(orbit["aop"]["value"]))
+
+
+def _resolve_event_true_anomaly(
+    event: dict[str, Any],
+    orbit: dict[str, Any],
+    path: str,
+    *,
+    reference_true_anomaly_deg: float | None = None,
+) -> float:
     event_type = event["type"]
+    reference_ta = (
+        float(reference_true_anomaly_deg)
+        if reference_true_anomaly_deg is not None
+        else float(orbit.get("true_anomaly", {"value": 0.0})["value"])
+    )
+
     if event_type == "initial_state":
         return float(orbit["true_anomaly"]["value"])
+
     if event_type == "true_anomaly":
         return float(event["value"]["value"])
+
+    if event_type == "argument_of_latitude":
+        return _argument_of_latitude_to_true_anomaly(orbit, float(event["value"]["value"]))
+
     if event_type == "periapsis":
         return 0.0
+
     if event_type == "apoapsis":
         return 180.0
+
     if event_type == "ascending_node":
         return _normalize_angle_deg(-float(orbit["aop"]["value"]))
+
     if event_type == "descending_node":
         return _normalize_angle_deg(180.0 - float(orbit["aop"]["value"]))
+
+    if event_type == "apsis":
+        selected_type, selected_ta = _select_next_true_anomaly(
+            reference_ta,
+            {
+                "periapsis": 0.0,
+                "apoapsis": 180.0,
+            },
+        )
+        event["selected_type"] = selected_type
+        event["resolved_specific_type"] = selected_type
+        return selected_ta
+
+    if event_type == "node":
+        aop = float(orbit["aop"]["value"])
+        selected_type, selected_ta = _select_next_true_anomaly(
+            reference_ta,
+            {
+                "ascending_node": _normalize_angle_deg(-aop),
+                "descending_node": _normalize_angle_deg(180.0 - aop),
+            },
+        )
+        event["selected_type"] = selected_type
+        event["resolved_specific_type"] = selected_type
+        return selected_ta
+
     raise TargetingError(f"{path}.type must resolve to a true anomaly")
+
+
+def _resolve_event_argument_of_latitude(event: dict[str, Any], orbit: dict[str, Any], true_anomaly_deg: float) -> float:
+    event_type = event.get("resolved_specific_type", event["type"])
+
+    if event_type == "argument_of_latitude":
+        return float(event["value"]["value"])
+
+    if event_type == "ascending_node":
+        return 0.0
+
+    if event_type == "descending_node":
+        return 180.0
+
+    return _true_anomaly_to_argument_of_latitude(orbit, true_anomaly_deg)
 
 
 def _resolve_strategy_events(strategy: dict[str, Any], state: dict[str, Any], target: dict[str, Any]) -> None:
     departure_event = strategy["departure_event"]
     arrival_event = strategy["arrival_event"]
+
+    departure_reference_ta = float(state["true_anomaly"]["value"])
+
     departure_ta = _resolve_event_true_anomaly(
         departure_event,
         state,
         "transfer_strategy.maneuver_policy.departure_event",
+        reference_true_anomaly_deg=departure_reference_ta,
     )
+
     arrival_ta = _resolve_event_true_anomaly(
         arrival_event,
         target,
         "transfer_strategy.maneuver_policy.arrival_event",
+        reference_true_anomaly_deg=departure_ta,
     )
+
     departure_event["resolved_true_anomaly"] = {"value": departure_ta, "unit": "deg"}
     arrival_event["resolved_true_anomaly"] = {"value": arrival_ta, "unit": "deg"}
+
+    departure_event["resolved_argument_of_latitude"] = {
+        "value": _resolve_event_argument_of_latitude(departure_event, state, departure_ta),
+        "unit": "deg",
+    }
+    arrival_event["resolved_argument_of_latitude"] = {
+        "value": _resolve_event_argument_of_latitude(arrival_event, target, arrival_ta),
+        "unit": "deg",
+    }
+
     strategy["departure_true_anomaly"] = departure_ta
     strategy["arrival_true_anomaly"] = arrival_ta
 
@@ -288,6 +461,8 @@ def _canonical_strategy(p: dict[str, Any]) -> dict[str, Any]:
     strategy["departure_event"] = departure_event
     strategy["arrival_event"] = arrival_event
     strategy["merge_maneuver_angle_tolerance_deg"] = policy_config["merge_maneuver_angle_tolerance_deg"]
+    if "phase_policy" in strategy:
+        strategy["phase_policy"] = _canonical_phase_policy(strategy["phase_policy"])
     strategy_type = strategy.get("type")
     if strategy_type not in SUPPORTED_TRANSFER_STRATEGIES:
         raise TargetingError(f"Unsupported transfer_strategy.type={strategy_type!r}")
@@ -295,6 +470,39 @@ def _canonical_strategy(p: dict[str, Any]) -> dict[str, Any]:
     if strategy["maneuver_model"] not in {"impulsive", "finite"}:
         raise TargetingError("maneuver_model must be impulsive or finite")
     return strategy
+
+
+def _canonical_phase_policy(raw: Any) -> dict[str, Any]:
+    if raw is None:
+        return {"mode": "disabled", "enabled": False}
+    if not isinstance(raw, dict):
+        raise TargetingError("transfer_strategy.phase_policy must be an object")
+    policy = deepcopy(raw)
+    mode = str(policy.get("mode", "auto"))
+    if mode not in {"auto", "explicit", "disabled"}:
+        raise TargetingError("transfer_strategy.phase_policy.mode must be auto, explicit, or disabled")
+    policy["mode"] = mode
+    policy["enabled"] = mode != "disabled" and bool(policy.get("enabled", True))
+    allowed = policy.get("allowed_strategies")
+    if allowed is None:
+        allowed = ["in_plane_drift"] if mode in {"auto", "explicit"} else []
+    if not isinstance(allowed, list) or not all(isinstance(item, str) for item in allowed):
+        raise TargetingError("transfer_strategy.phase_policy.allowed_strategies must be a string array")
+    unsupported = sorted(set(allowed) - SUPPORTED_PHASE_STRATEGIES)
+    if unsupported:
+        raise TargetingError(f"Unsupported phase strategies: {unsupported}")
+    policy["allowed_strategies"] = allowed
+    policy.setdefault("objective", "min_delta_v")
+    policy.setdefault("restore_target_orbit", True)
+    policy.setdefault("max_revolutions", 5)
+    policy.setdefault("max_delta_v_km_s", None)
+    policy.setdefault("target", "argument_of_latitude")
+    policy.setdefault("at", "final_state")
+    if int(policy["max_revolutions"]) < 1:
+        raise TargetingError("transfer_strategy.phase_policy.max_revolutions must be at least 1")
+    if policy["max_delta_v_km_s"] is not None:
+        policy["max_delta_v_km_s"] = _number(policy["max_delta_v_km_s"], "transfer_strategy.phase_policy.max_delta_v_km_s")
+    return policy
 
 
 def _canonical_initial_state(state: dict[str, Any], strategy: dict[str, Any]) -> dict[str, Any]:
@@ -487,4 +695,3 @@ def validate_target_problem(raw: dict[str, Any]) -> list[str]:
     ):
         warnings.append("Elliptical endpoint detected; canonical behavior is a generalized two-impulse apsidal transfer, not a strict Hohmann transfer")
     return warnings
-
