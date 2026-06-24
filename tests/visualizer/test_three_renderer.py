@@ -4,6 +4,7 @@ import pandas as pd
 
 from visualizer.checkpoint_loader import interpolate_checkpoints, load_checkpoints
 from visualizer.models import Checkpoint, EphemerisTrace, FrameInfo, GroundTrack, MissionPaths, MissionScene
+from visualizer.report_writer import write_report
 from visualizer.three_renderer import render_three_html
 
 
@@ -110,4 +111,64 @@ def test_three_renderer_writes_viewer_with_finite_burns(tmp_path: Path) -> None:
     assert "bodyLimit * 0.35" in html
     assert "return (meta.radius_km || extentKm * 0.01) * scale;" in html
     assert "Math.max(bodyRadiusFloor" not in html
+    assert "const DATA =" in html
+    assert '"points": [[7000.0, 0.0, 0.0]' in html
+    assert '"latitude": [0.0, 1.0, 2.0]' in html
+    assert '"path": "outputs/_Ephemeris_DemoSat_EarthMJ2000Eq.csv"' in html
+    assert "outputs\\\\" not in html
+    assert str(tmp_path) not in html
+    assert "fetch(" not in html
+
+
+def test_visualization_report_uses_portable_paths(tmp_path: Path) -> None:
+    mission_root = tmp_path / "generated" / "demo"
+    outputs = mission_root / "simulation" / "outputs"
+    visualization = mission_root / "simulation" / "visualization"
+    outputs.mkdir(parents=True)
+    trace_path = outputs / "_Ephemeris_DemoSat_EarthMJ2000Eq.csv"
+    df = pd.DataFrame(
+        {
+            "DemoSat.ElapsedSecs": [0.0],
+            "DemoSat.EarthMJ2000Eq.X": [7000.0],
+            "DemoSat.EarthMJ2000Eq.Y": [0.0],
+            "DemoSat.EarthMJ2000Eq.Z": [0.0],
+        }
+    )
+    trace = EphemerisTrace(
+        name="DemoSat (EarthMJ2000Eq)",
+        kind="spacecraft",
+        object_name="DemoSat",
+        frame="EarthMJ2000Eq",
+        path=trace_path,
+        time_col="DemoSat.ElapsedSecs",
+        x_col="DemoSat.EarthMJ2000Eq.X",
+        y_col="DemoSat.EarthMJ2000Eq.Y",
+        z_col="DemoSat.EarthMJ2000Eq.Z",
+        dataframe=df,
+    )
+    scene = MissionScene(
+        mission_id="demo",
+        spacecraft_traces=[trace],
+        body_traces=[],
+        checkpoints=[],
+        frames=[FrameInfo(name="EarthMJ2000Eq", origin="Earth", axes="MJ2000Eq")],
+        warnings=[],
+    )
+    paths = MissionPaths(
+        project_root=tmp_path,
+        mission_id="demo",
+        generated_dir=tmp_path / "generated",
+        mission_root=mission_root,
+        mission_dir=mission_root / "simulation",
+        outputs_dir=outputs,
+        visualization_dir=visualization,
+    )
+
+    report_path = write_report(scene, paths)
+
+    report = report_path.read_text(encoding="utf-8")
+    assert '"mission_dir": "simulation"' in report
+    assert '"file": "outputs/_Ephemeris_DemoSat_EarthMJ2000Eq.csv"' in report
+    assert "outputs\\\\" not in report
+    assert str(tmp_path) not in report
 

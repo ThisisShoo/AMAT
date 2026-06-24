@@ -5,10 +5,15 @@ from targeter.backends.stm import StmCorrectionBackend
 
 
 def get_simulation_backend(backend_id: str) -> SimulationBackend:
-    if backend_id == "gmat":
+    key = backend_id.strip().lower()
+    if key == "gmat":
         from targeter.backends.gmat import GmatSimulationBackend
 
         return GmatSimulationBackend()
+    if key == "orekit":
+        from targeter.backends.orekit import OrekitSimulationBackend
+
+        return OrekitSimulationBackend()
     raise ValueError(f"Unknown targeting simulation backend {backend_id!r}")
 
 

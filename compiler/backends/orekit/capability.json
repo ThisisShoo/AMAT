@@ -1,0 +1,21 @@
+{
+  "backend_id": "orekit",
+  "backend_name": "Orekit JPype Backend",
+  "status": "initial",
+  "supported_features": [
+    "cartesian_initial_state",
+    "keplerian_initial_state",
+    "two_body_propagation",
+    "spacecraft_ephemeris_csv",
+    "checkpoint_csv"
+  ],
+  "unsupported_features": [
+    "maneuvers",
+    "finite_burns",
+    "event_actions",
+    "spherical_harmonic_gravity",
+    "third_body_gravity",
+    "ground_track"
+  ]
+}
+

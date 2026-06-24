@@ -50,6 +50,10 @@ visualization = [
   "pandas>=2.0",
   "plotly>=5.20"
 ]
+orekit = [
+  "jpype1>=1.5",
+  "orekit-jpype>=12.0"
+]
 
 [project.urls]
 Homepage = "https://github.com/weasdown/gmatpyplus"
@@ -71,7 +75,9 @@ include = ["compiler*", "visualizer*", "targeter*", "optimizer*"]
 [tool.setuptools.package-data]
 compiler = [
   "backends/gmat/*.json",
-  "backends/gmat/templates/*.j2"
+  "backends/gmat/templates/*.j2",
+  "backends/orekit/*.json",
+  "backends/orekit/templates/*.j2"
 ]
 visualizer = [
   "assets/*.json"

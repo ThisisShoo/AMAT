@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
 from pathlib import Path
 
 from compiler import __version__
@@ -9,6 +10,13 @@ from compiler.hashing import hash_file
 
 def build_manifest(mission_id: str, out_dir: str | Path, extra_artifacts: list[dict] | None = None) -> dict:
     out_dir = Path(out_dir)
+    backend_id = "gmat"
+    compile_result_path = out_dir / "compile_result.json"
+    if compile_result_path.exists():
+        try:
+            backend_id = str(json.loads(compile_result_path.read_text(encoding="utf-8")).get("backend_id") or backend_id)
+        except Exception:
+            backend_id = "gmat"
     artifacts = []
     for artifact_id, typ, filename, required in [
         ("MISSION_SPEC", "mission_spec", "mission_spec.canonical.json", True),
@@ -21,7 +29,7 @@ def build_manifest(mission_id: str, out_dir: str | Path, extra_artifacts: list[d
         if path.exists():
             item = {"artifact_id": artifact_id, "type": typ, "path": filename, "hash": hash_file(path), "required_for_replay": required}
             if typ in {"python_script", "native_script"}:
-                item["backend"] = "gmat"
+                item["backend"] = backend_id
             artifacts.append(item)
     if extra_artifacts:
         artifacts.extend(extra_artifacts)
