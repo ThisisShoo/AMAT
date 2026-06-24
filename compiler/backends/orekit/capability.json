@@ -6,16 +6,30 @@
     "cartesian_initial_state",
     "keplerian_initial_state",
     "two_body_propagation",
+    "point_mass_central_gravity",
+    "built_in_solar_system_mu_table",
+    "elapsed_time_propagation",
+    "limited_event_actions",
+    "elapsed_seconds_event",
+    "earth_argument_of_latitude_event",
+    "apoapsis_event",
+    "impulsive_vnb_burns",
+    "direct_maneuver_steps",
+    "final_state_csv",
     "spacecraft_ephemeris_csv",
-    "checkpoint_csv"
+    "earth_body_fixed_spacecraft_ephemeris_fallback",
+    "ground_track_from_surface_fixed_ephemeris",
+    "checkpoint_csv",
+    "finite_difference_stm_assessment_for_targeting"
   ],
   "unsupported_features": [
-    "maneuvers",
     "finite_burns",
-    "event_actions",
     "spherical_harmonic_gravity",
     "third_body_gravity",
-    "ground_track"
+    "body_ephemeris_output",
+    "non_earth_body_fixed_output_frames",
+    "general_frame_transforms",
+    "general_event_detection",
+    "non_vnb_burn_frames"
   ]
 }
-

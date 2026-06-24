@@ -23,7 +23,7 @@ except Exception as exc:  # pragma: no cover - generated runtime guard
 MISSION_ID = {{ runtime_spec.mission_id|tojson }}
 ROOT = Path(__file__).resolve().parent
 OUTPUT_DIR = ROOT / "outputs"
-RUNTIME_SPEC = {{ runtime_spec|tojson }}
+RUNTIME_SPEC = json.loads(r'''{{ runtime_spec|tojson }}''')
 
 
 def _orekit_data_path() -> Path:
@@ -39,7 +39,8 @@ def _orekit_data_path() -> Path:
 
 
 def _init_orekit() -> None:
-    orekit.initVM()
+    if not jpype.isJVMStarted():
+        orekit.initVM()
     from java.io import File
     from org.orekit.data import DataContext, DirectoryCrawler
 
@@ -68,6 +69,24 @@ def _frame(name: str):
     return FramesFactory.getEME2000()
 
 
+def _fallback_frame(fallback: dict):
+    from org.orekit.frames import FramesFactory
+    from org.orekit.utils import IERSConventions
+
+    if fallback.get("kind") == "body_fixed" and fallback.get("body") == "Earth":
+        return FramesFactory.getITRF(IERSConventions.IERS_2010, True)
+    raise ValueError(f"Unsupported Orekit output frame fallback: {fallback}")
+
+
+def _state_pv_in_output_frame(state, fallback: dict | None = None):
+    pv = state.getPVCoordinates()
+    if not fallback:
+        return pv
+    target_frame = _fallback_frame(fallback)
+    transform = state.getFrame().getTransformTo(target_frame, state.getDate())
+    return transform.transformPVCoordinates(pv)
+
+
 def _orbit(sc: dict):
     from org.hipparchus.geometry.euclidean.threed import Vector3D
     from org.orekit.orbits import CartesianOrbit, KeplerianOrbit, PositionAngleType
@@ -94,11 +113,15 @@ def _orbit(sc: dict):
     )
 
 
-def _state_row(sc_name: str, frame_name: str, state, elapsed_s: float) -> dict[str, float | str]:
-    pv = state.getPVCoordinates()
+def _state_row(sc: dict, frame_name: str, state, elapsed_s: float, fallback: dict | None = None) -> dict[str, float | str]:
+    sc_name = sc["name"]
+    central_body = sc["central_body"]
+    mu = float(sc["mu_km3_s2"]) * 1.0e9
+    pv = _state_pv_in_output_frame(state, fallback)
     p = pv.getPosition()
     v = pv.getVelocity()
-    return {
+    elements = _orbital_elements(state, mu)
+    row = {
         f"{sc_name}.ElapsedSecs": float(elapsed_s),
         f"{sc_name}.{frame_name}.X": p.getX() / 1000.0,
         f"{sc_name}.{frame_name}.Y": p.getY() / 1000.0,
@@ -107,6 +130,177 @@ def _state_row(sc_name: str, frame_name: str, state, elapsed_s: float) -> dict[s
         f"{sc_name}.{frame_name}.VY": v.getY() / 1000.0,
         f"{sc_name}.{frame_name}.VZ": v.getZ() / 1000.0,
     }
+    if not fallback:
+        row.update(
+            {
+                f"{sc_name}.{central_body}.SMA": elements["sma"] / 1000.0,
+                f"{sc_name}.{central_body}.ECC": elements["ecc"],
+                f"{sc_name}.{central_body}.TA": elements["ta_deg"],
+                f"{sc_name}.{frame_name}.INC": elements["inc_deg"],
+                f"{sc_name}.{frame_name}.RAAN": elements["raan_deg"],
+                f"{sc_name}.{frame_name}.AOP": elements["aop_deg"],
+            }
+        )
+    return row
+
+
+def _ground_track_row(sc: dict, track: dict, state, elapsed_s: float) -> dict[str, float | str]:
+    sc_name = sc["name"]
+    body = track.get("body") or "Earth"
+    fallback = track.get("fallback")
+    if not fallback:
+        fallback = {"kind": "body_fixed", "body": body}
+    pv = _state_pv_in_output_frame(state, fallback)
+    p = pv.getPosition()
+    x = p.getX() / 1000.0
+    y = p.getY() / 1000.0
+    z = p.getZ() / 1000.0
+    radius = math.sqrt(x * x + y * y + z * z)
+    surface_radius = float(track.get("radius_km") or fallback.get("radius_km") or 0.0)
+    latitude = math.degrees(math.asin(max(-1.0, min(1.0, z / radius)))) if radius > 0.0 else 0.0
+    longitude = math.degrees(math.atan2(y, x)) if radius > 0.0 else 0.0
+    altitude = radius - surface_radius if surface_radius > 0.0 else 0.0
+    return {
+        f"{sc_name}.ElapsedSecs": float(elapsed_s),
+        f"{sc_name}.{body}.Latitude": latitude,
+        f"{sc_name}.{body}.Longitude": longitude,
+        f"{sc_name}.{body}.Altitude": altitude,
+    }
+
+
+def _vec_tuple(v) -> tuple[float, float, float]:
+    return (float(v.getX()), float(v.getY()), float(v.getZ()))
+
+
+def _dot(a: tuple[float, float, float], b: tuple[float, float, float]) -> float:
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+
+
+def _cross(a: tuple[float, float, float], b: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    )
+
+
+def _norm(a: tuple[float, float, float]) -> float:
+    return math.sqrt(_dot(a, a))
+
+
+def _unit(a: tuple[float, float, float]) -> tuple[float, float, float]:
+    n = _norm(a)
+    if n <= 0.0:
+        return (0.0, 0.0, 0.0)
+    return (a[0] / n, a[1] / n, a[2] / n)
+
+
+def _angle_deg(value: float) -> float:
+    return value % 360.0
+
+
+def _orbital_elements(state, mu: float) -> dict[str, float]:
+    pv = state.getPVCoordinates()
+    r = _vec_tuple(pv.getPosition())
+    v = _vec_tuple(pv.getVelocity())
+    rmag = _norm(r)
+    vmag = _norm(v)
+    h = _cross(r, v)
+    hmag = _norm(h)
+    k = (0.0, 0.0, 1.0)
+    n = _cross(k, h)
+    nmag = _norm(n)
+    evec = tuple(((vmag * vmag - mu / rmag) * r[i] - _dot(r, v) * v[i]) / mu for i in range(3))
+    ecc = _norm(evec)
+    energy = 0.5 * vmag * vmag - mu / rmag
+    sma = -mu / (2.0 * energy) if abs(energy) > 0.0 else float("inf")
+    inc = math.degrees(math.acos(max(-1.0, min(1.0, h[2] / hmag)))) if hmag > 0.0 else 0.0
+    if nmag > 0.0:
+        raan = math.degrees(math.atan2(n[1], n[0]))
+    else:
+        raan = 0.0
+    if nmag > 0.0 and ecc > 1e-10:
+        aop = math.degrees(math.atan2(_dot(_cross(n, evec), h) / (nmag * ecc * hmag), _dot(n, evec) / (nmag * ecc)))
+    else:
+        aop = 0.0
+    if ecc > 1e-10:
+        ta = math.degrees(math.atan2(_dot(_cross(evec, r), h) / (ecc * rmag * hmag), _dot(evec, r) / (ecc * rmag)))
+    elif nmag > 0.0:
+        ta = math.degrees(math.atan2(_dot(_cross(n, r), h) / (nmag * rmag * hmag), _dot(n, r) / (nmag * rmag)))
+    else:
+        ta = math.degrees(math.atan2(r[1], r[0]))
+    argument_of_latitude = ta + aop
+    return {
+        "sma": float(sma),
+        "ecc": float(ecc),
+        "inc_deg": _angle_deg(inc),
+        "raan_deg": _angle_deg(raan),
+        "aop_deg": _angle_deg(aop),
+        "ta_deg": _angle_deg(ta),
+        "argument_of_latitude_deg": _angle_deg(argument_of_latitude),
+    }
+
+
+def _angle_delta_deg(current: float, target: float) -> float:
+    delta = (target - current) % 360.0
+    return 360.0 if delta <= 1e-9 else delta
+
+
+def _time_to_true_anomaly(state, mu: float, target_deg: float) -> float:
+    elements = _orbital_elements(state, mu)
+    a = elements["sma"]
+    e = min(max(elements["ecc"], 0.0), 0.999999999)
+    if not math.isfinite(a) or a <= 0.0:
+        raise RuntimeError("Orekit event targeting currently requires a bounded elliptical orbit.")
+    ta0 = math.radians(elements["ta_deg"])
+    target = math.radians(target_deg)
+    n = math.sqrt(mu / (a * a * a))
+    def mean_anomaly(ta: float) -> float:
+        E = 2.0 * math.atan2(math.sqrt(1.0 - e) * math.sin(ta / 2.0), math.sqrt(1.0 + e) * math.cos(ta / 2.0))
+        return (E - e * math.sin(E)) % (2.0 * math.pi)
+    delta_m = (mean_anomaly(target) - mean_anomaly(ta0)) % (2.0 * math.pi)
+    if delta_m <= 1e-12:
+        delta_m = 2.0 * math.pi
+    return delta_m / n
+
+
+def _time_to_argument_of_latitude(state, mu: float, target_deg: float) -> float:
+    elements = _orbital_elements(state, mu)
+    if elements["ecc"] < 1e-7:
+        a = elements["sma"]
+        n = math.sqrt(mu / (a * a * a))
+        return math.radians(_angle_delta_deg(elements["argument_of_latitude_deg"], target_deg)) / n
+    return _time_to_true_anomaly(state, mu, target_deg - elements["aop_deg"])
+
+
+def _new_propagator_from_state(state):
+    from org.orekit.propagation.analytical import KeplerianPropagator
+
+    return KeplerianPropagator(state.getOrbit())
+
+
+def _apply_impulsive_burn(state, burn: dict, mu: float):
+    from org.hipparchus.geometry.euclidean.threed import Vector3D
+    from org.orekit.orbits import CartesianOrbit
+    from org.orekit.propagation import SpacecraftState
+    from org.orekit.utils import PVCoordinates
+
+    pv = state.getPVCoordinates()
+    r = _vec_tuple(pv.getPosition())
+    v = _vec_tuple(pv.getVelocity())
+    vhat = _unit(v)
+    nhat = _unit(_cross(r, v))
+    bhat = _unit(_cross(vhat, nhat))
+    components = [float(x) * 1000.0 for x in burn.get("delta_v_km_s", [0.0, 0.0, 0.0])]
+    dv = tuple(components[0] * vhat[i] + components[1] * nhat[i] + components[2] * bhat[i] for i in range(3))
+    new_v = tuple(v[i] + dv[i] for i in range(3))
+    orbit = CartesianOrbit(
+        PVCoordinates(Vector3D(*r), Vector3D(*new_v)),
+        state.getFrame(),
+        state.getDate(),
+        mu,
+    )
+    return SpacecraftState(orbit, state.getMass())
 
 
 def _write_rows(path: Path, rows: list[dict]) -> None:
@@ -120,53 +314,123 @@ def _write_rows(path: Path, rows: list[dict]) -> None:
 
 
 def run() -> dict:
+    _init_orekit()
     from org.orekit.propagation.analytical import KeplerianPropagator
 
-    _init_orekit()
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     spacecraft = {sc["id"]: sc for sc in RUNTIME_SPEC["spacecraft"]}
     propagators = {}
+    initial_dates = {}
     elapsed = {}
     samples = {}
     states = {}
     for sc_id, sc in spacecraft.items():
         propagators[sc_id] = KeplerianPropagator(_orbit(sc))
+        initial_dates[sc_id] = propagators[sc_id].getInitialState().getDate()
         elapsed[sc_id] = 0.0
         states[sc_id] = propagators[sc_id].getInitialState()
         samples[sc_id] = [states[sc_id]]
 
     checkpoints = {cp["id"]: cp for cp in RUNTIME_SPEC.get("checkpoints", [])}
     checkpoint_rows = []
+
+    def propagate_for(sc_id: str, duration: float) -> None:
+        if duration <= 1e-9:
+            return
+        max_step = 300.0
+        n = max(1, int(math.ceil(duration / max_step)))
+        start = elapsed[sc_id]
+        start_date = states[sc_id].getDate()
+        for i in range(1, n + 1):
+            target_date = start_date.shiftedBy(duration * i / n)
+            states[sc_id] = propagators[sc_id].propagate(target_date)
+            samples[sc_id].append(states[sc_id])
+        elapsed[sc_id] = start + duration
+
+    def write_checkpoint(cp: dict) -> None:
+        sc_id = cp["spacecraft"]
+        if sc_id in states:
+            sc = spacecraft[sc_id]
+            checkpoint_rows.append((cp, _state_row(sc, cp["frame"], states[sc_id], elapsed[sc_id])))
+
+    def execute_event(event: dict) -> None:
+        sc_id = event["spacecraft"]
+        sc = spacecraft[sc_id]
+        mu = float(sc["mu_km3_s2"]) * 1.0e9
+        duration = 0.0
+        if event["type"] == "parameter_reaches":
+            stop = event.get("stop_condition", {})
+            parameter = stop.get("parameter")
+            value = float(stop.get("value", 0.0))
+            if parameter == "ElapsedSecs":
+                duration = max(0.0, value - elapsed[sc_id])
+            elif parameter == "Earth.ArgumentOfLatitude":
+                duration = _time_to_argument_of_latitude(states[sc_id], mu, value)
+            else:
+                raise RuntimeError(f"Unsupported Orekit parameter event: {parameter}")
+        elif event["type"] == "orbital_event" and event.get("event") == "apoapsis":
+            duration = _time_to_true_anomaly(states[sc_id], mu, 180.0)
+        else:
+            raise RuntimeError(f"Unsupported Orekit event: {event.get('id')}")
+        propagate_for(sc_id, duration)
+        for action in event.get("actions", []):
+            if action.get("type") == "maneuver":
+                burn = RUNTIME_SPEC["burns"][action["burn"]]
+                states[sc_id] = _apply_impulsive_burn(states[sc_id], burn, mu)
+                propagators[sc_id] = _new_propagator_from_state(states[sc_id])
+                samples[sc_id].append(states[sc_id])
+            elif action.get("type") == "checkpoint":
+                cp = checkpoints.get(action.get("checkpoint_id"))
+                if cp:
+                    write_checkpoint(cp)
+
     for step in RUNTIME_SPEC["sequence"]:
         if step["type"] == "propagate":
             sc_id = step["spacecraft"]
             duration = float(step["duration_s"])
-            max_step = max(1.0, float(step.get("max_step_s") or 300.0))
-            n = max(1, int(math.ceil(duration / max_step)))
-            start = elapsed[sc_id]
-            for i in range(1, n + 1):
-                t = start + duration * i / n
-                target_date = propagators[sc_id].getInitialState().getDate().shiftedBy(t)
-                states[sc_id] = propagators[sc_id].propagate(target_date)
-                samples[sc_id].append(states[sc_id])
-            elapsed[sc_id] = start + duration
+            propagate_for(sc_id, duration)
         elif step["type"] == "checkpoint":
             cp = checkpoints.get(step.get("checkpoint_id"))
-            if cp and cp["spacecraft"] in states:
-                sc = spacecraft[cp["spacecraft"]]
-                checkpoint_rows.append((cp, _state_row(sc["name"], cp["frame"], states[cp["spacecraft"]], elapsed[cp["spacecraft"]])))
+            if cp:
+                write_checkpoint(cp)
+        elif step["type"] == "maneuver":
+            sc_id = step["spacecraft"]
+            sc = spacecraft[sc_id]
+            mu = float(sc["mu_km3_s2"]) * 1.0e9
+            burn = RUNTIME_SPEC["burns"][step["burn"]]
+            states[sc_id] = _apply_impulsive_burn(states[sc_id], burn, mu)
+            propagators[sc_id] = _new_propagator_from_state(states[sc_id])
+            samples[sc_id].append(states[sc_id])
+        elif step["type"] == "event_action":
+            event = RUNTIME_SPEC["events"].get(step.get("event_id"))
+            if event:
+                execute_event(event)
 
     for output in RUNTIME_SPEC["outputs"]:
         sc = spacecraft[output["spacecraft"]]
+        fallback = output.get("fallback")
         rows = [
-            _state_row(sc["name"], output["frame"], state, state.getDate().durationFrom(propagators[output["spacecraft"]].getInitialState().getDate()))
+            _state_row(sc, output["frame"], state, state.getDate().durationFrom(initial_dates[output["spacecraft"]]), fallback)
             for state in samples[output["spacecraft"]]
         ]
         _write_rows(ROOT / output["path"], rows)
 
+    for track in RUNTIME_SPEC.get("ground_tracks", []):
+        sc = spacecraft[track["spacecraft"]]
+        rows = [
+            _ground_track_row(sc, track, state, state.getDate().durationFrom(initial_dates[track["spacecraft"]]))
+            for state in samples[track["spacecraft"]]
+        ]
+        _write_rows(ROOT / track["path"], rows)
+
     for cp, row in checkpoint_rows:
         _write_rows(ROOT / cp["path"], [row])
+
+    for output in RUNTIME_SPEC.get("final_outputs", []):
+        sc = spacecraft[output["spacecraft"]]
+        row = _state_row(sc, output["frame"], states[output["spacecraft"]], elapsed[output["spacecraft"]])
+        _write_rows(ROOT / output["path"], [row])
 
     report = {
         "mission_id": MISSION_ID,
@@ -174,7 +438,7 @@ def run() -> dict:
         "status": "success",
         "orekit_data_path": str(_orekit_data_path()),
         "jvm_path": jpype.getDefaultJVMPath(),
-        "outputs": [item["path"] for item in RUNTIME_SPEC["outputs"]],
+        "outputs": [item["path"] for item in RUNTIME_SPEC["outputs"]] + [item["path"] for item in RUNTIME_SPEC.get("ground_tracks", [])] + [item["path"] for item in RUNTIME_SPEC.get("final_outputs", [])],
         "checkpoints": [item[0]["path"] for item in checkpoint_rows],
     }
     report_path = OUTPUT_DIR / "_OrekitBackendReport.json"

@@ -125,12 +125,31 @@ def _extract_final_metrics(problem: dict[str, Any], outputs_dir: Path) -> tuple[
                 evidence["columns"][metric_id] = col
     aop = metrics.get("spacecraft.final.orbit.aop", {}).get("value")
     ta = metrics.get("spacecraft.final.orbit.ta", {}).get("value")
+    raan = metrics.get("spacecraft.final.orbit.raan", {}).get("value")
+    inc = metrics.get("spacecraft.final.orbit.inclination", {}).get("value")
     if aop is not None and ta is not None:
-        metrics["spacecraft.final.orbit.argument_of_latitude"] = {"value": (float(aop) + float(ta)) % 360.0, "unit": "deg"}
-        evidence["columns"]["spacecraft.final.orbit.argument_of_latitude"] = [
-            evidence["columns"].get("spacecraft.final.orbit.aop"),
-            evidence["columns"].get("spacecraft.final.orbit.ta"),
-        ]
+        target_inc = _quantity_value(problem["target"].get("inclination", {"value": 0.0}))
+        inc_tolerance = _quantity_value(problem["target"].get("inclination_max", {"value": 0.05}))
+        use_true_longitude = (
+            raan is not None
+            and inc is not None
+            and abs(target_inc) <= inc_tolerance
+            and abs(float(inc)) <= inc_tolerance
+        )
+        if use_true_longitude:
+            metrics["spacecraft.final.orbit.argument_of_latitude"] = {"value": (float(raan) + float(aop) + float(ta)) % 360.0, "unit": "deg"}
+            evidence["columns"]["spacecraft.final.orbit.argument_of_latitude"] = [
+                evidence["columns"].get("spacecraft.final.orbit.raan"),
+                evidence["columns"].get("spacecraft.final.orbit.aop"),
+                evidence["columns"].get("spacecraft.final.orbit.ta"),
+            ]
+            evidence["phase_angle_definition"] = "true_longitude_for_near_equatorial_target"
+        else:
+            metrics["spacecraft.final.orbit.argument_of_latitude"] = {"value": (float(aop) + float(ta)) % 360.0, "unit": "deg"}
+            evidence["columns"]["spacecraft.final.orbit.argument_of_latitude"] = [
+                evidence["columns"].get("spacecraft.final.orbit.aop"),
+                evidence["columns"].get("spacecraft.final.orbit.ta"),
+            ]
     return metrics, evidence
 
 

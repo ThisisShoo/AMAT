@@ -41,13 +41,13 @@ class PhaseContext:
 
 def build_phase_context(problem: dict[str, Any], candidate: dict[str, Any]) -> PhaseContext | None:
     strategy = problem["transfer_strategy"]
-    policy = strategy.get("phase_policy")
     target = problem["target"]
-    if not policy or not policy.get("enabled", False):
+    if "argument_of_latitude" not in target:
+        return None
+    policy = _phase_policy(strategy.get("phase_policy"))
+    if not policy.get("enabled", False):
         return None
     if policy.get("target", "argument_of_latitude") != "argument_of_latitude":
-        return None
-    if "argument_of_latitude" not in target:
         return None
 
     mu = float(strategy["central_body_mu"]["value"])
@@ -69,3 +69,20 @@ def build_phase_context(problem: dict[str, Any], candidate: dict[str, Any]) -> P
         target_period_s=period,
         phase_policy=policy,
     )
+
+
+def _phase_policy(raw: dict[str, Any] | None) -> dict[str, Any]:
+    if raw is None:
+        return {
+            "mode": "auto",
+            "enabled": True,
+            "allowed_strategies": ["coast_to_phase", "in_plane_drift"],
+            "objective": "min_delta_v",
+            "restore_target_orbit": True,
+            "max_revolutions": 5,
+            "max_delta_v_km_s": None,
+            "target": "argument_of_latitude",
+            "at": "final_state",
+            "source": "auto_phase_target",
+        }
+    return raw

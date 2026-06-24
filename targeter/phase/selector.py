@@ -22,11 +22,14 @@ def select_phase_strategy(problem: dict[str, Any], candidate: dict[str, Any]) ->
             "controls": [],
         }
 
-    decision = _in_plane_drift_decision(context)
     allowed = context.phase_policy.get("allowed_strategies", [])
     rejected = []
     if "coast_to_phase" in allowed:
-        rejected.append({"strategy": "coast_to_phase", "reason": "final_state propagation duration is fixed for this policy"})
+        decision = _coast_to_phase_decision(context)
+        if decision["status"] == "selected":
+            decision["rejected"] = rejected
+            return decision
+        rejected.append({"strategy": "coast_to_phase", "reason": decision["reason"]})
     for strategy in allowed:
         if strategy in {"coast_to_phase", "in_plane_drift"}:
             continue
@@ -51,6 +54,7 @@ def select_phase_strategy(problem: dict[str, Any], candidate: dict[str, Any]) ->
             "controls": [],
             "phase_assessment": _phase_assessment(context),
         }
+    decision = _in_plane_drift_decision(context)
     if decision["status"] != "selected":
         rejected.append({"strategy": "in_plane_drift", "reason": decision["reason"]})
         return {
@@ -68,6 +72,20 @@ def select_phase_strategy(problem: dict[str, Any], candidate: dict[str, Any]) ->
 
 def apply_phase_strategy(problem: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
     decision = select_phase_strategy(problem, candidate)
+    if decision.get("selected") == "coast_to_phase" and decision.get("status") == "selected":
+        candidate = copy.deepcopy(candidate)
+        plan = decision["phase_plan"]
+        candidate["phase_coast_s"] = plan["coast_duration_s"]
+        candidate.setdefault("variable_values", {})
+        candidate["variable_values"]["phase_coast.duration_s"] = {"value": plan["coast_duration_s"], "unit": "s"}
+        assessment = candidate.setdefault("analytic_assessment", {})
+        assessment["phase_strategy"] = decision["selected"]
+        assessment["phase_target_deg"] = decision["phase_assessment"]["target_phase_deg"]
+        assessment["phase_nominal_final_deg"] = decision["phase_assessment"]["nominal_final_phase_deg"]
+        assessment["phase_required_shift_deg"] = decision["phase_assessment"]["required_phase_shift_deg"]
+        assessment["phase_coast_duration_s"] = plan["coast_duration_s"]
+        candidate["phase_strategy_decision"] = decision
+        return candidate
     if decision.get("selected") != "in_plane_drift" or decision.get("status") != "selected":
         candidate = copy.deepcopy(candidate)
         candidate["phase_strategy_decision"] = decision
@@ -166,6 +184,30 @@ def _in_plane_drift_decision(context: PhaseContext) -> dict[str, Any]:
     }
 
 
+def _coast_to_phase_decision(context: PhaseContext) -> dict[str, Any]:
+    if abs(context.target_eccentricity) > 1.0e-3:
+        return {"status": "rejected", "reason": "coast_to_phase currently requires a near-circular target orbit"}
+    coast_angle_deg = (context.desired_restore_phase_deg - context.arrival_phase_deg) % 360.0
+    if coast_angle_deg <= PHASE_TOLERANCE_DEG:
+        coast_duration_s = 0.0
+    else:
+        coast_duration_s = math.radians(coast_angle_deg) / context.target_mean_motion_rad_s
+    return {
+        "schema_version": "1.0.0",
+        "selected": "coast_to_phase",
+        "status": "selected",
+        "reason": "Phase target can be satisfied by coasting on the achieved target orbit before the fixed final-state propagation.",
+        "controls": ["phase_coast.duration_s"],
+        "phase_assessment": _phase_assessment(context),
+        "phase_plan": {
+            "coast_duration_s": coast_duration_s,
+            "coast_angle_deg": coast_angle_deg,
+            "restore_phase_deg": context.desired_restore_phase_deg,
+            "total_delta_v_km_s": 0.0,
+        },
+    }
+
+
 def _best_drift_plan(context: PhaseContext, max_revs: int) -> dict[str, float] | None:
     required_rad = math.radians(context.required_phase_shift_deg)
     mu = context.mu_km3_s2
@@ -174,12 +216,14 @@ def _best_drift_plan(context: PhaseContext, max_revs: int) -> dict[str, float] |
     v_circular = math.sqrt(mu / a)
     best: dict[str, float] | None = None
     for revs in range(1, max_revs + 1):
-        duration = revs * context.target_period_s
         for wrap in range(-max_revs, max_revs + 1):
             phase_rad = required_rad + 2.0 * math.pi * wrap
             if abs(phase_rad) <= PHASE_TOLERANCE_DEG:
                 continue
-            drift_n = n + phase_rad / duration
+            drift_duration = (2.0 * math.pi * revs - phase_rad) / n
+            if drift_duration <= 0.0:
+                continue
+            drift_n = 2.0 * math.pi * revs / drift_duration
             if drift_n <= 0.0:
                 continue
             drift_sma = (mu / (drift_n * drift_n)) ** (1.0 / 3.0)
@@ -193,7 +237,7 @@ def _best_drift_plan(context: PhaseContext, max_revs: int) -> dict[str, float] |
             total_dv = 2.0 * abs(enter_dv)
             plan = {
                 "drift_revolutions": float(revs),
-                "drift_duration_s": duration,
+                "drift_duration_s": drift_duration,
                 "drift_sma_km": drift_sma,
                 "enter_delta_v_km_s": enter_dv,
                 "exit_delta_v_km_s": -enter_dv,
@@ -202,6 +246,6 @@ def _best_drift_plan(context: PhaseContext, max_revs: int) -> dict[str, float] |
                 "exit_true_anomaly_deg": 0.0,
                 "achieved_phase_shift_deg": math.degrees(phase_rad),
             }
-            if best is None or (total_dv, duration) < (best["total_delta_v_km_s"], best["drift_duration_s"]):
+            if best is None or (total_dv, drift_duration) < (best["total_delta_v_km_s"], best["drift_duration_s"]):
                 best = plan
     return best

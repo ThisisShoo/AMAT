@@ -224,5 +224,7 @@ def test_surface_fixed_ephemeris_uses_inertial_keplerian_angles(tmp_path: Path) 
     assert "TargetSat.EarthFixed.RAAN" not in script
     assert "TargetSat.EarthFixed.AOP" not in script
     assert "TargetSat.EarthMJ2000Eq.INC" in script
+    assert "_GroundTrack_TargetSat_Earth.csv" in script
+    assert "TargetSat.Earth.Latitude" in script
 
 

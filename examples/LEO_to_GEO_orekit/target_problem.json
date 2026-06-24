@@ -1,0 +1,141 @@
+{
+  "schema_version": "1.0.0",
+  "problem_id": "LEO_to_GEO_orekit",
+  "mission_id": "LEO_to_GEO_orekit",
+  "transfer_strategy": {
+    "type": "two_impulse_apsidal_transfer",
+    "central_body": "Earth",
+    "maneuver_policy": {
+      "type": "valid_node_low_speed",
+      "maneuver_model": "impulsive",
+      "departure_event": {
+        "type": "node"
+      },
+      "arrival_event": {
+        "type": "apoapsis"
+      },
+      "allow_departure_phasing": true,
+      "prefer_apsis_alignment": true,
+      "fallback": "split_at_nearest_valid_node",
+      "merge_maneuver_angle_tolerance_deg": 2.0
+    }
+  },
+  "initial_state": {
+    "representation": "circular_orbit",
+    "altitude": {
+      "value": 300.0,
+      "unit": "km"
+    },
+    "inclination": {
+      "value": 23.0,
+      "unit": "deg"
+    },
+    "raan": {
+      "value": 60.0,
+      "unit": "deg"
+    },
+    "aop": {
+      "value": 30.0,
+      "unit": "deg"
+    },
+    "true_anomaly": {
+      "value": 0.0,
+      "unit": "deg"
+    },
+    "epoch": "2026-01-01T00:00:00Z",
+    "frame": "EarthMJ2000Eq"
+  },
+  "target": {
+    "type": "geostationary_orbit",
+    "inclination": {
+      "value": 0.0,
+      "unit": "deg"
+    },
+    "raan": {
+      "value": 0.0,
+      "unit": "deg"
+    },
+    "aop": {
+      "value": 0.0,
+      "unit": "deg"
+    },
+    "argument_of_latitude": {
+      "value": 45.0,
+      "unit": "deg"
+    },
+    "argument_of_latitude_max": {
+      "value": 0.25,
+      "unit": "deg"
+    },
+    "eccentricity": 0.0,
+    "eccentricity_max": 0.001,
+    "inclination_max": {
+      "value": 0.05,
+      "unit": "deg"
+    }
+  },
+  "verification": {
+    "required_level": "L1",
+    "run_acceptance_simulation": true
+  },
+  "execution": {
+    "backend": "orekit",
+    "targeting_fidelity": "two_body",
+    "acceptance_fidelity": "operational",
+    "artifact_persistence": "accepted_iterations",
+    "initial_coast_s": 10800.0,
+    "closed_loop": {
+      "simulation_backend": "orekit",
+      "correction_backend": "stm",
+      "max_iterations": 3,
+      "correction": {
+        "tolerance": 1e-8,
+        "damping": 1.0,
+        "decision_variables": [
+          {
+            "path": "maneuvers.0.components_km_s.0",
+            "description": "Transfer-injection V component"
+          },
+          {
+            "path": "maneuvers.0.components_km_s.1",
+            "description": "Transfer-injection N component"
+          },
+          {
+            "path": "maneuvers.1.components_km_s.0",
+            "description": "GEO-insertion V component"
+          },
+          {
+            "path": "maneuvers.1.components_km_s.1",
+            "description": "GEO-insertion N component"
+          }
+        ]
+      },
+      "stm": {
+        "enabled": true,
+        "id": "leo_geo_closed_loop_stm",
+        "spacecraft": "sat",
+        "frame": "EarthMJ2000Eq",
+        "mode": "artifact_contract",
+        "path": "outputs/stm_state_transition_matrix.csv",
+        "state_vector": [
+          "SMA",
+          "ECC",
+          "INC",
+          "RAAN",
+          "AOP",
+          "TA"
+        ],
+        "decision_variables": [
+          "transfer_injection.delta_v_v",
+          "transfer_injection.delta_v_n",
+          "orbit_insertion.delta_v_v",
+          "orbit_insertion.delta_v_n"
+        ],
+        "notes": [
+          "The closed-loop runner requires a backend-produced STM assessment before applying corrections."
+        ]
+      }
+    }
+  }
+}
+

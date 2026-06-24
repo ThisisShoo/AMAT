@@ -26,7 +26,7 @@ generated/<mission_id>/
   simulation/
     mission_spec.canonical.json
     generated_mission.py
-    generated_mission.script
+    generated_mission.script    # GMAT backend only
     compile_result.json
     validation_report.json
     artifact_manifest.json
@@ -77,15 +77,25 @@ python -m compiler compile generated/LEO_to_GEO/targeting/candidate_mission_spec
   --out generated/LEO_to_GEO/simulation
 ```
 
-Compilation writes the canonical MissionSpec, GMAT-native script, generated Python runner, manifests, expected output declarations, and visualization manifest.
+Compilation writes the canonical MissionSpec, generated Python runner, manifests, expected output declarations, and visualization manifest. GMAT compilation also writes a GMAT-native script for audit and replay.
 
-### 5. Run GMAT
+To compile with Orekit instead of GMAT, pass the backend explicitly:
+
+```bash
+python -m compiler compile generated/LEO_to_GEO/targeting/candidate_mission_spec.json \
+  --backend orekit \
+  --out generated/LEO_to_GEO/simulation
+```
+
+Orekit compilation writes a generated Python runner and normal AMAT manifests. It does not write a GMAT-native script.
+
+### 5. Run The Simulation Backend
 
 ```bash
 python generated/LEO_to_GEO/simulation/generated_mission.py --run
 ```
 
-The runner loads and replays `generated_mission.script` when the mission needs GMAT ReportFile outputs. Runtime CSV files are written under:
+For GMAT, the runner loads and replays `generated_mission.script` when the mission needs GMAT ReportFile outputs. For Orekit, the runner starts Orekit through JPype and uses the generated runtime specification directly. Runtime CSV files are written under:
 
 ```text
 generated/LEO_to_GEO/simulation/outputs/
@@ -107,6 +117,19 @@ generated/LEO_to_GEO/targeting/acceptance_result.json
 ```
 
 If the result is outside tolerance, use the evaluation artifact to decide whether the next step is patched-conic/hyperbola refinement, STM correction, or manual mission redesign.
+
+For a targeting-first closed-loop run with Orekit:
+
+```bash
+python -m targeter closed-loop examples/LEO_to_GEO/target_problem.json \
+  --simulation-backend orekit \
+  --correction-backend stm \
+  --max-iterations 3 \
+  --run \
+  --out generated/LEO_to_GEO/targeting
+```
+
+The Orekit simulation adapter can synthesize `outputs/stm_assessment.json` by running finite-difference perturbation simulations. The STM correction backend consumes that artifact through the same backend-neutral contract used by other simulation adapters.
 
 ### 7. Render The Visualization
 
@@ -196,9 +219,10 @@ Targeting artifacts:
 
 Simulation artifacts:
 
-- `generated_mission.script`: GMAT-native script for audit and replay.
+- `generated_mission.script`: GMAT-native script for audit and replay. Orekit runs do not emit this file.
 - `generated_mission.py`: Python runner.
-- `outputs/*.csv`: GMAT ReportFile outputs.
+- `outputs/*.csv`: backend runtime outputs. GMAT writes ReportFile-derived CSVs; Orekit writes spacecraft ephemeris, checkpoint, and final-state CSVs for supported frames.
+- `outputs/stm_assessment.json`: optional targeter correction artifact. Orekit can synthesize it from finite-difference perturbation runs during closed-loop targeting.
 - `visualization_manifest.json`: viewer-facing description of traces, frames, checkpoints, bodies, finite burns, and ground tracks.
 
 Visualization artifacts:
@@ -224,6 +248,8 @@ type generated/<mission_id>/simulation/generated_mission.script
 
 Check that event-driven maneuvers compile into the expected GMAT `Propagate` and `Maneuver` commands.
 
+For Orekit runs, inspect `generated_mission.py` and `compile_result.json` instead. Orekit supports elapsed-time propagation, checkpoints, direct impulsive `VNB` maneuver steps, limited event actions, spacecraft ephemeris, checkpoints, final-state output, and finite-difference STM assessment generation during targeter closed-loop runs.
+
 After run:
 
 ```bash
@@ -231,6 +257,8 @@ dir generated/<mission_id>/simulation/outputs
 ```
 
 Confirm expected ephemeris, checkpoint, body ephemeris, and ground-track CSVs exist.
+
+For Orekit, expect spacecraft ephemeris, checkpoint, and final-state CSVs. Do not expect body ephemeris or ground-track CSVs from the Orekit backend yet.
 
 After render:
 

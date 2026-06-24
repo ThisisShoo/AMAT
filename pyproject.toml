@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "amat"
 version = "0.2.0"
-description = "AMAT mission workbench: MissionSpec-driven GMAT/SPICE simulation plus interactive trajectory visualization"
+description = "AMAT mission workbench: MissionSpec-driven GMAT/Orekit/SPICE simulation plus interactive trajectory visualization"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

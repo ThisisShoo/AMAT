@@ -4,6 +4,7 @@ from typing import Any
 from compiler.ir.sequence import append_mission_sequence_phase
 
 TWO_DAYS_S = 172800.0
+ZERO_MANEUVER_TOLERANCE_KM_S = 1.0e-12
 
 
 def _burn_name(maneuver_id: str) -> str:
@@ -17,6 +18,10 @@ def _event_name(maneuver: dict[str, Any]) -> str:
 
 def _object_id(prefix: str, body: str) -> str:
     return f"{body[:1].lower()}{body[1:]}_{prefix}"
+
+
+def _maneuver_magnitude_km_s(maneuver: dict[str, Any]) -> float:
+    return sum(float(component) ** 2 for component in maneuver.get("components_km_s", [])) ** 0.5
 
 
 def _maneuver_stop_condition(maneuver: dict[str, Any], central_body: str) -> dict[str, Any]:
@@ -45,7 +50,11 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
     frame = state["frame"]
     sc_id = "sat"
     sc_name = "TargetSat"
-    maneuvers = candidate["maneuvers"]
+    maneuvers = [
+        maneuver
+        for maneuver in candidate["maneuvers"]
+        if _maneuver_magnitude_km_s(maneuver) > ZERO_MANEUVER_TOLERANCE_KM_S
+    ]
     burns = [
         {
             "id": maneuver["maneuver_id"],
@@ -82,6 +91,7 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
         {"phase_id": "phase_001_initial", "name": "Initial state", "steps": [{"step_id": "checkpoint_initial", "type": "checkpoint", "checkpoint_id": "initial_state"}]},
     ]
     initial_coast_s = float(execution.get("initial_coast_s", 0.0) or 0.0)
+    post_insertion_coast_s = float(execution.get("post_insertion_coast_s", TWO_DAYS_S) or TWO_DAYS_S)
     phase_index_offset = 0
     if initial_coast_s > 0.0:
         checkpoint_id = "post_initial_coast"
@@ -253,6 +263,23 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
         ],
         "visualization": {"enabled": True, "auto_export_after_run": True, "clean_csv": True, "write_manifest": True, "include_spice_body_ephemerides": False},
     }
+    phase_coast_s = float(candidate.get("phase_coast_s", 0.0) or 0.0)
+    if phase_coast_s > 0.0:
+        append_mission_sequence_phase(
+            spec,
+            phase_id=f"phase_{phase_counter + 1:03d}_phase_coast",
+            name="Target-orbit phase coast",
+            steps=[
+                {
+                    "step_id": "coast_to_phase",
+                    "type": "propagate",
+                    "spacecraft": sc_id,
+                    "propagator": propagator_id,
+                    "duration_s": phase_coast_s,
+                }
+            ],
+        )
+        phase_counter += 1
     append_mission_sequence_phase(
         spec,
         phase_id=f"phase_{phase_counter + 1:03d}_post_insertion_coast",
@@ -263,7 +290,7 @@ def materialize_mission_spec(problem: dict[str, Any], candidate: dict[str, Any])
                 "type": "propagate",
                 "spacecraft": sc_id,
                 "propagator": propagator_id,
-                "duration_s": TWO_DAYS_S,
+                "duration_s": post_insertion_coast_s,
             }
         ],
     )
