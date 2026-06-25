@@ -2,7 +2,7 @@
 
 This document explains how to manually write `mission_spec.json` files for the AMAT simulation layer.
 
-AMAT is designed for users who may not know a backend's native scripting language. Describe the mission in JSON, and AMAT validates the intent, generates backend artifacts, runs the selected simulation backend, and writes viewer-ready output files. The current production simulation backend is GMAT, but MissionSpec should be written as backend-neutral mission intent wherever possible.
+AMAT is designed for users who may not know a backend's native scripting language. Describe the mission in JSON, and AMAT validates the intent, generates backend artifacts, runs the selected simulation backend, and writes viewer-ready output files. GMAT is the primary simulation backend. Orekit is available as an initial two-body backend. MissionSpec should be written as backend-neutral mission intent wherever possible.
 
 ## Core idea
 
@@ -106,6 +106,41 @@ Use this convention block unless there is a specific reason to change it:
 ```
 
 Generated backend artifacts and viewer CSVs assume these conventions unless a backend-specific adapter explicitly documents otherwise.
+
+## Backend Capability Matrix
+
+MissionSpec is backend-neutral, but each backend supports a different subset today.
+
+| Capability | GMAT backend | Orekit backend |
+|---|---|---|
+| Initial spacecraft states | Cartesian and Keplerian | Cartesian and Keplerian |
+| Built-in central bodies | GMAT built-ins and configured bodies | Sun, Mercury, Venus, Earth, Luna/Moon, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto |
+| Propagation model | GMAT propagation with configured force model | Two-body point-mass propagation through Orekit `KeplerianPropagator` |
+| Point-mass central gravity | Yes | Yes |
+| Spherical-harmonic gravity | Declared and emitted for GMAT | Not supported |
+| Third-body gravity | Declared and emitted for GMAT | Not supported |
+| Finite burns | Supported by MissionSpec and GMAT compiler | Not supported |
+| Impulsive burns | Supported | Supported only in `VNB` |
+| Direct maneuver steps | Supported | Supported for impulsive `VNB` burns |
+| Event actions | Supported | Limited support |
+| Supported Orekit events | N/A | elapsed seconds, `Earth.ArgumentOfLatitude`, apoapsis |
+| Spacecraft ephemeris CSV | Supported | Supported for supported inertial frames |
+| Checkpoint CSV | Supported | Supported |
+| Final-state CSV | Supported as output intent | Supported |
+| Keplerian output for target evaluation | Supported | Supported in generated Orekit CSV columns |
+| Body ephemeris output | Supported when GMAT report parameters or SPICE fallback are available | Not supported |
+| Ground-track CSV | Supported by GMAT-backed reports | Not generated |
+| Body-fixed output frames | Supported when backend outputs them | Not supported |
+| Targeter closed-loop STM artifact | GMAT can emit configured STM artifacts | Orekit adapter can synthesize finite-difference STM assessments from perturbation runs |
+| Visualization | Uses backend outputs and manifests | Uses Orekit spacecraft ephemeris/checkpoint/final-state outputs; body ephemerides and ground tracks must come from another source |
+
+Orekit's current supported frames are:
+
+```text
+EarthMJ2000Eq, MJ2000Eq, EME2000, LunaMJ2000Eq, MoonMJ2000Eq
+```
+
+Orekit skips unsupported spacecraft ephemeris output frames with a compiler warning. It rejects unsupported spacecraft initial frames, non-impulsive burns, non-`VNB` burns, unsupported force models, and unsupported event types.
 
 ## Visualization settings
 
@@ -373,6 +408,8 @@ Example geocentric model with lunar gravity:
 
 Earth is the default central body if omitted, but explicit `central_body` is preferred.
 
+Orekit backend note: the current Orekit adapter supports only point-mass/two-body central gravity. It rejects spherical harmonics, third-body gravity, and custom central bodies without a built-in `GM` entry.
+
 ### Third-body gravity presets
 
 ```json
@@ -460,9 +497,11 @@ Supported burn frame choices:
 
 For the GMAT backend, local frames are emitted as GMAT `Local` burn coordinate systems. Other frame names are emitted as backend coordinate systems, so they must be known to GMAT or declared in `reference_frames[]`.
 
+Orekit backend note: the current Orekit adapter supports impulsive burns in `VNB` only. `delta_v_km_s` is interpreted as velocity-axis, normal-axis, binormal-axis components and applied instantaneously to the current state.
+
 ### Finite burn
 
-Finite burns are available in MissionSpec. In the GMAT backend, they compile to `ChemicalTank`, `ChemicalThruster`, and `FiniteBurn` resources.
+Finite burns are available in MissionSpec. In the GMAT backend, they compile to `ChemicalTank`, `ChemicalThruster`, and `FiniteBurn` resources. The Orekit backend does not support finite burns yet.
 
 ```json
 {
@@ -546,6 +585,8 @@ Recommended frame/output combinations:
 
 For GMAT, Keplerian output has a backend quirk: `SMA`, `ECC`, and `TA` are origin-qualified, while `INC`, `RAAN`, and `AOP` are coordinate-system-qualified. AMAT handles this mapping when you use `state_groups`.
 
+Orekit output note: the Orekit runner writes Cartesian columns and Keplerian columns for supported spacecraft ephemeris, checkpoints, and final-state outputs. The Keplerian columns follow the same evaluator-friendly convention: `SMA`, `ECC`, and `TA` are central-body qualified, while `INC`, `RAAN`, and `AOP` are frame qualified.
+
 ### Body ephemeris
 
 Body ephemeris files are for visualization of major body locations.
@@ -566,6 +607,8 @@ Body ephemeris files are for visualization of major body locations.
 
 If the simulation backend provides the requested body ephemeris, AMAT uses that backend-resolved output so visualization stays aligned with propagation. If the backend cannot provide it, resolved SPICE data is the fallback source. The manifest records the selected source so the viewer can display provenance.
 
+Orekit backend note: AMAT's current Orekit runner does not generate body ephemeris outputs. Use backend-independent SPICE resolution or another simulation backend when body ephemerides are needed for visualization context.
+
 ### Final state
 
 ```json
@@ -575,7 +618,7 @@ If the simulation backend provides the requested body ephemeris, AMAT uses that 
 }
 ```
 
-`final_state` is a declarative output request: it records that the mission wants a final state product for a spacecraft. It is useful as backend-neutral intent and may be used by future backend adapters or summary/report generation.
+`final_state` is a declarative output request: it records that the mission wants a final state product for a spacecraft. It is useful as backend-neutral intent, target evaluation input, and summary/report generation. The Orekit backend writes this product directly; other backends may satisfy it through their native report mechanisms.
 
 In the current pipeline, use an explicit checkpoint at the final mission-sequence location when you need a reliable final state CSV for evaluation, targeting acceptance, or visualization.
 
@@ -689,6 +732,18 @@ ascending, descending, either, both
 
 Direction-specific enforcement is limited in the GMAT backend. Use checkpoint `VZ` to inspect crossing direction when needed.
 
+Orekit backend event support is intentionally narrow today:
+
+| Event form | Orekit status |
+|---|---|
+| `parameter_reaches` with `ElapsedSecs` | Supported |
+| `parameter_reaches` with `Earth.ArgumentOfLatitude` | Supported |
+| `orbital_event` with `event: "apoapsis"` | Supported |
+| `periapsis` | Not supported by the Orekit adapter yet |
+| true-anomaly parameter events | Not supported by the Orekit adapter yet |
+| node-crossing events | Not supported by the Orekit adapter yet |
+| direction-filtered crossings | Not supported by the Orekit adapter yet |
+
 ### Event actions
 
 Each action requires `action_id`.
@@ -790,6 +845,8 @@ A maneuver step invokes a burn definition from `burns[]`; the burn vector or thr
 - `spacecraft`: the spacecraft receiving the burn.
 - `burn`: the burn definition ID to execute.
 - `propagator` and `duration_s`: required only for finite burns.
+
+Orekit backend note: direct maneuver steps are supported for impulsive `VNB` burns. This is what allows targeter-generated in-plane phasing sequences to run as burn, coast, restore-burn timelines. Finite-burn maneuver steps are not supported by Orekit yet.
 
 Impulsive example:
 
@@ -957,7 +1014,7 @@ AMAT prefers body ephemerides resolved by the active simulation backend when the
 
 AMAT does not yet provide:
 
-- General low-thrust or finite-burn targeting. Finite burns can be simulated when manually specified, but the analytic targeter still seeds impulsive maneuvers.
+- General low-thrust or finite-burn targeting. Finite burns can be simulated with GMAT when manually specified, but the analytic targeter still seeds impulsive maneuvers. Orekit finite burns are not supported yet.
 - Automated TLI/free-return targeting as a complete mission-design workflow.
 - General optimizer workflows as MissionSpec-native tools.
 - Full SOI switching/detection in MissionSpec execution.
@@ -965,7 +1022,7 @@ AMAT does not yet provide:
 - General visualization transforms between arbitrary frames.
 - Guaranteed visualization semantics for every backend-specific custom frame.
 - Direction-filtered node crossing enforcement in every backend.
-- A production Orekit backend.
+- Production-grade Orekit coverage. The current Orekit backend is an initial two-body backend with limited frames, limited events, impulsive `VNB` burns, and finite-difference STM assessment support for targeting.
 
 These are intended future layers on top of the current MissionSpec/artifact foundation.
 

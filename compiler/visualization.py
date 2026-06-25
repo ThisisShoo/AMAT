@@ -197,6 +197,21 @@ def _frame_origin(spec: dict, frame: str | None) -> str | None:
     return None
 
 
+def _frame_axes(spec: dict, frame: str | None) -> str | None:
+    if not frame:
+        return None
+    for declared in spec.get("reference_frames", []) or []:
+        if declared.get("name") == frame or declared.get("id") == frame:
+            return declared.get("axes") or declared.get("orientation")
+    if frame.endswith("Fixed"):
+        return "Fixed"
+    if frame.endswith("MJ2000Eq") or frame in {"MJ2000Eq", "EME2000"}:
+        return "MJ2000Eq"
+    if frame.endswith("MJ2000Ec"):
+        return "MJ2000Ec"
+    return None
+
+
 def _force_model_body_output_entries(spec: dict) -> list[dict]:
     entries: list[dict] = []
     for frame in _visualization_frames(spec):
@@ -471,6 +486,15 @@ def build_visualization_manifest(spec: dict, mission_dir: str | Path, reports: l
             "source": "mission_spec",
             "backend_overrides": frame.get("backend_overrides"),
         })
+    for name in _visualization_frames(spec):
+        if name and not any(f.get("name") == name for f in frames):
+            frames.append({
+                "name": name,
+                "origin": _frame_origin(spec, name),
+                "axes": _frame_axes(spec, name),
+                "type": "inferred",
+                "source": "mission_spec_outputs",
+            })
     for report in reports or []:
         name = report.get("frame")
         if name and not any(f.get("name") == name for f in frames):

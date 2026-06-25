@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from visualizer.discovery import discover_mission
+from visualizer.discovery import checkpoint_files, discover_mission
 
 
 def _make_outputs(path: Path) -> Path:
@@ -102,4 +102,13 @@ def test_explicit_mission_dir_accepts_targeting_directory(tmp_path: Path) -> Non
 def test_missing_outputs_reports_search_locations(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="Searched"):
         discover_mission(tmp_path, mission_id="missing")
+
+
+def test_checkpoint_discovery_ignores_final_state_output(tmp_path: Path) -> None:
+    outputs = _make_outputs(tmp_path / "mission")
+    (outputs / "initial_state.csv").write_text("x\n", encoding="utf-8")
+    (outputs / "final_state.csv").write_text("x\n", encoding="utf-8")
+    (outputs / "final_state_checkpoint.csv").write_text("x\n", encoding="utf-8")
+
+    assert [path.name for path in checkpoint_files(outputs)] == ["final_state_checkpoint.csv", "initial_state.csv"]
 

@@ -33,3 +33,7 @@ debug/
 *.tmp
 output/
 outputs/
+
+# Other files to ignore
+PLANNED_FEATURES.md
+orekit_test.py

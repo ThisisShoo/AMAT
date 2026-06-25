@@ -10,9 +10,9 @@ def _relative(path: Path | None, base: Path) -> str | None:
     if path is None:
         return None
     try:
-        return str(path.relative_to(base))
+        return path.relative_to(base).as_posix()
     except ValueError:
-        return str(path.name)
+        return path.name
 
 
 def write_report(scene: MissionScene, paths: MissionPaths, output: str | Path | None = None) -> Path:

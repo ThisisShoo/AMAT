@@ -160,7 +160,8 @@ def body_ephemeris_files(outputs_dir: Path) -> list[Path]:
 
 def checkpoint_files(outputs_dir: Path) -> list[Path]:
     excluded_prefixes = ("_Ephemeris", "_BodyEphemeris", "_GroundTrack")
-    return sorted(p for p in outputs_dir.glob("*.csv") if not p.name.startswith(excluded_prefixes))
+    excluded_names = {"final_state.csv"}
+    return sorted(p for p in outputs_dir.glob("*.csv") if not p.name.startswith(excluded_prefixes) and p.name not in excluded_names)
 
 
 def ground_track_files(outputs_dir: Path) -> list[Path]:

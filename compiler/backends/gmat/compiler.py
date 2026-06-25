@@ -336,6 +336,48 @@ def output_reports(spec: dict, out_dir: str | Path | None = None) -> list[dict]:
     spacecraft_by_id = {sc["id"]: sc for sc in spec.get("spacecraft", [])}
     reports: list[dict] = []
     base = Path(out_dir).resolve() if out_dir is not None else None
+    ground_track_keys: set[tuple[str, str]] = set()
+
+    def append_ground_track_report(sc: dict, body: str, out: dict, auto_generated: bool = False) -> None:
+        key = (sc["id"], body)
+        if key in ground_track_keys:
+            return
+        ground_track_keys.add(key)
+        params = [
+            f"{sc['name']}.UTCGregorian",
+            f"{sc['name']}.ElapsedSecs",
+            f"{sc['name']}.{body}.Latitude",
+            f"{sc['name']}.{body}.Longitude",
+            f"{sc['name']}.{body}.Altitude",
+        ]
+        for item in (out.get("parameters") or []) + (out.get("fields") or []):
+            params.append(_resolve_param(sc["name"], item, gmat_frame(sc["frame"])))
+        relative_path = (out.get("path") or "outputs/_GroundTrack_{spacecraft}_{body}.csv").format(
+            mission_id=spec["mission_id"],
+            spacecraft=sc["name"],
+            spacecraft_id=sc["id"],
+            body=_safe_name(str(body)),
+            output_id=_safe_name(out.get("id", "ground_track")),
+        )
+        reports.append({
+            "name": _safe_name(f"RF_{sc['name']}_{body}_{out.get('id', 'ground_track')}_{len(reports)+1}"),
+            "kind": "ground_track",
+            "spacecraft_id": sc["id"],
+            "spacecraft_name": sc["name"],
+            "frame": f"{body}Fixed",
+            "body": body,
+            "path": relative_path,
+            "script_path": _script_report_path(Path(relative_path), relative_path),
+            "source_filename": Path(relative_path).name,
+            "desired_path": str(Path(relative_path)).replace("\\", "/"),
+            "parameters": list(dict.fromkeys(params)),
+            "include_header": out.get("include_header", True),
+            "output_id": _safe_name(out.get("id", out.get("type", "output"))),
+            "segment_by_step": False,
+            "segment_path_template": out.get("segment_path_template", ""),
+            "auto_generated": auto_generated,
+        })
+
     for out in spec.get("outputs", []):
         if out.get("type") == "final_state" or out.get("enabled", True) is False:
             continue
@@ -344,39 +386,7 @@ def output_reports(spec: dict, out_dir: str | Path | None = None) -> list[dict]:
         sc = spacecraft_by_id[out["spacecraft"]]
         if out.get("type") == "ground_track":
             body = out.get("body", "Earth")
-            params = [
-                f"{sc['name']}.UTCGregorian",
-                f"{sc['name']}.ElapsedSecs",
-                f"{sc['name']}.{body}.Latitude",
-                f"{sc['name']}.{body}.Longitude",
-                f"{sc['name']}.{body}.Altitude",
-            ]
-            for item in (out.get("parameters") or []) + (out.get("fields") or []):
-                params.append(_resolve_param(sc["name"], item, gmat_frame(sc["frame"])))
-            relative_path = (out.get("path") or "outputs/_GroundTrack_{spacecraft}_{body}.csv").format(
-                mission_id=spec["mission_id"],
-                spacecraft=sc["name"],
-                spacecraft_id=sc["id"],
-                body=_safe_name(str(body)),
-                output_id=_safe_name(out.get("id", "ground_track")),
-            )
-            reports.append({
-                "name": _safe_name(f"RF_{sc['name']}_{body}_{out.get('id', 'ground_track')}_{len(reports)+1}"),
-                "kind": "ground_track",
-                "spacecraft_id": sc["id"],
-                "spacecraft_name": sc["name"],
-                "frame": f"{body}Fixed",
-                "body": body,
-                "path": relative_path,
-                "script_path": _script_report_path(Path(relative_path), relative_path),
-                "source_filename": Path(relative_path).name,
-                "desired_path": str(Path(relative_path)).replace("\\", "/"),
-                "parameters": list(dict.fromkeys(params)),
-                "include_header": out.get("include_header", True),
-                "output_id": _safe_name(out.get("id", out.get("type", "output"))),
-                "segment_by_step": False,
-                "segment_path_template": out.get("segment_path_template", ""),
-            })
+            append_ground_track_report(sc, body, out)
             continue
         frames = out.get("frames") or [sc["frame"]]
         groups = out.get("state_groups") or []
@@ -419,6 +429,19 @@ def output_reports(spec: dict, out_dir: str | Path | None = None) -> list[dict]:
                     "outputs/segments/{phase_id}_{step_id}_{spacecraft}_{frame}.csv",
                 ),
             })
+            if str(gf).endswith("Fixed"):
+                body = str(gf)[: -len("Fixed")]
+                if body:
+                    append_ground_track_report(
+                        sc,
+                        body,
+                        {
+                            "id": f"auto_ground_track_{sc['id']}_{body}",
+                            "path": "outputs/_GroundTrack_{spacecraft}_{body}.csv",
+                            "include_header": out.get("include_header", True),
+                        },
+                        auto_generated=True,
+                    )
     return reports
 
 

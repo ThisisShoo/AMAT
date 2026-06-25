@@ -281,16 +281,31 @@ def normalize_reference_frame_declarations(spec: dict) -> list[dict]:
     gmat_suffixes = tuple(AXIS_SUFFIX.values())
     # Prefer deterministic/longer suffix matching.
     suffixes_by_len = sorted(set(gmat_suffixes), key=len, reverse=True)
+    referenced_frames: list[str] = []
     for sc in spec.get("spacecraft", []):
         frame = sc.get("frame")
         if isinstance(frame, str):
-            for suffix in suffixes_by_len:
-                if frame.endswith(suffix):
-                    body = frame[: -len(suffix)]
-                    axes = next((a for a, s in AXIS_SUFFIX.items() if s == suffix), None)
-                    if body and axes:
-                        frames.append(body_axis_frame(body, axes))
-                    break
+            referenced_frames.append(frame)
+    for out_spec in spec.get("outputs", []) or []:
+        for frame in out_spec.get("frames", []) or []:
+            if isinstance(frame, str):
+                referenced_frames.append(frame)
+        frame = out_spec.get("frame")
+        if isinstance(frame, str):
+            referenced_frames.append(frame)
+    for cp in spec.get("checkpoints", []) or []:
+        frame = cp.get("frame")
+        if isinstance(frame, str):
+            referenced_frames.append(frame)
+
+    for frame in referenced_frames:
+        for suffix in suffixes_by_len:
+            if frame.endswith(suffix):
+                body = frame[: -len(suffix)]
+                axes = next((a for a, s in AXIS_SUFFIX.items() if s == suffix), None)
+                if body and axes:
+                    frames.append(body_axis_frame(body, axes))
+                break
 
     seen: set[str] = set()
     out: list[dict] = []

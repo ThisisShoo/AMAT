@@ -7,7 +7,7 @@ from pathlib import Path
 
 def run_generated_python(script_path: str | Path, save_script: bool = False, timeout_s: int = 300) -> dict:
     """Run a generated gmatpyplus Python mission script in a subprocess."""
-    script = Path(script_path)
+    script = Path(script_path).resolve()
     if not script.exists():
         raise FileNotFoundError(script)
     cmd = [sys.executable, str(script), "--run"]

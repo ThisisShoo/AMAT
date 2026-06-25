@@ -33,7 +33,7 @@ def _frame_key(frame: str | None) -> str:
 
 def _display_path(path: Path, mission_dir: Path) -> str:
     try:
-        return str(path.relative_to(mission_dir))
+        return path.relative_to(mission_dir).as_posix()
     except ValueError:
         return path.name
 

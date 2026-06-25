@@ -348,7 +348,9 @@ Notes:
 
 ## Phasing Policy
 
-Use `transfer_strategy.phase_policy` when the final position along the target orbit matters and orbit shape targeting alone is insufficient.
+Phasing is used when the final position along the target orbit matters and orbit shape targeting alone is insufficient.
+
+If `target.argument_of_latitude` is present, AMAT enables phase strategy selection automatically unless `transfer_strategy.phase_policy.mode` is set to `disabled`. An explicit `phase_policy` is still useful when you want to restrict strategies, cap delta-v, or change the search bounds.
 
 ```json
 "phase_policy": {
@@ -385,7 +387,10 @@ Current strategy support:
 | `multi_revolution_transfer` | Incoming feature | Select multi-revolution transfer branches. |
 <!-- | `optimized` | Incoming feature | Refine analytic phase seeds through STM or optimizer. | -->
 
-The selector writes `phase_strategy_decision.json` during `targeter solve` when a phase policy is present. The initial implemented strategy is body-neutral: it uses the target central body's gravitational parameter and semi-major axis, not Earth/GEO constants.
+When phasing is active, the selector writes `phase_strategy_decision.json` during `targeter solve`. The default automatic policy considers `coast_to_phase` and `in_plane_drift` with a `min_delta_v` objective. The implemented strategy is body-neutral: it uses the target central body's gravitational parameter and semi-major axis, not Earth/GEO constants.
+
+`in_plane_drift` materializes as an in-plane burn, a drift propagation segment, and a restore burn. Simulation backends must support direct impulsive maneuver steps to run that candidate. Orekit supports these direct impulsive `VNB` steps; finite-burn phasing is not supported yet.
+
 - `raan` and `aop` are physically undefined for exactly equatorial or circular orbits. Evaluation suppresses undefined RAAN/AOP residuals when target and achieved inclination/eccentricity are within tolerance.
 - `altitude` targets are converted using `transfer_strategy.central_body_radius`.
 - Cartesian and cometary target inputs are canonicalized to Keplerian fields before formulation. The current analytic seed supports bound elliptic endpoint orbits only.
@@ -472,7 +477,7 @@ AMAT currently uses three targeting techniques:
 |---|---|
 | Analytic two-impulse seed | Produces the initial candidate for same-central-body transfers. Circular coplanar cases reduce to classical Hohmann behavior; elliptical endpoints and node-aware plane changes are also supported. |
 | Conic-chain seed | Produces patched-conic cross-SOI seeds from backend-produced body ephemerides. Lambert solving is used inside this helper, but is not yet a top-level `transfer_strategy.type`. |
-| Closed-loop correction | Runs simulation-backed evaluation and delegates correction to a selected correction module. The STM backend consumes backend-produced STM artifacts and stops if those artifacts are unavailable. |
+| Closed-loop correction | Runs simulation-backed evaluation and delegates correction to a selected correction module. The STM backend consumes STM assessment artifacts and stops if those artifacts are unavailable. The Orekit simulation adapter can synthesize finite-difference STM assessment artifacts from perturbation runs. |
 
 These techniques produce candidates and corrections, not proof of final high-fidelity success. Use `targeter evaluate` or a closed-loop run to compare propagated outputs against the TargetProblem.
 
@@ -485,7 +490,7 @@ Current TargetProblem limitations:
 - Native finite-burn seed generation. Finite burns can be simulated in MissionSpec, but analytic targeting still seeds impulsive maneuvers.
 - Full SOI switching/detection as part of TargetProblem execution.
 - Optimizer-backed TargetProblem solve modes.
-- Multiple production simulation backend adapters.
+- Multiple production-grade simulation backend adapters. GMAT is the primary high-fidelity backend; Orekit is an initial two-body backend with targeting workflow support.
 - Guaranteed propagation support for arbitrary custom central bodies. The targeter can materialize a candidate with custom body constants, but the selected compiler/simulation backend must also support that body.
 
 ## Data Sources

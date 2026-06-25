@@ -94,6 +94,22 @@ def _rotate_basis_to_true_anomaly(
     return {"p": _unit(rhat), "q": _unit(qhat), "h": basis["h"]}
 
 
+def _position_unit_vector(
+    basis: dict[str, tuple[float, float, float]],
+    ta_deg: float,
+) -> tuple[float, float, float]:
+    ta = math.radians(ta_deg)
+    p = basis["p"]
+    q = basis["q"]
+    return _unit(
+        (
+            math.cos(ta) * p[0] + math.sin(ta) * q[0],
+            math.cos(ta) * p[1] + math.sin(ta) * q[1],
+            math.cos(ta) * p[2] + math.sin(ta) * q[2],
+        )
+    )
+
+
 def _normalize_angle_deg(value: float) -> float:
     return value % 360.0
 
@@ -112,6 +128,16 @@ def _forward_arc_deg(start: float, end: float) -> float:
 
 def _true_anomaly_to_argument_of_latitude(state: dict[str, Any], ta_deg: float) -> float:
     return _normalize_angle_deg(float(state["aop"]["value"]) + ta_deg)
+
+
+def _inertial_longitude_from_rhat(rhat: tuple[float, float, float]) -> float:
+    return _normalize_angle_deg(math.degrees(math.atan2(rhat[1], rhat[0])))
+
+
+def _arrival_phase_deg(target: dict[str, Any], arrival_ta: float, arrival_rhat: tuple[float, float, float]) -> float:
+    if abs(float(target["inclination"]["value"])) <= 1.0e-8:
+        return _inertial_longitude_from_rhat(arrival_rhat)
+    return _true_anomaly_to_argument_of_latitude(target, arrival_ta)
 
 
 def _is_on_forward_arc(angle: float, start: float, end: float, tolerance: float = 1e-8) -> bool:
@@ -479,6 +505,7 @@ def generate_hohmann_candidate(problem: dict[str, Any]) -> dict[str, Any]:
             if plane_change > 1e-10
             else None
         )
+    arrival_rhat = _scale(transfer_basis["p"], -1.0) if abs(_angle_delta_deg(arrival_ta, 180.0)) <= 1e-8 else _position_unit_vector(transfer_basis, arrival_ta)
     plane_node_ta = float(plane_node["ta_deg"]) if plane_node else None
     plane_merge = _merge_target(plane_node_ta, departure_ta, arrival_ta, merge_tolerance) if plane_node else None
     plane_sign = _plane_change_sign(state, target, plane_node["rhat"]) if plane_node else 1.0
@@ -648,7 +675,7 @@ def generate_hohmann_candidate(problem: dict[str, Any]) -> dict[str, Any]:
             "arrival_argument_of_latitude_deg": (
                 float(arrival_event["value"]["value"])
                 if arrival_event.get("type") == "argument_of_latitude"
-                else _true_anomaly_to_argument_of_latitude(target, arrival_ta)
+                else _arrival_phase_deg(target, arrival_ta, arrival_rhat)
             ),
             "departure_phase_wait_deg": float(phased_departure_node["departure_phase_wait_deg"]) if phased_departure_node else 0.0,
             "total_delta_v_km_s": sum(float(m["magnitude_km_s"]) for m in maneuvers),
