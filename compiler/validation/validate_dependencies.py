@@ -50,6 +50,22 @@ def validate_dependencies(spec: dict) -> list[dict]:
                 problems.append(f"event {event_id} node_crossing requires node = ascending, descending, either, or both")
             if not event.get("reference_frame"):
                 problems.append(f"event {event_id} node_crossing requires reference_frame")
+        elif etype == "date":
+            if not (event.get("epoch") or event.get("date") or event.get("target_epoch")):
+                problems.append(f"event {event_id} date requires epoch, date, or target_epoch")
+        elif etype == "distance_threshold":
+            if not (event.get("body") or event.get("target_body") or event.get("target")):
+                problems.append(f"event {event_id} distance_threshold requires body, target_body, or target")
+            if event.get("threshold_km", event.get("radius_km")) is None:
+                problems.append(f"event {event_id} distance_threshold requires threshold_km or radius_km")
+        elif etype == "soi_crossing":
+            if not (event.get("body") or event.get("target_body") or event.get("target")):
+                problems.append(f"event {event_id} soi_crossing requires body, target_body, or target")
+        elif etype == "elevation":
+            if not (event.get("station_frame") or event.get("frame") or event.get("station") or event.get("site")):
+                problems.append(f"event {event_id} elevation requires station coordinates or station_frame")
+        elif etype == "eclipse":
+            pass
         else:
             problems.append(f"event {event_id} has unsupported type {etype}")
         for idx, action in enumerate(event.get("actions", []), start=1):

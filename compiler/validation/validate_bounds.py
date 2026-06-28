@@ -105,20 +105,20 @@ def validate_bounds(spec: dict) -> list[dict]:
         output_path = out.get("path") or out.get("path_template") or ""
         filename = Path(str(output_path)).name
         if otype == "full_ephemeris":
-            if not filename.startswith("_Ephemeris"):
+            if not (filename.endswith(".eph.csv") and not filename.endswith(".body.eph.csv")):
                 problems.append(
-                    f"outputs.{i}: full_ephemeris filename must start with '_Ephemeris' before any mission/spacecraft/frame text"
+                    f"outputs.{i}: full_ephemeris filename must end with '.eph.csv'"
                 )
         elif otype == "body_ephemeris":
-            if output_path and not filename.startswith("_BodyEphemeris"):
+            if output_path and not filename.endswith(".body.eph.csv"):
                 problems.append(
-                    f"outputs.{i}: body_ephemeris filename must start with '_BodyEphemeris'"
+                    f"outputs.{i}: body_ephemeris filename must end with '.body.eph.csv'"
                 )
         elif otype == "body_ephemeris_group":
-            template = out.get("path_template") or "outputs/_BodyEphemeris_{body}_{frame}.csv"
-            if not Path(str(template).format(body="Body", frame="Frame")).name.startswith("_BodyEphemeris"):
+            template = out.get("path_template") or "outputs/{body}_{frame}.body.eph.csv"
+            if not Path(str(template).format(body="Body", frame="Frame")).name.endswith(".body.eph.csv"):
                 problems.append(
-                    f"outputs.{i}: body_ephemeris_group path_template filename must start with '_BodyEphemeris'"
+                    f"outputs.{i}: body_ephemeris_group path_template filename must end with '.body.eph.csv'"
                 )
         elif otype == "ground_track":
             path = output_path or "outputs/_GroundTrack_{spacecraft}_{body}.csv"

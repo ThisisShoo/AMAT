@@ -20,6 +20,7 @@ def build_manifest(mission_id: str, out_dir: str | Path, extra_artifacts: list[d
     artifacts = []
     for artifact_id, typ, filename, required in [
         ("MISSION_SPEC", "mission_spec", "mission_spec.canonical.json", True),
+        ("BACKEND_IR", "backend_ir", "mission_spec.backend_ir.json", True),
         ("VALIDATION_REPORT", "validation_report", "validation_report.json", True),
         ("COMPILE_RESULT", "compile_result", "compile_result.json", True),
         ("PYTHON_SCRIPT", "python_script", "generated_mission.py", True),

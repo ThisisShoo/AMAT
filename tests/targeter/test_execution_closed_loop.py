@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from targeter.backends.base import SimulationRunResult
+from targeter.backends.registry import get_correction_backend
 from targeter.cli import main as targeting_main
 from targeter.execution import execute_closed_loop
 from targeter.io import read_json, write_json
@@ -75,6 +76,12 @@ def test_closed_loop_keeps_simulation_backend_swappable(monkeypatch, tmp_path: P
     assert len(result["iterations"]) == 2
     assert result["iterations"][0]["correction"]["status"] == "corrected"
     assert result["iterations"][1]["simulation"]["converged"] is True
+
+
+def test_orekit_fd_correction_backend_is_registered() -> None:
+    backend = get_correction_backend("orekit_fd")
+
+    assert backend.backend_id == "orekit_fd"
 
 
 def test_closed_loop_cli_can_compile_first_gmat_iteration_without_running(tmp_path: Path) -> None:

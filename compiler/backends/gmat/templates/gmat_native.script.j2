@@ -1,7 +1,7 @@
 % Generated GMAT script
 % MissionSpec: {{ spec.mission_id }}
 % This file is deterministic replay output from the MVP compiler.
-% Full ephemeris/state history is produced by native GMAT ReportFile subscribers.
+% Full ephemeris/state history is produced by explicit sampled Report commands.
 % Sparse checkpoints are produced only at explicit mission_spec.json checkpoint steps.
 
 
@@ -37,6 +37,8 @@ GMAT {{ cs.name }}.Axes = {{ cs.axes }};
 {% endif %}{% for field in cs.fields if cs.fields is defined %}GMAT {{ cs.name }}.{{ field.field }} = {{ field.value }};
 {% endfor %}
 {% endfor %}
+Create Variable AMATSampleCounter;
+
 %----------------------------------------
 %---------- Spacecraft
 %----------------------------------------
@@ -193,7 +195,7 @@ GMAT {{ report.name }}.Precision = 16;
 GMAT {{ report.name }}.WriteHeaders = {{ 'true' if report.include_header else 'false' }};
 GMAT {{ report.name }}.LeftJustify = On;
 GMAT {{ report.name }}.ZeroFill = Off;
-GMAT {{ report.name }}.FixedWidth = true;
+GMAT {{ report.name }}.FixedWidth = false;
 GMAT {{ report.name }}.Delimiter = ',';
 GMAT {{ report.name }}.ColumnWidth = 23;
 GMAT {{ report.name }}.WriteReport = true;
@@ -211,7 +213,7 @@ GMAT {{ report.name }}.Precision = 16;
 GMAT {{ report.name }}.WriteHeaders = {{ 'true' if report.include_header else 'false' }};
 GMAT {{ report.name }}.LeftJustify = On;
 GMAT {{ report.name }}.ZeroFill = Off;
-GMAT {{ report.name }}.FixedWidth = true;
+GMAT {{ report.name }}.FixedWidth = false;
 GMAT {{ report.name }}.Delimiter = ',';
 GMAT {{ report.name }}.ColumnWidth = 23;
 GMAT {{ report.name }}.WriteReport = true;
@@ -221,13 +223,14 @@ GMAT {{ report.name }}.WriteReport = true;
 Create ReportFile {{ report.name }};
 % Sparse checkpoint snapshot file. This ReportFile is intentionally not an
 % active trajectory subscriber; it is written only by explicit Report commands.
+GMAT {{ report.name }}.Add = { {{ report.parameters | join(', ') }} };
 GMAT {{ report.name }}.SolverIterations = Current;
 GMAT {{ report.name }}.Filename = '{{ report.script_path }}';
 GMAT {{ report.name }}.Precision = 16;
-GMAT {{ report.name }}.WriteHeaders = false;
+GMAT {{ report.name }}.WriteHeaders = {{ 'true' if report.include_header else 'false' }};
 GMAT {{ report.name }}.LeftJustify = On;
 GMAT {{ report.name }}.ZeroFill = Off;
-GMAT {{ report.name }}.FixedWidth = true;
+GMAT {{ report.name }}.FixedWidth = false;
 GMAT {{ report.name }}.Delimiter = ',';
 GMAT {{ report.name }}.ColumnWidth = 23;
 GMAT {{ report.name }}.WriteReport = false;
@@ -247,10 +250,10 @@ GMAT {{ report.name }}.Precision = 16;
 GMAT {{ report.name }}.WriteHeaders = {{ 'true' if report.include_header else 'false' }};
 GMAT {{ report.name }}.LeftJustify = On;
 GMAT {{ report.name }}.ZeroFill = Off;
-GMAT {{ report.name }}.FixedWidth = true;
+GMAT {{ report.name }}.FixedWidth = false;
 GMAT {{ report.name }}.Delimiter = ',';
 GMAT {{ report.name }}.ColumnWidth = 23;
-GMAT {{ report.name }}.WriteReport = true;
+GMAT {{ report.name }}.WriteReport = false;
 {% else %}
 % Native GMAT STM ReportFile is not emitted because targeting.stm.parameters is empty.
 % Provide {{ report.path }} from a validated GMAT STM/variational-equation integration before STM correction.
@@ -262,6 +265,12 @@ GMAT {{ report.name }}.WriteReport = true;
 %----------------------------------------
 
 BeginMissionSequence;
+{% macro emit_reports(report_list) -%}
+{% for report in report_list %}
+Report {{ report.name }} {{ report.parameters | join(' ') }};
+{% endfor %}
+{%- endmacro %}
+{{ emit_reports(reports + body_reports) }}
 {% set ns = namespace(index=0) %}
 {% for phase in phases %}
 
@@ -274,14 +283,38 @@ BeginMissionSequence;
 {% if step.type == "propagate" %}
 {% set prop = (spec.propagators | selectattr('id', 'equalto', step.propagator) | list)[0] %}
 {% set sc = (spec.spacecraft | selectattr('id', 'equalto', step.spacecraft) | list)[0] %}
-Propagate {{ prop.name }}({{ sc.name }}) { {{ sc.name }}.ElapsedSecs = {{ step.duration_s }} };
+{% for block in step.sample_blocks %}
+{% if block.mode == "loop" %}
+GMAT AMATSampleCounter = 0;
+While AMATSampleCounter < {{ block.count }};
+   Propagate {{ prop.name }}({{ sc.name }}) { {{ sc.name }}.ElapsedSecs = {{ block.duration_s }} };
+{{ emit_reports(block.reports) | indent(3, true) }}
+   GMAT AMATSampleCounter = AMATSampleCounter + 1;
+EndWhile;
+{% else %}
+Propagate {{ prop.name }}({{ sc.name }}) { {{ sc.name }}.ElapsedSecs = {{ block.duration_s }} };
+{{ emit_reports(block.reports) }}
+{% endif %}
+{% endfor %}
 {% elif step.type == "maneuver" %}
 {% set burn = burns_by_id[step.burn] %}
 {% set sc = (spec.spacecraft | selectattr('id', 'equalto', step.spacecraft) | list)[0] %}
 {% if burn.type == "finite" %}
 {% set prop = (spec.propagators | selectattr('id', 'equalto', step.propagator) | list)[0] %}
 BeginFiniteBurn {{ burn.name }}({{ sc.name }});
-Propagate {{ prop.name }}({{ sc.name }}) { {{ sc.name }}.ElapsedSecs = {{ step.duration_s }} };
+{% for block in step.sample_blocks %}
+{% if block.mode == "loop" %}
+GMAT AMATSampleCounter = 0;
+While AMATSampleCounter < {{ block.count }};
+   Propagate {{ prop.name }}({{ sc.name }}) { {{ sc.name }}.ElapsedSecs = {{ block.duration_s }} };
+{{ emit_reports(block.reports) | indent(3, true) }}
+   GMAT AMATSampleCounter = AMATSampleCounter + 1;
+EndWhile;
+{% else %}
+Propagate {{ prop.name }}({{ sc.name }}) { {{ sc.name }}.ElapsedSecs = {{ block.duration_s }} };
+{{ emit_reports(block.reports) }}
+{% endif %}
+{% endfor %}
 EndFiniteBurn {{ burn.name }}({{ sc.name }});
 {% else %}
 Maneuver {{ burn.name }}({{ sc.name }});
@@ -300,6 +333,7 @@ Report {{ cp.name }} {{ cp.parameters | join(' ') }};
 {% endfor %}{% endif %}{% if ns.index in zero_distance_event_steps %}% Event stop condition is already satisfied at this step; skipping zero-distance Propagate.
 {% else %}Propagate {{ prop.name }}({{ sc.name }}) { {{ event.stop_parameter }} = {{ event.stop_value }} };
 {% endif %}
+{{ emit_reports(step.post_event_reports) }}
 {% for action in event.actions %}
 {% if action.type == "maneuver" %}
 {% set burn = burns_by_id[action.burn] %}
@@ -308,7 +342,19 @@ Report {{ cp.name }} {{ cp.parameters | join(' ') }};
 {% set action_prop_id = action.propagator if action.propagator is defined else event.propagator %}
 {% set action_prop = (spec.propagators | selectattr('id', 'equalto', action_prop_id) | list)[0] %}
 BeginFiniteBurn {{ burn.name }}({{ action_sc.name }});
-Propagate {{ action_prop.name }}({{ action_sc.name }}) { {{ action_sc.name }}.ElapsedSecs = {{ action.duration_s }} };
+{% for block in action.sample_blocks %}
+{% if block.mode == "loop" %}
+GMAT AMATSampleCounter = 0;
+While AMATSampleCounter < {{ block.count }};
+   Propagate {{ action_prop.name }}({{ action_sc.name }}) { {{ action_sc.name }}.ElapsedSecs = {{ block.duration_s }} };
+{{ emit_reports(block.reports) | indent(3, true) }}
+   GMAT AMATSampleCounter = AMATSampleCounter + 1;
+EndWhile;
+{% else %}
+Propagate {{ action_prop.name }}({{ action_sc.name }}) { {{ action_sc.name }}.ElapsedSecs = {{ block.duration_s }} };
+{{ emit_reports(block.reports) }}
+{% endif %}
+{% endfor %}
 EndFiniteBurn {{ burn.name }}({{ action_sc.name }});
 {% else %}
 Maneuver {{ burn.name }}({{ action_sc.name }});

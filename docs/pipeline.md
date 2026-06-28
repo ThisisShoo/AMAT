@@ -24,7 +24,8 @@ generated/<mission_id>/
     acceptance_result.json
     provenance.json
   simulation/
-    mission_spec.canonical.json
+    mission_spec.canonical.json  # public MissionSpec, schema_version 2.0.0
+    mission_spec.backend_ir.json  # lowered backend input, schema_version 1.0.0
     generated_mission.py
     generated_mission.script    # GMAT backend only
     compile_result.json
@@ -39,9 +40,16 @@ generated/<mission_id>/
 
 The visualizer can discover this layout when pointed at the mission id, the mission root, the `targeting/` directory, or the `simulation/` directory.
 
+Layer ownership:
+
+- `targeter` owns TargetProblem validation, analytic candidates, closed-loop correction artifacts, and acceptance reports.
+- `compiler` owns public MissionSpec validation, canonicalization, backend IR lowering, generated backend artifacts, and visualization prerequisites.
+- The generated backend runner owns runtime CSV products under `simulation/outputs/`.
+- `visualizer` owns standalone HTML generation and `visualization_report.json`.
+
 ## Targeting-First Pipeline
 
-Start with a semantic target problem. The targeting layer currently generates analytic initial candidates. By itself, it does not run any simulation.
+Start with a semantic target problem. The targeting layer generates analytic initial candidates. By itself, it does not run any simulation.
 
 ### 1. Validate The Target Problem
 
@@ -60,7 +68,7 @@ python -m targeter solve examples/LEO_to_GEO/target_problem.json \
 
 This writes the targeting artifacts and `candidate_mission_spec.json`.
 
-For impulsive non-coplanar transfers, the initial guess is node-aware: AMAT computes the intersection between the initial and target orbital planes, chooses the node closest to apoapsis on the transfer arc, and emits a separate plane-change maneuver unless that node is close enough to merge with an apsidal energy burn.
+For impulsive non-coplanar transfers, the initial guess is node-aware: AMAT computes the intersection between the initial and target orbital planes, chooses the node closest to apoapsis on the transfer arc, and emits a separate plane-change maneuver unless that node is close enough to merge with an apsidal energy maneuver.
 
 ### 3. Validate The Candidate MissionSpec
 
@@ -123,13 +131,13 @@ For a targeting-first closed-loop run with Orekit:
 ```bash
 python -m targeter closed-loop examples/LEO_to_GEO/target_problem.json \
   --simulation-backend orekit \
-  --correction-backend stm \
+  --correction-backend orekit_fd \
   --max-iterations 3 \
   --run \
   --out generated/LEO_to_GEO/targeting
 ```
 
-The Orekit simulation adapter can synthesize `outputs/stm_assessment.json` by running finite-difference perturbation simulations. The STM correction backend consumes that artifact through the same backend-neutral contract used by other simulation adapters.
+The Orekit simulation adapter can synthesize `outputs/stm_assessment.json` by running finite-difference perturbation simulations. The `orekit_fd` correction backend consumes that artifact through the same backend-neutral linear correction contract while preserving the explicit Orekit finite-difference backend choice. The generic `stm` correction backend can also consume the same artifact when selected explicitly.
 
 ### 7. Render The Visualization
 
@@ -154,45 +162,31 @@ Open `trajectory.html` in a browser.
 
 ## Simulation-First Pipeline
 
-Use this path when an example or hand-authored MissionSpec already exists.
+Use this path when a hand-authored MissionSpec already exists. The file must use public MissionSpec `schema_version: "2.0.0"`, not the lowered backend IR.
 
 ### 1. Validate
 
 ```bash
-python -m compiler validate examples/LEO_to_GEO/mission_spec.json
+python -m compiler validate path/to/mission_spec.json
 ```
 
 ### 2. Compile
 
 ```bash
-python -m compiler compile examples/LEO_to_GEO/mission_spec.json \
-  --out generated/LEO_to_GEO/simulation
+python -m compiler compile path/to/mission_spec.json \
+  --out generated/<mission_id>/simulation
 ```
 
 ### 3. Run
 
 ```bash
-python generated/LEO_to_GEO/simulation/generated_mission.py --run
+python generated/<mission_id>/simulation/generated_mission.py --run
 ```
 
 ### 4. Render
 
 ```bash
-python -m visualizer view --mission-dir generated/LEO_to_GEO/simulation
-```
-
-The same pattern applies to the current demonstration examples:
-
-```bash
-python -m compiler compile examples/cislunar_demo/mission_spec.json --out generated/cislunar_demo/simulation
-python generated/cislunar_demo/simulation/generated_mission.py --run
-python -m visualizer view --mission-dir generated/cislunar_demo/simulation
-```
-
-```bash
-python -m compiler compile examples/MEO_demo/mission_spec.json --out generated/MEO_demo/simulation
-python generated/MEO_demo/simulation/generated_mission.py --run
-python -m visualizer view --mission-dir generated/MEO_demo/simulation
+python -m visualizer view --mission-dir generated/<mission_id>/simulation
 ```
 
 ## Visualization Refresh Only
@@ -221,14 +215,25 @@ Simulation artifacts:
 
 - `generated_mission.script`: GMAT-native script for audit and replay. Orekit runs do not emit this file.
 - `generated_mission.py`: Python runner.
-- `outputs/*.csv`: backend runtime outputs. GMAT writes ReportFile-derived CSVs; Orekit writes spacecraft ephemeris, checkpoint, and final-state CSVs for supported frames.
+- `outputs/*.csv`: backend runtime outputs. GMAT writes ReportFile-derived CSVs and normalizes ephemeris-style files to requested `outputs[].step` cadence when possible; Orekit writes spacecraft ephemeris, checkpoint, final-state, supported body-ephemeris, and ground-track CSVs on the requested output cadence for supported or validated fallback frames.
+- `dependencies/spice_requests.json`: optional SPICE request contract generated when the MissionSpec declares SPICE ephemeris dependencies, including Orekit body-ephemeris fallback prerequisites.
 - `outputs/stm_assessment.json`: optional targeter correction artifact. Orekit can synthesize it from finite-difference perturbation runs during closed-loop targeting.
-- `visualization_manifest.json`: viewer-facing description of traces, frames, checkpoints, bodies, finite burns, and ground tracks.
+- `visualization_manifest.json`: viewer-facing description of traces, frames, checkpoints, bodies, finite maneuvers, and ground tracks.
 
 Visualization artifacts:
 
 - `trajectory.html`: standalone interactive viewer.
 - `visualization_report.json`: what the viewer discovered and loaded.
+
+## Time And Sampling Controls
+
+MissionSpec separates propagation control from output cadence:
+
+- `propagators[].initial_step`, `minimum_step`, `maximum_step`, and `accuracy` control backend propagation behavior.
+- `outputs[].step` controls the row cadence for spacecraft ephemeris, ground-track, and body-ephemeris CSV files.
+- Checkpoints and final-state outputs are sparse products and ignore `outputs[].step`.
+- GMAT emits ReportFile products and AMAT normalizes ephemeris-style files to the requested elapsed-time cadence when possible.
+- Orekit samples densely enough for the requested output cadence and writes each output file on its own `step` grid.
 
 ## Common Checks
 
@@ -238,7 +243,7 @@ After targeting:
 type generated/<mission_id>/targeting/initial_candidate.json
 ```
 
-Confirm the maneuver plan has the expected burn count, events, and plane-change placement.
+Confirm the maneuver plan has the expected maneuver count, event detectors, and plane-change placement.
 
 After compile:
 
@@ -248,7 +253,7 @@ type generated/<mission_id>/simulation/generated_mission.script
 
 Check that event-driven maneuvers compile into the expected GMAT `Propagate` and `Maneuver` commands.
 
-For Orekit runs, inspect `generated_mission.py` and `compile_result.json` instead. Orekit supports elapsed-time propagation, checkpoints, direct impulsive `VNB` maneuver steps, limited event actions, spacecraft ephemeris, checkpoints, final-state output, and finite-difference STM assessment generation during targeter closed-loop runs.
+For Orekit runs, inspect `generated_mission.py` and `compile_result.json` instead. Orekit supports elapsed-time/date propagation, checkpoints, direct impulsive and segmented finite maneuver steps in supported maneuver frames, per-segment propagator context, two-body propagation, selected numerical force-model propagation, date/anomaly/apsis/node/distance/SOI/elevation/eclipse event actions, spacecraft ephemeris, final-state output, supported body ephemerides, ground tracks from surface-fixed states, and finite-difference STM assessment generation during targeter closed-loop runs.
 
 After run:
 
@@ -258,7 +263,7 @@ dir generated/<mission_id>/simulation/outputs
 
 Confirm expected ephemeris, checkpoint, body ephemeris, and ground-track CSVs exist.
 
-For Orekit, expect spacecraft ephemeris, checkpoint, and final-state CSVs. Do not expect body ephemeris or ground-track CSVs from the Orekit backend yet.
+For Orekit, expect spacecraft ephemeris, checkpoint, final-state, supported body-ephemeris, and ground-track CSVs when those products are requested and the requested bodies/frames are in the adapter's supported set. For SPICE-backed body ephemerides, expect `dependencies/spice_requests.json` after compile and resolved `*.body.eph.csv` files after the visualization export/SPICE resolution step.
 
 After render:
 
@@ -272,7 +277,11 @@ Confirm the viewer loaded the intended frames and traces.
 
 If `python -m targeter solve` succeeds but simulation misses the target, remember that the analytic candidate is a seed. Run `python -m targeter evaluate` and inspect the residuals before changing the mission.
 
+If `targeter evaluate` reports empty residuals, inspect `outputs/final_state_checkpoint.csv`. It must include final Keplerian or Cartesian state columns, not only time columns.
+
 If GMAT fails to load the script, inspect `generated_mission.script` first. Common causes are unsupported frame names, unsupported report parameters, or a MissionSpec event that compiles to an impossible stop condition.
+
+If the generated runner cannot import GMAT or Orekit, confirm that `GMAT`, `OREKIT_DATA_PATH`, `JAVA_HOME`, and the active Python environment match the backend you are running.
 
 If visualization cannot find outputs, pass `--mission-dir` explicitly to the directory containing `outputs/`, usually `generated/<mission_id>/simulation`.
 

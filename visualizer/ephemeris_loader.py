@@ -20,15 +20,34 @@ def _entry_for_path(entries: list[dict[str, Any]], path: Path) -> dict[str, Any]
     return None
 
 
+def _infer_object_frame_from_filename(path: Path, kind: str) -> tuple[str | None, str | None]:
+    name = path.name
+    if kind == "body" and name.endswith(".body.eph.csv"):
+        stem = name[: -len(".body.eph.csv")]
+    elif kind == "spacecraft" and name.endswith(".eph.csv") and not name.endswith(".body.eph.csv"):
+        stem = name[: -len(".eph.csv")]
+    else:
+        return None, None
+
+    if "_" not in stem:
+        return stem or None, None
+    object_name, frame = stem.rsplit("_", 1)
+    return object_name or None, frame or None
+
+
 def _load_trace(path: Path, kind: str, manifest_entry: dict[str, Any] | None = None) -> EphemerisTrace:
     df = parse_gmat_report(path)
     warnings: list[str] = []
     cols = list(df.columns)
     object_name, frame = infer_object_frame_from_columns(cols)
+    file_object_name, file_frame = _infer_object_frame_from_filename(path, kind)
 
     if manifest_entry:
         object_name = manifest_entry.get("spacecraft") or manifest_entry.get("body") or object_name
         frame = manifest_entry.get("frame") or frame
+    else:
+        object_name = object_name or file_object_name
+        frame = frame or file_frame
 
     time_hints = manifest_entry.get("time_columns") if manifest_entry else None
     time_col = resolve_time_column(cols, time_hints)
@@ -49,15 +68,7 @@ def _load_trace(path: Path, kind: str, manifest_entry: dict[str, Any] | None = N
         warnings.append(f"No complete X/Y/Z column set found in {path.name}.")
 
     if not object_name:
-        # filename fallback: _Ephemeris_EventSat_EarthMJ2000Eq.csv or _BodyEphemeris_Luna_EarthMJ2000Eq.csv
-        stem = path.stem
-        tokens = stem.split("_")
-        if kind == "body" and len(tokens) >= 3:
-            object_name = tokens[2]
-        elif kind == "spacecraft" and len(tokens) >= 2:
-            object_name = tokens[1]
-        else:
-            object_name = stem
+        object_name = path.name.removesuffix(".csv")
 
     name = f"{object_name} ({frame or 'unknown frame'})"
     return EphemerisTrace(

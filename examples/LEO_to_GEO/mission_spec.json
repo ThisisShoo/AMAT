@@ -1,0 +1,342 @@
+{
+  "checkpoints": [
+    {
+      "id": "initial_state",
+      "include_header": true,
+      "path": "outputs/initial_state.csv",
+      "reference_frame": "EarthMJ2000Eq",
+      "spacecraft": "sat",
+      "state_groups": [
+        "Cartesian",
+        "Keplerian",
+        "ElapsedTime"
+      ]
+    },
+    {
+      "id": "post_initial_coast",
+      "include_header": true,
+      "path": "outputs/post_initial_coast.csv",
+      "reference_frame": "EarthMJ2000Eq",
+      "spacecraft": "sat",
+      "state_groups": [
+        "Cartesian",
+        "Keplerian",
+        "ElapsedTime"
+      ]
+    },
+    {
+      "id": "post_transfer_injection",
+      "include_header": true,
+      "path": "outputs/post_transfer_injection.csv",
+      "reference_frame": "EarthMJ2000Eq",
+      "spacecraft": "sat",
+      "state_groups": [
+        "Cartesian",
+        "Keplerian",
+        "ElapsedTime"
+      ]
+    },
+    {
+      "id": "post_orbit_insertion",
+      "include_header": true,
+      "path": "outputs/post_orbit_insertion.csv",
+      "reference_frame": "EarthMJ2000Eq",
+      "spacecraft": "sat",
+      "state_groups": [
+        "Cartesian",
+        "Keplerian",
+        "ElapsedTime"
+      ]
+    },
+    {
+      "id": "final_state_checkpoint",
+      "include_header": true,
+      "path": "outputs/final_state_checkpoint.csv",
+      "reference_frame": "EarthMJ2000Eq",
+      "spacecraft": "sat",
+      "state_groups": [
+        "Cartesian",
+        "Keplerian",
+        "ElapsedTime"
+      ]
+    }
+  ],
+  "conventions": {
+    "angle_unit": "deg",
+    "distance_unit": "km",
+    "epoch_format": "ISO-8601",
+    "mass_unit": "kg",
+    "time_scale": "UTC",
+    "velocity_unit": "km/s"
+  },
+  "description": "Materialized by AMAT targeting from a semantic TargetProblem and Candidate.",
+  "event_detectors": [
+    {
+      "actions": [
+        {
+          "action_id": "report_post_initial_coast",
+          "checkpoint_id": "post_initial_coast",
+          "command": "Checkpoint"
+        }
+      ],
+      "description": "Event-driven initial parking-orbit coast before transfer targeting events.",
+      "event_detector_type": "ParameterCondition",
+      "id": "event_initial_coast",
+      "propagator": "earth_prop",
+      "spacecraft": "sat",
+      "stop_condition": {
+        "parameter": "ElapsedSecs",
+        "value": 10800.0
+      }
+    },
+    {
+      "actions": [
+        {
+          "action_id": "burn_transfer_injection",
+          "command": "Maneuver",
+          "maneuver": "transfer_injection",
+          "spacecraft": "sat"
+        },
+        {
+          "action_id": "report_post_transfer_injection",
+          "checkpoint_id": "post_transfer_injection",
+          "command": "Checkpoint"
+        }
+      ],
+      "description": "Seeded descending node for transfer_injection",
+      "event_detector_type": "ParameterCondition",
+      "id": "event_transfer_injection",
+      "propagator": "earth_prop",
+      "spacecraft": "sat",
+      "stop_condition": {
+        "angle_kind": "argument_of_latitude",
+        "parameter": "Earth.ArgumentOfLatitude",
+        "true_anomaly_reference_deg": 150.0,
+        "value": 180.0
+      }
+    },
+    {
+      "actions": [
+        {
+          "action_id": "burn_orbit_insertion",
+          "command": "Maneuver",
+          "maneuver": "orbit_insertion",
+          "spacecraft": "sat"
+        },
+        {
+          "action_id": "report_post_orbit_insertion",
+          "checkpoint_id": "post_orbit_insertion",
+          "command": "Checkpoint"
+        }
+      ],
+      "central_body": "Earth",
+      "event": "apoapsis",
+      "event_detector_type": "ApsideDetector",
+      "id": "event_orbit_insertion",
+      "propagator": "earth_prop",
+      "spacecraft": "sat"
+    }
+  ],
+  "force_models": [
+    {
+      "central_body": "Earth",
+      "gravity": {
+        "model": "PointMass"
+      },
+      "id": "earth_fm",
+      "name": "EarthFM"
+    }
+  ],
+  "maneuvers": [
+    {
+      "delta_v": [
+        2.4257328812090444,
+        0.0,
+        0.0
+      ],
+      "id": "transfer_injection",
+      "maneuver_type": "ImpulsiveBurn",
+      "name": "TransferInjection",
+      "origin": "Earth",
+      "reference_frame": "VNB"
+    },
+    {
+      "delta_v": [
+        1.2224038272461364,
+        -1.2013654012647725,
+        -1.2102091498319422e-15
+      ],
+      "id": "orbit_insertion",
+      "maneuver_type": "ImpulsiveBurn",
+      "name": "OrbitInsertion",
+      "origin": "Earth",
+      "reference_frame": "VNB"
+    }
+  ],
+  "mission_id": "LEO_to_GEO",
+  "mission_name": "LEO_to_GEO node-aware targeting candidate",
+  "mission_sequence": [
+    {
+      "name": "Initial state",
+      "phase_id": "phase_001_initial",
+      "steps": [
+        {
+          "checkpoint_id": "initial_state",
+          "command": "Checkpoint",
+          "step_id": "checkpoint_initial"
+        }
+      ]
+    },
+    {
+      "name": "Initial parking-orbit coast",
+      "phase_id": "phase_002_initial_coast",
+      "steps": [
+        {
+          "command": "EventAction",
+          "event_id": "event_initial_coast",
+          "step_id": "step_initial_coast"
+        }
+      ]
+    },
+    {
+      "name": "Descending node maneuver",
+      "phase_id": "phase_003_transfer_injection",
+      "steps": [
+        {
+          "command": "EventAction",
+          "event_id": "event_transfer_injection",
+          "step_id": "step_transfer_injection"
+        }
+      ]
+    },
+    {
+      "name": "Apoapsis maneuver",
+      "phase_id": "phase_004_orbit_insertion",
+      "steps": [
+        {
+          "command": "EventAction",
+          "event_id": "event_orbit_insertion",
+          "step_id": "step_orbit_insertion"
+        }
+      ]
+    },
+    {
+      "name": "Target-orbit phase coast",
+      "phase_id": "phase_005_phase_coast",
+      "steps": [
+        {
+          "command": "Propagate",
+          "duration": 82102.10285624616,
+          "propagator": "earth_prop",
+          "spacecraft": "sat",
+          "step_id": "coast_to_phase"
+        }
+      ]
+    },
+    {
+      "name": "Post-insertion two-day propagation",
+      "phase_id": "phase_006_post_insertion_coast",
+      "steps": [
+        {
+          "command": "Propagate",
+          "duration": 172800.0,
+          "propagator": "earth_prop",
+          "spacecraft": "sat",
+          "step_id": "propagate_post_insertion_two_days"
+        }
+      ]
+    },
+    {
+      "name": "Final state",
+      "phase_id": "phase_007_final_state",
+      "steps": [
+        {
+          "checkpoint_id": "final_state_checkpoint",
+          "command": "Checkpoint",
+          "step_id": "checkpoint_final_state"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "frames": [
+        "EarthMJ2000Eq",
+        "EarthFixed"
+      ],
+      "id": "targeted_ephemeris",
+      "path_template": "outputs/{spacecraft}_{frame}.eph.csv",
+      "spacecraft": "sat",
+      "state_groups": [
+        "Cartesian",
+        "Keplerian",
+        "ElapsedTime"
+      ],
+      "step": 300.0,
+      "type": "EphemerisFile"
+    },
+    {
+      "id": "targeted_final_state",
+      "path": "outputs/final_state.csv",
+      "spacecraft": "sat",
+      "state_groups": [
+        "Cartesian",
+        "Keplerian",
+        "ElapsedTime"
+      ],
+      "type": "FinalState"
+    },
+    {
+      "body": "Earth",
+      "id": "earth_ground_track",
+      "path": "outputs/_GroundTrack_{spacecraft}_{body}.csv",
+      "spacecraft": "sat",
+      "type": "GroundTrack"
+    }
+  ],
+  "propagators": [
+    {
+      "accuracy": 1e-11,
+      "force_model": "earth_fm",
+      "id": "earth_prop",
+      "initial_step": 60.0,
+      "integrator": "RungeKutta89",
+      "maximum_step": 300.0,
+      "minimum_step": 0.1,
+      "name": "EarthProp",
+      "propagator_type": "NumericalPropagator"
+    }
+  ],
+  "schema_version": "2.0.0",
+  "spacecraft": [
+    {
+      "dry_mass": 1000.0,
+      "epoch": "2026-01-01T00:00:00.000Z",
+      "id": "sat",
+      "name": "TargetSat",
+      "orbit_state": {
+        "keplerian": {
+          "anomaly": 0.0,
+          "anomaly_type": "True",
+          "argument_of_periapsis": 30.0,
+          "eccentricity": 0.0,
+          "inclination": 23.0,
+          "right_ascension_of_ascending_node": 60.0,
+          "semi_major_axis": 6678.1363
+        },
+        "position_angle_type": "True",
+        "representation": "Keplerian"
+      },
+      "reference_frame": "EarthMJ2000Eq"
+    }
+  ],
+  "visualization": {
+    "data_prerequisites": {
+      "checkpoints": true,
+      "ground_tracks": true,
+      "spacecraft_ephemerides": true
+    },
+    "enabled": true,
+    "write_manifest": true
+  }
+}

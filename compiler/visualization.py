@@ -151,7 +151,7 @@ def _body_output_entries(spec: dict) -> list[dict]:
                 entry = dict(out)
                 entry["type"] = "body_ephemeris"
                 entry["body"] = body
-                template = out.get("path_template") or "outputs/_BodyEphemeris_{body}_{frame}.csv"
+                template = out.get("path_template") or "outputs/{body}_{frame}.body.eph.csv"
                 entry["path"] = template.format(body=_safe_name(body), frame=_safe_name(out.get("frame", "J2000")))
                 entries.append(entry)
     return _dedupe_body_entries(entries + _force_model_body_output_entries(spec))
@@ -225,7 +225,7 @@ def _force_model_body_output_entries(spec: dict) -> list[dict]:
                 "body": body,
                 "frame": frame,
                 "source": "gmat",
-                "path": f"outputs/_BodyEphemeris_{_safe_name(body)}_{_safe_name(frame)}.csv",
+                "path": f"outputs/{_safe_name(body)}_{_safe_name(frame)}.body.eph.csv",
                 "auto_generated": True,
                 "reason": "force_model_body",
             })
@@ -250,7 +250,7 @@ def export_body_ephemerides_from_resolved_spice(spec: dict, mission_dir: str | P
     """Convert resolved SPICE ephemeris JSON into viewer-ready body CSVs.
 
     This does not run SPICE.  It consumes normalized files created by the
-    existing ``resolve-spice`` workflow and writes ``_BodyEphemeris*.csv`` files
+    existing ``resolve-spice`` workflow and writes ``*.body.eph.csv`` files
     under the mission output directory.
     """
     mission_dir = Path(mission_dir)
@@ -262,7 +262,7 @@ def export_body_ephemerides_from_resolved_spice(spec: dict, mission_dir: str | P
         frame = _frame_name(out.get("frame"))
         dep_id = out.get("dependency_id")
         resolved = _find_resolved_ephemeris(mission_dir, dep_id)
-        desired = mission_dir / out.get("path", f"outputs/_BodyEphemeris_{_safe_name(body)}_{_safe_name(frame)}.csv")
+        desired = mission_dir / out.get("path", f"outputs/{_safe_name(body)}_{_safe_name(frame)}.body.eph.csv")
         desired.parent.mkdir(parents=True, exist_ok=True)
         if resolved is None:
             if desired.exists():
@@ -398,7 +398,11 @@ def build_visualization_manifest(spec: dict, mission_dir: str | Path, reports: l
 
     spacecraft_ephemerides = []
     for report in reports or []:
-        if not Path(report.get("path", "")).name.startswith("_Ephemeris"):
+        name = Path(report.get("path", "")).name
+        if not (
+            name.endswith(".eph.csv")
+            and not name.endswith(".body.eph.csv")
+        ):
             continue
         params = report.get("parameters", [])
         spacecraft_ephemerides.append({
@@ -431,7 +435,7 @@ def build_visualization_manifest(spec: dict, mission_dir: str | Path, reports: l
     for out in _body_output_entries(spec):
         body = out.get("body") or out.get("target")
         frame = _frame_name(out.get("frame"))
-        path = out.get("path") or f"outputs/_BodyEphemeris_{_safe_name(body)}_{_safe_name(frame)}.csv"
+        path = out.get("path") or f"outputs/{_safe_name(body)}_{_safe_name(frame)}.body.eph.csv"
         source = out.get("source", "spice")
         # If a SPICE body ephemeris was requested but no resolved SPICE JSON is
         # available and a GMAT-generated fallback body ephemeris file exists,
@@ -555,7 +559,7 @@ def build_visualization_manifest(spec: dict, mission_dir: str | Path, reports: l
 
     viewer_warnings = []
     if body_ephemerides and not spacecraft_ephemerides:
-        viewer_warnings.append("Body ephemerides are declared, but no spacecraft _Ephemeris file is listed in the manifest.")
+        viewer_warnings.append("Body ephemerides are declared, but no spacecraft .eph.csv file is listed in the manifest.")
     if spacecraft_ephemerides and body_ephemerides:
         viewer_warnings.append("Spacecraft and body ephemerides may come from different providers; use source metadata when displaying provenance.")
     if any(entry.get("source") == "gmat_reportfile_fallback" for entry in body_ephemerides):
@@ -615,7 +619,7 @@ def auto_resolve_missing_spice_dependencies(spec: dict, mission_dir: str | Path)
     """Best-effort SPICE resolution for visualization body ephemerides.
 
     This enables normal generated_mission.py --run operation to create
-    _BodyEphemeris*.csv files when spiceypy and the requested kernels are
+    *.body.eph.csv files when spiceypy and the requested kernels are
     available.  It is intentionally non-fatal: missing spiceypy, missing
     kernels, or invalid requests are reported in the returned status list and
     the visualization manifest still records the expected body ephemeris.
@@ -654,9 +658,11 @@ def auto_resolve_missing_spice_dependencies(spec: dict, mission_dir: str | Path)
 
 def export_visualization_artifacts(mission_dir: str | Path) -> dict:
     mission_dir = Path(mission_dir)
-    spec_path = mission_dir / "mission_spec.canonical.json"
+    spec_path = mission_dir / "mission_spec.backend_ir.json"
     if not spec_path.exists():
-        raise FileNotFoundError(f"Missing canonical MissionSpec: {spec_path}")
+        spec_path = mission_dir / "mission_spec.canonical.json"
+    if not spec_path.exists():
+        raise FileNotFoundError(f"Missing MissionSpec artifact: {mission_dir / 'mission_spec.backend_ir.json'} or {mission_dir / 'mission_spec.canonical.json'}")
     spec = read_json(spec_path)
     spice_auto_resolve = auto_resolve_missing_spice_dependencies(spec, mission_dir)
     body_exports = export_body_ephemerides_from_resolved_spice(spec, mission_dir)

@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from compiler.backends.gmat.compiler import GmatCompiler
+from compiler.artifacts.bundle import compile_bundle
 from compiler.ir.sequence import append_mission_sequence_phase
 from compiler.ir.canonicalize import canonicalize
 from compiler.time_formats import canonicalize_epoch, format_epoch_for_backend
@@ -64,6 +65,22 @@ def test_epoch_is_canonical_iso_and_gmat_is_rendered_at_backend_boundary(tmp_pat
     assert "TargetSat.Epoch = '01 Jan 2026 00:00:00.000';" in script
     assert "EarthFM.GravityField.Earth.Degree = 0;" in script
     assert "EarthFM.GravityField.Earth.Order = 0;" in script
+
+
+def test_gmat_runner_carries_output_step_for_post_run_cadence(tmp_path):
+    p = canonicalize_target_problem(read_json(_example(tmp_path)))
+    candidate = generate_hohmann_candidate(p)
+    spec = materialize_mission_spec(p, candidate)
+    spec["outputs"][0]["step"] = 120.0
+    spec_path = tmp_path / "mission_spec.json"
+    spec_path.write_text(json.dumps(spec), encoding="utf-8")
+
+    result = compile_bundle(spec_path, tmp_path / "simulation", "gmat")
+    script = (tmp_path / "simulation" / "generated_mission.py").read_text(encoding="utf-8")
+
+    assert result["compile_result"]["status"] == "success", result["compile_result"]
+    assert '"kind": "continuous", "step_s": 120.0' in script
+    assert "_resample_csv_file" in script
 
 
 def test_append_mission_sequence_phase_normalizes_and_appends():
@@ -378,7 +395,7 @@ def test_off_node_plane_change_is_seeded_at_transfer_arc_node(tmp_path):
     }
     ephemeris = next(out for out in spec["outputs"] if out["id"] == "targeted_ephemeris")
     assert ephemeris["frames"] == ["EarthMJ2000Eq", "EarthFixed"]
-    assert ephemeris["path_template"] == "outputs/_Ephemeris_{spacecraft}_{frame}.csv"
+    assert ephemeris["path_template"] == "outputs/{spacecraft}_{frame}.eph.csv"
 
     coast_step = next(
         step

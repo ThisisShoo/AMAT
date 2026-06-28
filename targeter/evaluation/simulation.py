@@ -12,6 +12,10 @@ from targeter.domain import canonicalize_target_problem
 from visualizer.gmat_report_parser import infer_object_frame_from_columns, parse_gmat_report, resolve_column
 
 
+EVALUATION_SCHEMA_VERSION = "2.0.0"
+ACCEPTANCE_SCHEMA_VERSION = "2.0.0"
+
+
 def _quantity_value(value: Any) -> float:
     if isinstance(value, dict):
         return float(value["value"])
@@ -46,12 +50,17 @@ def _simulation_paths(simulation_dir: str | Path) -> tuple[Path, Path]:
     raise FileNotFoundError(f"Could not find outputs/ under {sim}")
 
 
-def _mission_spec_for(simulation_dir: Path) -> dict[str, Any] | None:
-    for name in ("mission_spec.canonical.json", "mission_spec.json"):
+def _mission_spec_artifact_for(simulation_dir: Path) -> tuple[dict[str, Any], Path] | None:
+    for name in ("mission_spec.backend_ir.json", "mission_spec.canonical.json", "mission_spec.json"):
         path = simulation_dir / name
         if path.exists():
-            return read_json(path)
+            return read_json(path), path
     return None
+
+
+def _mission_spec_for(simulation_dir: Path) -> dict[str, Any] | None:
+    artifact = _mission_spec_artifact_for(simulation_dir)
+    return artifact[0] if artifact else None
 
 
 def _burn_total_delta_v(mission_spec: dict[str, Any] | None) -> float | None:
@@ -77,16 +86,12 @@ def _body_radius(body: str | None) -> float | None:
 def _origin_from_frame(frame: str | None, default: str = "Earth") -> str:
     if not frame:
         return default
-    if frame.endswith("MJ2000Eq"):
-        return frame[: -len("MJ2000Eq")] or default
-    if frame.endswith("MJ2000Ec"):
-        return frame[: -len("MJ2000Ec")] or default
-    if frame.endswith("Fixed"):
-        return frame[: -len("Fixed")] or default
-    if frame.startswith("Earth"):
-        return "Earth"
-    if frame.startswith("Luna"):
-        return "Luna"
+    for suffix in ("MJ2000Eq", "MJ2000Ec", "Fixed"):
+        if frame.endswith(suffix):
+            return frame[: -len(suffix)] or default
+    for body in ("Sun", "Mercury", "Venus", "Earth", "Luna", "Moon", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"):
+        if frame.startswith(body):
+            return "Luna" if body == "Moon" else body
     return default
 
 
@@ -154,7 +159,9 @@ def _extract_final_metrics(problem: dict[str, Any], outputs_dir: Path) -> tuple[
 
 
 def _declared_ephemeris_paths(outputs_dir: Path, spacecraft: str | None = None) -> list[Path]:
-    spec_path = outputs_dir.parent / "mission_spec.canonical.json"
+    spec_path = outputs_dir.parent / "mission_spec.backend_ir.json"
+    if not spec_path.exists():
+        spec_path = outputs_dir.parent / "mission_spec.canonical.json"
     if not spec_path.exists():
         return []
     try:
@@ -188,7 +195,14 @@ def _minimum_altitude(
     outputs_dir: Path,
     spacecraft: str | None = None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-    ephemerides = _declared_ephemeris_paths(outputs_dir, spacecraft) or sorted(outputs_dir.glob("_Ephemeris*.csv"))
+    ephemerides = _declared_ephemeris_paths(outputs_dir, spacecraft) or sorted(
+        [
+            p
+            for p in outputs_dir.glob("*.eph.csv")
+            if not p.name.endswith(".body.eph.csv") and not p.name.startswith("_BodyEphemeris")
+        ]
+        + list(outputs_dir.glob("_Ephemeris*.csv"))
+    )
     if spacecraft:
         preferred = [path for path in ephemerides if spacecraft in path.name]
         if preferred:
@@ -362,7 +376,11 @@ def evaluate_simulation(problem: dict[str, Any], simulation_dir: str | Path) -> 
     """
     p = canonicalize_target_problem(problem)
     sim, outputs = _simulation_paths(simulation_dir)
-    mission_spec = _mission_spec_for(sim)
+    mission_spec_artifact = _mission_spec_artifact_for(sim)
+    mission_spec = mission_spec_artifact[0] if mission_spec_artifact else None
+    mission_spec_path = mission_spec_artifact[1] if mission_spec_artifact else None
+    public_spec_path = sim / "mission_spec.canonical.json"
+    public_spec = read_json(public_spec_path) if public_spec_path.exists() else None
 
     metrics, evidence = _extract_final_metrics(p, outputs)
     min_alt, min_alt_evidence = _minimum_altitude(p, outputs, evidence.get("spacecraft"))
@@ -372,12 +390,16 @@ def evaluate_simulation(problem: dict[str, Any], simulation_dir: str | Path) -> 
     total_dv = _burn_total_delta_v(mission_spec)
     if total_dv is not None:
         metrics["mission.total_delta_v"] = {"value": total_dv, "unit": "km/s"}
-        evidence["mission_spec"] = str(sim / "mission_spec.canonical.json")
+        evidence["mission_spec"] = str(mission_spec_path) if mission_spec_path else None
 
     residuals = _constraint_residuals(p, metrics)
     passed = bool(residuals) and all(r["passed"] for r in residuals)
     return {
-        "schema_version": "1.0.0",
+        "schema_version": EVALUATION_SCHEMA_VERSION,
+        "artifact_schema_version": EVALUATION_SCHEMA_VERSION,
+        "target_problem_schema_version": problem.get("schema_version"),
+        "mission_spec_schema_version": public_spec.get("schema_version") if public_spec else None,
+        "backend_ir_schema_version": mission_spec.get("schema_version") if mission_spec else None,
         "problem_id": p["problem_id"],
         "mission_id": p["mission_id"],
         "simulation_dir": str(sim),
@@ -394,7 +416,12 @@ def build_acceptance_result(problem: dict[str, Any], evaluation: dict[str, Any],
     p = canonicalize_target_problem(problem)
     passed = evaluation.get("evaluation_status") == "passed"
     return {
-        "schema_version": "1.0.0",
+        "schema_version": ACCEPTANCE_SCHEMA_VERSION,
+        "artifact_schema_version": ACCEPTANCE_SCHEMA_VERSION,
+        "target_problem_schema_version": problem.get("schema_version"),
+        "simulation_evaluation_schema_version": evaluation.get("schema_version"),
+        "mission_spec_schema_version": evaluation.get("mission_spec_schema_version"),
+        "backend_ir_schema_version": evaluation.get("backend_ir_schema_version"),
         "problem_id": p["problem_id"],
         "mission_id": p["mission_id"],
         "candidate_id": candidate_id,

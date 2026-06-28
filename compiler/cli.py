@@ -6,6 +6,7 @@ from pathlib import Path
 
 from compiler.artifacts.bundle import compile_bundle, validate_mission
 from compiler.io import read_json
+from compiler.ir.backend_spec import to_backend_spec
 from compiler.ir.canonicalize import canonicalize
 from compiler.runtime.run_python import run_generated_python
 from compiler.dependencies.spice import write_spice_requests, resolve_spice_request
@@ -55,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.cmd == "validate":
-        spec = canonicalize(read_json(args.mission_spec))
+        spec = read_json(args.mission_spec)
         report = validate_mission(spec, args.backend)
         print(json.dumps(report, indent=2, sort_keys=True))
         return 0 if report["status"] != "failed" else 1
@@ -71,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if result["ok"] else 1
 
     if args.cmd == "spice-requests":
-        spec = canonicalize(read_json(args.mission_spec))
+        spec = canonicalize(to_backend_spec(read_json(args.mission_spec)))
         requests = write_spice_requests(spec, Path(args.out))
         result = {"mission_id": spec["mission_id"], "count": len(requests), "path": str(Path(args.out) / "dependencies" / "spice_requests.json")}
         print(json.dumps(result, indent=2, sort_keys=True))

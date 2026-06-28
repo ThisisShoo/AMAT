@@ -80,14 +80,18 @@ def validate_frames(spec: dict) -> list[dict]:
     bad = []
     resolved_frames = normalize_reference_frame_declarations(spec)
     declared_frames = {f["id"]: f for f in resolved_frames if f.get("id")}
+    def has_declared_gmat_name(frame: str) -> bool:
+        item = declared_frames.get(frame) or {}
+        return bool(((item.get("backend_overrides", {}) or {}).get("gmat", {}) or {}).get("name"))
+
     for sc in spec.get("spacecraft", []):
         gf = gmat_frame(sc.get("frame"), declared_frames)
-        if gf == sc.get("frame") and sc.get("frame") in declared_frames:
+        if gf == sc.get("frame") and sc.get("frame") in declared_frames and not has_declared_gmat_name(sc.get("frame")):
             bad.append(f"spacecraft {sc.get('id')} frame {sc.get('frame')} needs backend_overrides.gmat.name or a mappable frame type")
     for out in spec.get("outputs", []):
         for frame in out.get("frames", []):
             gf = gmat_frame(frame, declared_frames)
-            if gf == frame and frame in declared_frames:
+            if gf == frame and frame in declared_frames and not has_declared_gmat_name(frame):
                 bad.append(f"output for spacecraft {out.get('spacecraft')} frame {frame} needs backend_overrides.gmat.name or a mappable frame type")
     for f in resolved_frames:
         gmat = (f.get("backend_overrides", {}) or {}).get("gmat", {}) or {}

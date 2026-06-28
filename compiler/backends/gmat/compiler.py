@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import deepcopy
+import math
 import re
 from pathlib import Path
 from importlib.resources import files
@@ -235,16 +237,14 @@ def _origin_from_gmat_frame(frame: str) -> str:
     The MVP only guarantees Earth-centered GMAT demos, but this helper keeps
     the mapping readable and extensible.
     """
-    if frame.endswith("MJ2000Eq"):
-        return frame[: -len("MJ2000Eq")] or "Earth"
-    if frame.startswith("Earth"):
-        return "Earth"
-    if frame.startswith("Luna"):
-        return "Luna"
-    if frame.startswith("Mars"):
-        return "Mars"
-    if frame.startswith("Sun") or frame.startswith("Heliocentric"):
+    for suffix in ("MJ2000Eq", "MJ2000Ec", "Fixed"):
+        if frame.endswith(suffix):
+            return frame[: -len(suffix)] or "Earth"
+    if frame.startswith("Heliocentric"):
         return "Sun"
+    for body in ("Sun", "Mercury", "Venus", "Earth", "Luna", "Moon", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"):
+        if frame.startswith(body):
+            return "Luna" if body == "Moon" else body
     return "Earth"
 
 
@@ -372,6 +372,7 @@ def output_reports(spec: dict, out_dir: str | Path | None = None) -> list[dict]:
             "desired_path": str(Path(relative_path)).replace("\\", "/"),
             "parameters": list(dict.fromkeys(params)),
             "include_header": out.get("include_header", True),
+            "step_s": float(out.get("step_s") or 60.0),
             "output_id": _safe_name(out.get("id", out.get("type", "output"))),
             "segment_by_step": False,
             "segment_path_template": out.get("segment_path_template", ""),
@@ -395,7 +396,7 @@ def output_reports(spec: dict, out_dir: str | Path | None = None) -> list[dict]:
         # Honor explicit path for every continuous output type. If omitted,
         # use a template so one output can expand across multiple frames.
         path_template = out.get("path") or out.get(
-            "path_template", "outputs/_Ephemeris_{spacecraft}_{frame}.csv"
+            "path_template", "outputs/{spacecraft}_{frame}.eph.csv"
         )
         for frame in frames:
             gf = gmat_frame(frame)
@@ -422,6 +423,7 @@ def output_reports(spec: dict, out_dir: str | Path | None = None) -> list[dict]:
                 "desired_path": str(Path(relative_path)).replace("\\", "/"),
                 "parameters": params,
                 "include_header": out.get("include_header", True),
+                "step_s": float(out.get("step_s") or 60.0),
                 "output_id": _safe_name(out.get("id", out.get("type", "output"))),
                 "segment_by_step": bool(out.get("segment_by_step", False)),
                 "segment_path_template": out.get(
@@ -439,6 +441,7 @@ def output_reports(spec: dict, out_dir: str | Path | None = None) -> list[dict]:
                             "id": f"auto_ground_track_{sc['id']}_{body}",
                             "path": "outputs/_GroundTrack_{spacecraft}_{body}.csv",
                             "include_header": out.get("include_header", True),
+                            "step_s": out.get("step_s"),
                         },
                         auto_generated=True,
                     )
@@ -491,7 +494,7 @@ def _body_ephemeris_entries(spec: dict) -> list[dict]:
         if out.get("type") == "body_ephemeris":
             entries.append(out)
         elif out.get("type") == "body_ephemeris_group":
-            template = out.get("path_template") or "outputs/_BodyEphemeris_{body}_{frame}.csv"
+            template = out.get("path_template") or "outputs/{body}_{frame}.body.eph.csv"
             for body in out.get("bodies", []) or []:
                 item = dict(out)
                 item["body"] = body
@@ -509,7 +512,7 @@ def _body_ephemeris_entries(spec: dict) -> list[dict]:
                 "body": body,
                 "frame": frame,
                 "source": "gmat",
-                "path": f"outputs/_BodyEphemeris_{_safe_name(str(body))}_{_safe_name(str(frame))}.csv",
+                "path": f"outputs/{_safe_name(str(body))}_{_safe_name(str(frame))}.body.eph.csv",
                 "auto_generated": True,
                 "reason": "force_model_body",
             })
@@ -521,7 +524,7 @@ def body_ephemeris_reports(spec: dict, out_dir: str | Path | None = None) -> lis
 
     SPICE remains the preferred source when resolved dependency JSON is
     available.  This fallback asks GMAT to emit body states on the same runtime
-    report grid so the viewer still receives _BodyEphemeris files when spiceypy
+    report grid so the viewer still receives body ephemeris files when spiceypy
     or local kernels are unavailable.  The timestamp columns come from the
     first spacecraft because GMAT ReportFile publication is mission-command
     driven.
@@ -548,7 +551,7 @@ def body_ephemeris_reports(spec: dict, out_dir: str | Path | None = None) -> lis
         frame = gmat_frame(entry.get("frame") or time_sc.get("frame") or "EarthMJ2000Eq")
         if not body:
             continue
-        relative_path = entry.get("path") or f"outputs/_BodyEphemeris_{_safe_name(str(body))}_{_safe_name(frame)}.csv"
+        relative_path = entry.get("path") or f"outputs/{_safe_name(str(body))}_{_safe_name(frame)}.body.eph.csv"
         # Time columns are spacecraft-based; body columns are GMAT SpacePoint state parameters.
         params = [
             f"{time_sc['name']}.UTCGregorian",
@@ -573,6 +576,7 @@ def body_ephemeris_reports(spec: dict, out_dir: str | Path | None = None) -> lis
             "desired_path": str(Path(relative_path)).replace("\\", "/"),
             "parameters": params,
             "include_header": entry.get("include_header", True),
+            "step_s": float(entry.get("step_s") or 60.0),
             "source": source,
             "dependency_id": entry.get("dependency_id"),
             "auto_generated": entry.get("auto_generated", False),
@@ -697,6 +701,85 @@ def derived_segment_reports(spec: dict, reports: list[dict], out_dir: str | Path
                 **segment,
             })
     return derived
+
+
+def _reports_for_spacecraft(sc_id: str, reports: list[dict], body_reports: list[dict]) -> list[dict]:
+    return [report for report in reports + body_reports if report.get("spacecraft_id") == sc_id]
+
+
+def _sampled_report_blocks(
+    sc_id: str,
+    duration_s: float,
+    start_elapsed_s: float,
+    reports: list[dict],
+    body_reports: list[dict],
+) -> list[dict]:
+    """Return compact GMAT loop blocks for requested report sampling."""
+    duration = float(duration_s or 0.0)
+    if duration <= 0.0:
+        return []
+    active_reports = _reports_for_spacecraft(sc_id, reports, body_reports)
+    if not active_reports:
+        return [{"mode": "single", "duration_s": duration, "reports": []}]
+
+    positive_steps = [float(report.get("step_s") or 0.0) for report in active_reports if float(report.get("step_s") or 0.0) > 0.0]
+    sample_step_s = min(positive_steps) if positive_steps else duration
+    full_steps = int(math.floor(duration / sample_step_s))
+    remainder_s = duration - full_steps * sample_step_s
+    blocks: list[dict] = []
+    if full_steps > 0:
+        blocks.append({
+            "mode": "loop",
+            "count": full_steps,
+            "duration_s": sample_step_s,
+            "reports": active_reports,
+        })
+    if remainder_s > 1.0e-9 or not blocks:
+        blocks.append({
+            "mode": "single",
+            "duration_s": remainder_s if remainder_s > 1.0e-9 else duration,
+            "reports": active_reports,
+        })
+    return blocks
+
+
+def phases_with_report_sampling(spec: dict, reports: list[dict], body_reports: list[dict]) -> list[dict]:
+    """Attach GMAT explicit Report-command sampling plans to sequence steps."""
+    phases = deepcopy(normalize_mission_sequence(spec))
+    elapsed_by_sc: dict[str, float] = {sc["id"]: 0.0 for sc in spec.get("spacecraft", [])}
+    events_by_id = {event.get("id"): event for event in spec.get("events", [])}
+
+    for phase in phases:
+        for step in phase.get("steps", []):
+            typ = step.get("type")
+            if typ == "propagate":
+                sc_id = step["spacecraft"]
+                duration_s = float(step.get("duration_s") or 0.0)
+                step["sample_blocks"] = _sampled_report_blocks(sc_id, duration_s, elapsed_by_sc.get(sc_id, 0.0), reports, body_reports)
+                elapsed_by_sc[sc_id] = elapsed_by_sc.get(sc_id, 0.0) + duration_s
+            elif typ == "maneuver":
+                burn = next((item for item in spec.get("burns", []) if item.get("id") == step.get("burn")), {})
+                sc_id = step.get("spacecraft")
+                duration_s = float(step.get("duration_s") or 0.0)
+                if sc_id and burn.get("type") == "finite" and duration_s > 0.0:
+                    step["sample_blocks"] = _sampled_report_blocks(sc_id, duration_s, elapsed_by_sc.get(sc_id, 0.0), reports, body_reports)
+                    elapsed_by_sc[sc_id] = elapsed_by_sc.get(sc_id, 0.0) + duration_s
+            elif typ == "event_action":
+                event = events_by_id.get(step.get("event_id"), {})
+                event_sc_id = step.get("spacecraft") or event.get("spacecraft")
+                step["spacecraft"] = event_sc_id
+                step["post_event_reports"] = _reports_for_spacecraft(event_sc_id or "", reports, body_reports)
+                for action in step.get("actions", []):
+                    if action.get("type") != "maneuver":
+                        continue
+                    burn = next((item for item in spec.get("burns", []) if item.get("id") == action.get("burn")), {})
+                    sc_id = action.get("spacecraft") or event_sc_id
+                    duration_s = float(action.get("duration_s") or 0.0)
+                    if sc_id and burn.get("type") == "finite" and duration_s > 0.0:
+                        action["sample_blocks"] = _sampled_report_blocks(sc_id, duration_s, elapsed_by_sc.get(sc_id, 0.0), reports, body_reports)
+                        elapsed_by_sc[sc_id] = elapsed_by_sc.get(sc_id, 0.0) + duration_s
+
+    return phases
 
 
 def event_descriptors(spec: dict) -> list[dict]:
@@ -1025,7 +1108,7 @@ class GmatCompiler:
             "spice_requests": spice_requests,
             "spice_kernel_sets": spice_kernel_sets,
             "coordinate_systems": coordinate_systems_for_gmat(spec, reports + stm_outputs, checkpoints),
-            "phases": normalize_mission_sequence(spec),
+            "phases": phases_with_report_sampling(spec, reports, body_reports),
             "events": events,
             "events_by_id": {event["id"]: event for event in events},
             "zero_distance_event_steps": zero_distance_event_action_steps(spec),

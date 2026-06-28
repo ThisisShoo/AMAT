@@ -136,7 +136,7 @@ def apply_defaults(spec: dict) -> dict:
             out.setdefault("state_groups", [] if out["type"] == "full_ephemeris" else ["cartesian", "elapsed_time"])
             out.setdefault("parameters", [])
             out.setdefault("fields", [])
-            out.setdefault("path_template", "outputs/_Ephemeris_{spacecraft}_{frame}.csv")
+            out.setdefault("path_template", "outputs/{spacecraft}_{frame}.eph.csv")
         elif out["type"] == "ground_track":
             out.setdefault("body", "Earth")
             out.setdefault("step_s", 60.0)

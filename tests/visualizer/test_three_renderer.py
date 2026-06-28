@@ -12,7 +12,7 @@ def test_three_renderer_writes_viewer_with_finite_burns(tmp_path: Path) -> None:
     outputs = tmp_path / "generated" / "demo" / "simulation" / "outputs"
     outputs.mkdir(parents=True)
     visualization = outputs.parent / "visualization"
-    trace_path = outputs / "_Ephemeris_DemoSat_EarthMJ2000Eq.csv"
+    trace_path = outputs / "DemoSat_EarthMJ2000Eq.eph.csv"
     df = pd.DataFrame(
         {
             "DemoSat.ElapsedSecs": [0.0, 10.0, 20.0],
@@ -114,7 +114,7 @@ def test_three_renderer_writes_viewer_with_finite_burns(tmp_path: Path) -> None:
     assert "const DATA =" in html
     assert '"points": [[7000.0, 0.0, 0.0]' in html
     assert '"latitude": [0.0, 1.0, 2.0]' in html
-    assert '"path": "outputs/_Ephemeris_DemoSat_EarthMJ2000Eq.csv"' in html
+    assert '"path": "outputs/DemoSat_EarthMJ2000Eq.eph.csv"' in html
     assert "outputs\\\\" not in html
     assert str(tmp_path) not in html
     assert "fetch(" not in html
@@ -125,7 +125,7 @@ def test_visualization_report_uses_portable_paths(tmp_path: Path) -> None:
     outputs = mission_root / "simulation" / "outputs"
     visualization = mission_root / "simulation" / "visualization"
     outputs.mkdir(parents=True)
-    trace_path = outputs / "_Ephemeris_DemoSat_EarthMJ2000Eq.csv"
+    trace_path = outputs / "DemoSat_EarthMJ2000Eq.eph.csv"
     df = pd.DataFrame(
         {
             "DemoSat.ElapsedSecs": [0.0],
@@ -168,7 +168,7 @@ def test_visualization_report_uses_portable_paths(tmp_path: Path) -> None:
 
     report = report_path.read_text(encoding="utf-8")
     assert '"mission_dir": "simulation"' in report
-    assert '"file": "outputs/_Ephemeris_DemoSat_EarthMJ2000Eq.csv"' in report
+    assert '"file": "outputs/DemoSat_EarthMJ2000Eq.eph.csv"' in report
     assert "outputs\\\\" not in report
     assert str(tmp_path) not in report
 

@@ -11,7 +11,10 @@ _GREG_RE = re.compile(r"^\s*(\d{2}\s+\w{3}\s+\d{4}\s+\d{2}:\d{2}:\d{2}\.\d+)\s+(
 
 
 def _clean_header(line: str) -> list[str]:
-    return [c.strip() for c in next(csv.reader([line])) if c.strip()]
+    cells = [c.strip() for c in next(csv.reader([line])) if c.strip()]
+    if len(cells) == 1 and "," not in line:
+        return [c.strip() for c in re.split(r"\s{2,}", line.strip()) if c.strip()]
+    return cells
 
 
 def _coerce(value: str) -> Any:
@@ -65,6 +68,39 @@ def parse_gmat_report(path: str | Path) -> pd.DataFrame:
     # Drop totally empty columns created by GMAT spacing quirks.
     df = df.dropna(axis=1, how="all")
     return df
+
+
+def drop_repeated_header_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """Remove repeated GMAT ReportFile header rows parsed as data."""
+    if df.empty:
+        return df
+    columns = [str(col).strip() for col in df.columns]
+
+    def is_header_row(row: pd.Series) -> bool:
+        values = ["" if pd.isna(value) else str(value).strip() for value in row.tolist()]
+        return values[: len(columns)] == columns
+
+    mask = df.apply(is_header_row, axis=1)
+    return df.loc[~mask].reset_index(drop=True)
+
+
+def normalize_gmat_report_csv(path: str | Path) -> dict[str, Any]:
+    """Compile a GMAT ReportFile-like CSV into AMAT's normalized CSV shape."""
+    path = Path(path)
+    if not path.exists():
+        return {"path": str(path), "exists": False, "changed": False}
+    before = path.read_text(encoding="utf-8", errors="replace")
+    df = drop_repeated_header_rows(parse_gmat_report(path)).drop_duplicates(ignore_index=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(path, index=False)
+    after = path.read_text(encoding="utf-8", errors="replace")
+    return {
+        "path": str(path),
+        "exists": True,
+        "changed": before != after,
+        "rows": int(len(df)),
+        "columns": [str(col) for col in df.columns],
+    }
 
 
 def resolve_column(columns: list[str], desired: str | None, suffixes: list[str] | None = None) -> str | None:
