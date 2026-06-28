@@ -37,3 +37,5 @@ outputs/
 # Other files to ignore
 PLANNED_FEATURES.md
 orekit_test.py
+TOFIX.md
+SCRIBBLE.md

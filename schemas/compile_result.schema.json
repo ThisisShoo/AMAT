@@ -5,6 +5,8 @@
   "additionalProperties": false,
   "required": [
     "schema_version",
+    "mission_spec_schema_version",
+    "backend_ir_schema_version",
     "mission_id",
     "backend_id",
     "status",
@@ -15,6 +17,21 @@
   "properties": {
     "schema_version": {
       "type": "string"
+    },
+    "artifact_schema_version": {
+      "type": "string"
+    },
+    "mission_spec_schema_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "backend_ir_schema_version": {
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "mission_id": {
       "type": "string"
@@ -36,8 +53,7 @@
         "required": [
           "artifact_id",
           "type",
-          "path",
-          "hash"
+          "path"
         ],
         "properties": {
           "artifact_id": {
@@ -72,6 +88,12 @@
       "type": "array",
       "items": {
         "type": "string"
+      }
+    },
+    "manifest_counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
       }
     }
   }

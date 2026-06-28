@@ -18,10 +18,22 @@
       "prefer_apsis_alignment": true,
       "fallback": "split_at_nearest_valid_node",
       "merge_maneuver_angle_tolerance_deg": 2.0
+    },
+    "phase_policy": {
+      "mode": "auto",
+      "allowed_strategies": [
+        "coast_to_phase",
+        "in_plane_drift"
+      ],
+      "selection_objective": "min_delta_v",
+      "max_revolutions": 5,
+      "restore_target_orbit": true,
+      "target": "argument_of_latitude"
     }
   },
   "initial_state": {
     "representation": "circular_orbit",
+    "central_body": "Earth",
     "altitude": {
       "value": 300.0,
       "unit": "km"
@@ -138,4 +150,3 @@
     }
   }
 }
-

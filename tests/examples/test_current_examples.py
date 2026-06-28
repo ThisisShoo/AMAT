@@ -178,7 +178,7 @@ def test_generated_artifacts_do_not_embed_workspace_absolute_paths(tmp_path: Pat
         assert ("Documents" + " and stuff") not in text
 
     script = (out_dir / "generated_mission.script").read_text(encoding="utf-8")
-    assert "Filename = '_Ephemeris_TargetSat_EarthMJ2000Eq.csv';" in script
+    assert "Filename = 'TargetSat_EarthMJ2000Eq.eph.csv';" in script
 
 
 def test_leo_to_geo_plane_change_is_combined_with_apogee_insertion(tmp_path: Path) -> None:

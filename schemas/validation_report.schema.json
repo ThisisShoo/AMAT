@@ -5,6 +5,7 @@
   "additionalProperties": false,
   "required": [
     "schema_version",
+    "mission_spec_schema_version",
     "mission_id",
     "status",
     "checks",
@@ -14,6 +15,21 @@
   "properties": {
     "schema_version": {
       "type": "string"
+    },
+    "artifact_schema_version": {
+      "type": "string"
+    },
+    "mission_spec_schema_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "backend_ir_schema_version": {
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "mission_id": {
       "type": "string"

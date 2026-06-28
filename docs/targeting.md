@@ -56,7 +56,7 @@ Top-level sections:
 
 `transfer_strategy` selects the transfer family, central body, and maneuver placement policy.
 
-Current supported form:
+Supported form:
 
 ```json
 {
@@ -81,11 +81,11 @@ Current supported form:
 |---|---|---|
 | `two_impulse_apsidal_transfer` | Supported | General two-impulse seed between selected endpoint geometry. Preferred public name. |
 | `hohmann_transfer` | Supported alias | Circular coplanar cases reduce to classical Hohmann behavior. Internally uses the same apsidal-transfer seed path. |
-| `bi_elliptic_transfer` | Incoming feature | Not implemented as a TargetProblem solve. |
-| `lambert_transfer` | Incoming feature | Lambert solving exists inside conic-chain seed helpers, but not as a general TargetProblem strategy. |
-| `patched_conic_transfer` | Incoming feature | Building blocks exist; not exposed as a complete TargetProblem strategy. |
-| `conic_chain_transfer` | Incoming feature | Seed helpers exist for up to three connecting conics; full TargetProblem integration is incomplete. |
-| `low_thrust_transcription` | Incoming feature | Not implemented. |
+| `bi_elliptic_transfer` | Planned | Not implemented as a TargetProblem solve. |
+| `lambert_transfer` | Planned | Lambert solving exists inside conic-chain seed helpers, but not as a general TargetProblem strategy. |
+| `patched_conic_transfer` | Planned | Building blocks exist; not exposed as a complete TargetProblem strategy. |
+| `conic_chain_transfer` | Planned | Seed helpers exist for up to three connecting conics; full TargetProblem integration is incomplete. |
+| `low_thrust_transcription` | Unsupported | Not implemented. |
 
 Hohmann and Lambert are not interchangeable. Hohmann is a special two-impulse transfer case. Lambert is a boundary-value solve used by cross-SOI seed helpers and future transfer strategies.
 
@@ -147,18 +147,18 @@ Available policies:
 
 | Policy | Behavior |
 |---|---|
-| `valid_node_low_speed` | Places plane-change work on the intersection line between the current and target orbital planes. It prefers low-speed opportunities and merges with an energy burn only when the node and burn opportunity are within `merge_maneuver_angle_tolerance_deg`. If phasing is enabled for a circular departure, AMAT may wait in the departure orbit so arrival occurs at a valid node. Otherwise it inserts a separate node plane-change burn. |
+| `valid_node_low_speed` | Places plane-change work on the intersection line between the current and target orbital planes. It prefers low-speed opportunities and merges with an energy maneuver only when the node and maneuver opportunity are within `merge_maneuver_angle_tolerance_deg`. If phasing is enabled for a circular departure, AMAT may wait in the departure orbit so arrival occurs at a valid node. Otherwise it inserts a separate node plane-change maneuver. |
 
 Policy fields:
 
 | Field | Values | Default | Meaning |
 |---|---|---|---|
 | `type` | `valid_node_low_speed` | required | Maneuver placement policy. |
-| `maneuver_model` | `impulsive`, `finite` | `impulsive` | Targeter accepts `finite`, but analytic seeds remain impulsive. |
-| `departure_event` | endpoint event object | `{"type": "initial_state"}` | Event or state used for the first transfer burn. |
-| `arrival_event` | endpoint event object | `{"type": "apoapsis"}` | Event used for the arrival/insertion burn. |
+| `maneuver_model` | `impulsive`, `finite` | `impulsive` | `finite` is accepted as intent, but analytic seed generation remains impulsive. |
+| `departure_event` | endpoint event object | `{"type": "initial_state"}` | Event or state used for the first transfer maneuver. |
+| `arrival_event` | endpoint event object | `{"type": "apoapsis"}` | Event used for the arrival/insertion maneuver. |
 | `allow_departure_phasing` | `true`, `false` | `true` | Permit waiting in a circular departure orbit to align arrival with a target-plane node. |
-| `prefer_apsis_alignment` | `true`, `false` | `true` | Prefer merging plane correction with an apsidal energy burn when geometry allows. |
+| `prefer_apsis_alignment` | `true`, `false` | `true` | Prefer merging plane correction with an apsidal energy maneuver when geometry allows. |
 | `fallback` | `split_at_nearest_valid_node` | `split_at_nearest_valid_node` | Separate plane-change fallback when merger is invalid. |
 | `merge_maneuver_angle_tolerance_deg` | number >= 0 | `2.0` | Angular tolerance for treating two maneuver opportunities as coincident. |
 
@@ -244,7 +244,7 @@ Supported representations:
 | `representation` | Status | Notes |
 |---|---|---|
 | `circular_orbit` | Supported | Uses `altitude` and the selected central-body radius to compute `sma`. |
-| `keplerian` | Supported | Can start at any supplied `true_anomaly`; the first transfer burn is immediate if the state is not at an apsis. |
+| `keplerian` | Supported | Can start at any supplied `true_anomaly`; the first transfer maneuver is immediate if the state is not at an apsis. |
 | `cartesian` | Supported | Uses `position_km` and `velocity_km_s`; AMAT derives equivalent Keplerian elements for the analytic seed and preserves the Cartesian state in the materialized MissionSpec. |
 | `cometary` | Supported | Uses periapsis radius, eccentricity, and angular elements; AMAT derives equivalent Keplerian elements for the analytic seed. Bound elliptic inputs are required. |
 
@@ -372,28 +372,27 @@ Supported fields:
 | `max_revolutions` | Integer | Maximum drift-orbit revolutions for analytic in-plane phasing. |
 | `max_delta_v_km_s` | Number or `null` | Optional phasing delta-v cap. |
 | `restore_target_orbit` | Boolean | Whether the phase strategy must return to the target orbit after phasing. |
-| `target` | `argument_of_latitude` today; broader phase terms incoming | The phase parameter being targeted. |
+| `target` | `argument_of_latitude` | The phase parameter being targeted. |
 | `at` | String | The evaluation point, currently `final_state`. |
 
-Current strategy support:
+Strategy support:
 
 | Strategy | Status | Behavior |
 |---|---|---|
 | `coast_to_phase` | Selector-aware | Rejected when the final-state propagation duration is fixed. |
-| `in_plane_drift` | Implemented | Adds an in-plane burn, drift coast, and restore burn around the target body. |
-| `departure_epoch_shift` | Incoming feature | Shift departure timing to satisfy phase before transfer. |
-| `transfer_time_adjustment` | Incoming feature | Adjust transfer duration or arrival branch. |
-| `resonant` | Incoming feature | Use resonant cycles for repeated body-relative geometry. |
-| `multi_revolution_transfer` | Incoming feature | Select multi-revolution transfer branches. |
-<!-- | `optimized` | Incoming feature | Refine analytic phase seeds through STM or optimizer. | -->
+| `in_plane_drift` | Implemented | Adds an in-plane maneuver, drift coast, and restore maneuver around the target body. |
+| `departure_epoch_shift` | Planned | Shift departure timing to satisfy phase before transfer. |
+| `transfer_time_adjustment` | Planned | Adjust transfer duration or arrival branch. |
+| `resonant` | Planned | Use resonant cycles for repeated body-relative geometry. |
+| `multi_revolution_transfer` | Planned | Select multi-revolution transfer branches. |
 
 When phasing is active, the selector writes `phase_strategy_decision.json` during `targeter solve`. The default automatic policy considers `coast_to_phase` and `in_plane_drift` with a `min_delta_v` objective. The implemented strategy is body-neutral: it uses the target central body's gravitational parameter and semi-major axis, not Earth/GEO constants.
 
-`in_plane_drift` materializes as an in-plane burn, a drift propagation segment, and a restore burn. Simulation backends must support direct impulsive maneuver steps to run that candidate. Orekit supports these direct impulsive `VNB` steps; finite-burn phasing is not supported yet.
+`in_plane_drift` materializes as an in-plane maneuver, a drift propagation segment, and a restore maneuver. Simulation backends must support direct impulsive maneuver steps to run that candidate. Orekit supports these direct impulsive `VNB` steps; finite-maneuver phasing is unsupported.
 
 - `raan` and `aop` are physically undefined for exactly equatorial or circular orbits. Evaluation suppresses undefined RAAN/AOP residuals when target and achieved inclination/eccentricity are within tolerance.
 - `altitude` targets are converted using `transfer_strategy.central_body_radius`.
-- Cartesian and cometary target inputs are canonicalized to Keplerian fields before formulation. The current analytic seed supports bound elliptic endpoint orbits only.
+- Cartesian and cometary target inputs are canonicalized to Keplerian fields before formulation. The analytic seed supports bound elliptic endpoint orbits only.
 
 ## Limits, Execution, and Verification
 
@@ -420,6 +419,17 @@ Example:
 
 Execution fields are backend-neutral intent. The closed-loop implementation selects simulation and correction adapters by ID; available adapter IDs are implementation details rather than TargetProblem concepts.
 
+## Closed-Loop Requirements
+
+Closed-loop targeting is simulation-backed. It needs:
+
+- A simulation backend ID, such as `gmat` or `orekit`.
+- A correction backend ID. Use `stm` for a generic STM-shaped assessment artifact, or `orekit_fd` when the Orekit simulation adapter is expected to synthesize finite-difference sensitivities from perturbation runs.
+- Runtime outputs that include a final-state checkpoint with the state columns required by the TargetProblem acceptance metrics.
+- STM assessment artifacts when the selected correction backend needs them. Orekit can synthesize finite-difference STM assessments; GMAT workflows must emit or provide configured STM artifacts.
+
+Closed-loop artifacts are operational evidence, not a guarantee of high-fidelity mission success. Always finish with `targeter evaluate` against the completed simulation outputs.
+
 ## Commands
 
 This section only covers `targeter` commands.
@@ -430,8 +440,8 @@ This section only covers `targeter` commands.
 | Solve an analytic candidate | `python -m targeter solve path/to/target_problem.json --out generated/<mission_id>/targeting` |
 | Evaluate completed simulation outputs | `python -m targeter evaluate path/to/target_problem.json --simulation-dir generated/<mission_id>/simulation --out generated/<mission_id>/targeting` |
 | Prepare a closed-loop iteration | `python -m targeter closed-loop path/to/target_problem.json --out generated/<mission_id>/targeting` |
-| Run closed loop with explicit modules | `python -m targeter closed-loop path/to/target_problem.json --simulation-backend <backend-id> --correction-backend stm --max-iterations 3 --run --out generated/<mission_id>/targeting` |
-| Generate a conic-chain seed | `python -m targeter conic-chain-seed --body-ephemeris path/to/_BodyEphemeris_Target_Frame.csv --body <body-name> --frame <frame-name> --departure-body <origin-body-name> --target-body <target-body-name> --central-body <central-body-name> --departure-altitude-km <parking-orbit-altitude> --seed-out generated/<mission_id>/targeting/conic_chain_seed.json` |
+| Run closed loop with explicit modules | `python -m targeter closed-loop path/to/target_problem.json --simulation-backend <backend-id> --correction-backend <correction-backend-id> --max-iterations 3 --run --out generated/<mission_id>/targeting` |
+| Generate a conic-chain seed | `python -m targeter conic-chain-seed --body-ephemeris path/to/Target_Frame.body.eph.csv --body <body-name> --frame <frame-name> --departure-body <origin-body-name> --target-body <target-body-name> --central-body <central-body-name> --departure-altitude-km <parking-orbit-altitude> --seed-out generated/<mission_id>/targeting/conic_chain_seed.json` |
 
 For custom central bodies in `conic-chain-seed`, also provide `--central-mu-km3-s2` and `--central-radius-km`.
 
@@ -471,26 +481,26 @@ Backend adapters render those values only when generating backend artifacts. Thi
 
 ## Techniques
 
-AMAT currently uses three targeting techniques:
+AMAT uses three targeting techniques:
 
 | Technique | Purpose |
 |---|---|
 | Analytic two-impulse seed | Produces the initial candidate for same-central-body transfers. Circular coplanar cases reduce to classical Hohmann behavior; elliptical endpoints and node-aware plane changes are also supported. |
-| Conic-chain seed | Produces patched-conic cross-SOI seeds from backend-produced body ephemerides. Lambert solving is used inside this helper, but is not yet a top-level `transfer_strategy.type`. |
-| Closed-loop correction | Runs simulation-backed evaluation and delegates correction to a selected correction module. The STM backend consumes STM assessment artifacts and stops if those artifacts are unavailable. The Orekit simulation adapter can synthesize finite-difference STM assessment artifacts from perturbation runs. |
+| Conic-chain seed | Produces patched-conic cross-SOI seeds from backend-produced body ephemerides. Lambert solving is used inside this helper, but is not a top-level `transfer_strategy.type`. |
+| Closed-loop correction | Runs simulation-backed evaluation and delegates correction to a selected correction module. The `stm` backend consumes STM assessment artifacts and stops if those artifacts are unavailable. The `orekit_fd` backend consumes the finite-difference STM-shaped artifacts synthesized by the Orekit simulation adapter. |
 
 These techniques produce candidates and corrections, not proof of final high-fidelity success. Use `targeter evaluate` or a closed-loop run to compare propagated outputs against the TargetProblem.
 
-## Current Limitations
+## Limitations
 
-Current TargetProblem limitations:
+TargetProblem limitations:
 
 - General Lambert transfer as a TargetProblem strategy.
 - General patched-conic or conic-chain materialization from a TargetProblem.
-- Native finite-burn seed generation. Finite burns can be simulated in MissionSpec, but analytic targeting still seeds impulsive maneuvers.
-- Full SOI switching/detection as part of TargetProblem execution.
+- Native finite-maneuver seed generation. Finite maneuvers can be simulated in MissionSpec, but analytic targeting seeds impulsive maneuvers.
+- Automatic central-body state handoff across SOI boundaries as part of TargetProblem execution.
 - Optimizer-backed TargetProblem solve modes.
-- Multiple production-grade simulation backend adapters. GMAT is the primary high-fidelity backend; Orekit is an initial two-body backend with targeting workflow support.
+- Full feature parity across simulation backend adapters. GMAT is the primary high-fidelity backend; Orekit supports selected targeting workflows.
 - Guaranteed propagation support for arbitrary custom central bodies. The targeter can materialize a candidate with custom body constants, but the selected compiler/simulation backend must also support that body.
 
 ## Data Sources

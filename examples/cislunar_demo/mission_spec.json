@@ -172,7 +172,7 @@
         "LunaEarthRotating"
       ],
       "id": "cislunar_frames",
-      "path_template": "outputs/_Ephemeris_{spacecraft}_{frame}.csv",
+      "path_template": "outputs/{spacecraft}_{frame}.eph.csv",
       "spacecraft": "cislunar_sat",
       "state_groups": [
         "elapsed_time",
@@ -186,7 +186,7 @@
       "dependency_id": "luna_ephem_20260601",
       "frame": "EarthMJ2000Eq",
       "id": "luna_body_ephemeris",
-      "path": "outputs/_BodyEphemeris_Luna_EarthMJ2000Eq.csv",
+      "path": "outputs/Luna_EarthMJ2000Eq.body.eph.csv",
       "source": "spice",
       "type": "body_ephemeris"
     }

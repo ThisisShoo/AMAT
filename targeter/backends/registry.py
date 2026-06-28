@@ -18,6 +18,11 @@ def get_simulation_backend(backend_id: str) -> SimulationBackend:
 
 
 def get_correction_backend(backend_id: str) -> CorrectionBackend:
-    if backend_id in {"stm", "stm_linear"}:
+    key = backend_id.strip().lower()
+    if key in {"stm", "stm_linear"}:
         return StmCorrectionBackend()
+    if key in {"orekit_fd", "orekit-fd", "orekit_finite_difference"}:
+        from targeter.backends.orekit_fd import OrekitFiniteDifferenceCorrectionBackend
+
+        return OrekitFiniteDifferenceCorrectionBackend()
     raise ValueError(f"Unknown targeting correction backend {backend_id!r}")

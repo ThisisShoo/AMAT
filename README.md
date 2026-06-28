@@ -4,11 +4,11 @@ AMAT is a mission simulation, targeting, optimization, and visualization workben
 
 ## What AMAT Does
 
-AMAT currently provides four cooperating layers:
+AMAT provides four cooperating layers:
 
-- **Mission compilation**: validates a human- or machine-written `mission_spec.json`, canonicalizes it, and emits scripts and generated Python runners to operate other softwares.
+- **Mission compilation**: validates a human- or machine-written MissionSpec, canonicalizes it, and emits backend scripts and generated Python runners.
 - **Simulation execution**: runs generated missions and collects spacecraft and body ephemerides. User-defined checkpoints are available to sample spacecraft states at any point during flight. All outputs are saved under `generated/<mission_id>/`.
-- **Targeting and optimization**: creates initial maneuver seeds for supported transfer problems and provides a swappable optimization layer, currently with GMAT as the first supported backend.
+- **Targeting and optimization**: creates initial maneuver seeds for supported transfer problems and provides swappable correction and optimization modules.
 - **Visualization**: reads generated simulation artifacts and creates an interactive 3D HTML viewer with spacecraft trajectories, body ephemerides, checkpoints, ground tracks, and reference-frame context.
 
 A typical workflow resembles:
@@ -24,7 +24,7 @@ MissionSpec or TargetProblem
 
 ## Installation
 
-AMAT is a Python project. Install it from the repository root:
+AMAT requires Python 3.10 or newer. Install it from the repository root:
 
 ```bash
 python -m pip install -e .[dev]
@@ -32,7 +32,7 @@ python -m pip install -e .[dev]
 
 This installs the AMAT packages and development test dependency. The core dependencies include `gmatpyplus`, `spiceypy`, `numpy`, `pandas`, `jinja2`, `jsonschema`, and `plotly`.
 
-For the initial Orekit backend, install the optional extra:
+For the Orekit backend, install the optional extra:
 
 ```bash
 python -m pip install -e .[dev,orekit]
@@ -63,7 +63,7 @@ Using `python -m ...` is preferred during development because it makes the activ
 
 ### GMAT - General Mission Analysis Tool
 
-[GMAT](https://etd.gsfc.nasa.gov/capabilities/capabilities-listing/general-mission-analysis-tool-gmat/), or General Mission Analysis Tool, is a NASA open-source trajectory optimization and optimization software. It serves as one of AMAT's optional simulation backends. AMAT currently operates GMAT through the `gmatpyplus` wrapper, which expects a GMAT installation path. Set the `GMAT` environment variable to the GMAT root directory.
+[GMAT](https://etd.gsfc.nasa.gov/capabilities/capabilities-listing/general-mission-analysis-tool-gmat/), or General Mission Analysis Tool, is a NASA open-source trajectory design and analysis application. It serves as AMAT's primary high-fidelity simulation backend. AMAT operates GMAT through the `gmatpyplus` wrapper, which expects a GMAT installation path. Set the `GMAT` environment variable to the GMAT root directory.
 
 Windows PowerShell example:
 
@@ -87,7 +87,7 @@ If GMAT cannot be loaded, first confirm:
 
 ### Orekit JPype
 
-Orekit is available as an initial simulation backend through `orekit-jpype`. It is useful for lightweight two-body propagation, Orekit-backed targeter acceptance runs, and backend-swapping tests. Install AMAT with the `orekit` extra, make sure a Java runtime is available, and set `OREKIT_DATA_PATH` to an Orekit data directory:
+Orekit is available as a simulation backend through `orekit-jpype`. It is useful for portable propagation, selected numerical force-model propagation, Orekit-backed targeter acceptance runs, and backend-swapping tests. Install AMAT with the `orekit` extra, make sure a Java runtime is available, and set `OREKIT_DATA_PATH` to an Orekit data directory:
 
 ```powershell
 $env:OREKIT_DATA_PATH = "D:\path\to\orekit-data"
@@ -100,26 +100,31 @@ $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-25.0.3.9-hotspot"
 $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 ```
 
-Current Orekit-backed spaceflight support in AMAT:
+Orekit-backed spaceflight support in AMAT:
 
 - Cartesian and Keplerian spacecraft initial states.
 - Built-in point-mass central gravity for Sun, Mercury, Venus, Earth, Luna/Moon, Mars, Jupiter, Saturn, Uranus, Neptune, and Pluto.
 - Two-body propagation with Orekit `KeplerianPropagator`.
-- Supported inertial frames: `EarthMJ2000Eq`, `MJ2000Eq`, `EME2000`, `LunaMJ2000Eq`, and `MoonMJ2000Eq`.
-- Mission sequence steps: elapsed-time propagation, checkpoints, direct impulsive maneuvers, and limited event actions.
-- Events: elapsed seconds, `Earth.ArgumentOfLatitude`, and apoapsis.
-- Impulsive burns in `VNB`.
-- Spacecraft ephemeris CSV, checkpoint CSV, and final-state CSV output.
+- Numerical propagation for declared spherical-harmonic gravity, third-body/point-mass perturbing bodies, Harris-Priester drag, solar radiation pressure, relativity, and Earth tides when the local Orekit data set and spacecraft properties support them.
+- GMAT-style body-centered inertial/fixed frame names for supported major bodies, using Orekit-native frames or validated adapter fallbacks.
+- Topocentric station frames and local orbital maneuver frames where supported by the adapter.
+- Mission sequence steps: elapsed-time propagation, checkpoints, direct impulsive/finite maneuvers, per-segment propagator context, and event actions.
+- Events: elapsed seconds/date, true anomaly, argument of latitude, periapsis, apoapsis, node-crossing, distance threshold, SOI crossing, elevation, and eclipse-style timing.
+- Impulsive maneuvers in `VNB`, `LVLH`, `SpacecraftBody`, and supported inertial/fixed frames.
+- Finite maneuvers as segmented thrust propagation in supported maneuver frames.
+- Spacecraft ephemeris CSV, checkpoint CSV, final-state CSV, body ephemeris CSV for built-in bodies, and ground-track CSV from surface-fixed spacecraft states.
+- Validated fallback output frames, including body-fixed spacecraft ephemeris output for supported major bodies.
 - Keplerian columns in output CSVs for target evaluation.
-- Targeter closed-loop compatibility through finite-difference STM assessment artifacts synthesized from Orekit perturbation runs.
+- Targeter closed-loop compatibility through finite-difference STM assessment artifacts synthesized from Orekit perturbation runs and the explicit `orekit_fd` correction backend.
 
-Current Orekit limitations:
+Orekit backend limitations:
 
-- No finite burns, spherical harmonics, third-body gravity, atmospheric drag, SRP, or other high-fidelity force models through AMAT's Orekit backend yet.
-- No ground-track CSV generation, body ephemeris output, body-fixed output frames, or general frame transformation.
-- No general event detector coverage beyond the limited events listed above.
-- No burn frames beyond `VNB`.
-- The backend is initial, not yet a full replacement for the GMAT backend.
+- Finite maneuvers are available as segmented thrust propagation; they are not coupled into a full high-fidelity numerical force model with propellant mass depletion.
+- Object-referenced/two-body rotating frames remain GMAT-authoritative.
+- No native Orekit variational-equation STM yet; Orekit correction currently uses finite differences.
+- No arbitrary frame transformation; output fallback frames must be explicitly supported by the adapter.
+- Custom/non-built-in body ephemerides require configured SPICE fallback or another backend.
+- Orekit is a swappable backend for supported workflows, not a full replacement for GMAT.
 
 ## Verify the install
 
@@ -129,17 +134,19 @@ After installation and simulation tool setup, run the test suite:
 python -m pytest
 ```
 
-Then do a minimal compile check from the project root:
+Then run the targeting-first LEO-to-GEO example from the project root:
 
 ```bash
-python -m compiler validate examples/LEO_to_GEO/mission_spec.json
-python -m compiler compile examples/LEO_to_GEO/mission_spec.json --out generated/LEO_to_GEO/simulation
+python -m targeter solve examples/LEO_to_GEO/target_problem.json --out generated/LEO_to_GEO/targeting
+python -m compiler validate generated/LEO_to_GEO/targeting/candidate_mission_spec.json
+python -m compiler compile generated/LEO_to_GEO/targeting/candidate_mission_spec.json --backend gmat --out generated/LEO_to_GEO/simulation
 ```
 
-At this point AMAT is installed and can generate mission artifacts. To confirm a complete backend run and render path, run the generated mission and render the visualization:
+At this point AMAT is installed and can generate mission artifacts. To confirm a complete backend run, acceptance evaluation, and render path:
 
 ```bash
 python generated/LEO_to_GEO/simulation/generated_mission.py --run
+python -m targeter evaluate examples/LEO_to_GEO/target_problem.json --simulation-dir generated/LEO_to_GEO/simulation --out generated/LEO_to_GEO/targeting
 python -m visualizer view --mission-dir generated/LEO_to_GEO/simulation
 ```
 
@@ -157,19 +164,18 @@ Open `trajectory.html` in a browser to inspect the result.
 Use these documents for hands-on workflows and schema details:
 
 - [docs/pipeline.md](docs/pipeline.md): targeting-first and simulation-first execution pipelines.
-- [docs/mission_spec_reference.md](docs/mission_spec_reference.md): How to define the mission for the simulation layer. Includes `mission_spec.json` structure, supported sections, events, outputs, frames, and dependencies.
-- [docs/targeting.md](docs/targeting.md): targeting-layer concepts, current boundaries, transfer conventions, and cislunar seeding.
+- [docs/mission_spec_reference.md](docs/mission_spec_reference.md): How to define the mission for the simulation layer. Includes `mission_spec.json` structure, supported sections, event detectors, outputs, frames, and dependencies.
+- [docs/targeting.md](docs/targeting.md): targeting-layer concepts, supported boundaries, transfer conventions, and cislunar seeding.
 
 Useful examples:
 
-- `examples/LEO_to_GEO/mission_spec.json`: Earth-orbit transfer example.
 - `examples/LEO_to_GEO/target_problem.json`: targeting-first Earth-orbit transfer seed.
-- `examples/MEO_demo/mission_spec.json`: medium Earth orbit propagation example.
-- `examples/cislunar_demo/mission_spec.json`: cislunar demonstration that uses GMAT-backed propagation and body ephemerides.
+- `examples/LEO_to_GEO_orekit/target_problem.json`: Orekit-oriented targeting-first counterpart.
+- `examples/phasing_example/target_problem.json`: phase-targeting problem setup.
 
-## Current Capabilities
+## Capability Summary
 
-AMAT currently supports GMAT as the primary simulation backend and Orekit as an initial two-body simulation backend. Targeting and rendering are done natively, unless a simulation-backed acceptance or correction pass is requested.
+AMAT supports GMAT as the primary simulation backend and Orekit as a swappable backend for supported workflows. Targeting and rendering are native AMAT layers unless a simulation-backed acceptance or correction pass is requested.
 
 Spaceflight-related capabilities include but not limited to:
 
@@ -177,21 +183,12 @@ Spaceflight-related capabilities include but not limited to:
 - Multi-phase mission sequences combining propagation, impulsive maneuvers, event actions, and checkpoints.
 - GMAT point-mass and spherical-harmonic force model declarations.
 - GMAT multi-body gravity declarations.
-- Orekit two-body point-mass propagation for supported built-in central bodies.
-- Orekit finite-difference STM assessment artifacts for targeter closed-loop correction.
-- Simulation-coupled body ephemeris, with SPICE fallback when configured. 
-- HTML-based interactive trajectory visualization with backend-defined frames. 
+- Orekit two-body propagation and selected numerical force-model propagation for supported built-in central bodies.
+- Orekit finite-difference STM assessment artifacts and `orekit_fd` correction backend for targeter closed-loop correction.
+- Simulation-coupled body ephemeris, with SPICE fallback when configured.
+- HTML-based interactive trajectory visualization with backend-defined frames.
 
-## Development Roadmap (in order of priority)*
-
-- Finite burn compatibility 
-- Broader Orekit force models, frames, events, and output products
-- Multi-spacecraft missions
-- Human-agent-AMAT interfaces
-- Persistent UI
-- ... (TBD)
-
-*List subject to change based on user feedbacks and development status.*
+The detailed backend capability matrix lives in [docs/mission_spec_reference.md](docs/mission_spec_reference.md).
 
 <!-- ## Acknowledgement
 

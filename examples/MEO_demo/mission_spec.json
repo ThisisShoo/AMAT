@@ -159,7 +159,7 @@
         "cartesian",
         "keplerian"
       ],
-      "path_template": "outputs/_Ephemeris_{spacecraft}_{frame}.csv"
+      "path_template": "outputs/{spacecraft}_{frame}.eph.csv"
     },
     {
       "id": "earth_ground_track",

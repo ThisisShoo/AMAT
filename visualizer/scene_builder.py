@@ -47,7 +47,7 @@ def build_scene(
     gt_files = ground_track_files(paths.outputs_dir)
 
     if not sc_files:
-        warnings.append(f"No spacecraft ephemeris files found using {paths.outputs_dir / '_Ephemeris*.csv'}")
+        warnings.append(f"No spacecraft ephemeris files found using {paths.outputs_dir / '*.eph.csv'}")
 
     sc_traces = load_spacecraft_ephemerides(sc_files, manifest)
     body_traces = load_body_ephemerides(body_files, manifest)

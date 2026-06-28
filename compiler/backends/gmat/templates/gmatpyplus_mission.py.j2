@@ -49,7 +49,7 @@ OUTPUT_DIR = ROOT / "outputs"
 SCRIPT_PATH = ROOT / "generated_mission.script"
 REQUIRES_SCRIPT_REPLAY = {{ 'True' if requires_script_replay else 'False' }}
 VISUALIZATION_ENABLED = {{ 'True' if spec.get("visualization", {}).get("enabled", True) else 'False' }}
-VISUALIZATION_AUTO_EXPORT_AFTER_RUN = {{ 'True' if spec.get("visualization", {}).get("auto_export_after_run", True) else 'False' }}
+VISUALIZATION_AUTO_EXPORT_AFTER_RUN = {{ 'True' if spec.get("visualization", {}).get("auto_export_after_run", False) else 'False' }}
 EXPECTED_OUTPUTS = [
 {% for out in expected_outputs %}
     str(ROOT / "{{ out.path }}"),
@@ -57,7 +57,7 @@ EXPECTED_OUTPUTS = [
 ]
 REPORT_COPIES = [
 {% for out in report_copies %}
-    {"source_filename": "{{ out.source_filename }}", "desired_path": r"{{ out.desired_path }}"},
+    {"source_filename": "{{ out.source_filename }}", "desired_path": r"{{ out.desired_path }}", "kind": "{{ out.kind }}", "step_s": {{ out.get("step_s") if out.get("step_s") is not none else "None" }}},
 {% endfor %}
 ]
 CHECKPOINT_REPORTS = [
@@ -257,7 +257,9 @@ def _collect_report_outputs() -> dict[str, Any]:
             continue
         if source.resolve() != desired.resolve():
             shutil.copy2(source, desired)
-        normalized_csvs.append(_normalize_csv_file(desired))
+        normalized = _normalize_csv_file(desired)
+        cadence = _resample_csv_file(desired, item.get("step_s"), item.get("kind"))
+        normalized_csvs.append({**normalized, "cadence": cadence})
         copied.append({"from": str(source), "to": str(desired)})
     checkpoint_headers = _finalize_checkpoint_headers()
     return {
@@ -292,20 +294,27 @@ def _clean_csv_row(row: list[str]) -> list[str]:
 
 
 def _normalize_csv_file(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {"path": str(path), "exists": False, "changed": False}
     try:
-        with path.open("r", newline="", encoding="utf-8", errors="replace") as f:
-            rows = [_clean_csv_row(row) for row in csv.reader(f)]
-        rows = [row for row in rows if row]
-        before = path.read_text(encoding="utf-8", errors="replace")
-        with path.open("w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerows(rows)
-        after = path.read_text(encoding="utf-8", errors="replace")
-        return {"path": str(path), "exists": True, "changed": before != after, "rows": len(rows)}
+        from visualizer.gmat_report_parser import normalize_gmat_report_csv
     except Exception as exc:
-        return {"path": str(path), "exists": True, "changed": False, "error": str(exc)}
+        raise RuntimeError("pandas-backed GMAT CSV normalization requires the visualizer dependencies") from exc
+    return normalize_gmat_report_csv(path)
+
+
+def _resample_csv_file(path: Path, step_s: Any, kind: str | None = None) -> dict[str, Any]:
+    if kind not in {"continuous", "ground_track", "body_ephemeris"}:
+        return {"path": str(path), "status": "skipped", "reason": "not_ephemeris_style"}
+    try:
+        import pandas as pd
+    except Exception as exc:
+        raise RuntimeError("pandas is required to inspect normalized AMAT CSV output") from exc
+    if not path.exists():
+        return {"path": str(path), "status": "skipped", "reason": "missing_file"}
+    try:
+        df = pd.read_csv(path)
+        return {"path": str(path), "status": "preserved_backend_sampling", "rows": int(len(df)), "step_s": step_s}
+    except Exception as exc:
+        return {"path": str(path), "status": "error", "error": str(exc)}
 
 
 def _finalize_checkpoint_headers() -> dict[str, Any]:
