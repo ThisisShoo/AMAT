@@ -5,6 +5,7 @@ from targeter.domain import canonicalize_target_problem
 from targeter.formulation import build_targeting_formulation
 from compiler.io import read_json
 from compiler.ir.canonicalize import canonicalize
+from compiler.ir.backend_spec import to_backend_spec
 from compiler.validation.validate_schema import validate_schema
 from compiler.validation.validate_bounds import validate_bounds
 
@@ -50,15 +51,38 @@ def test_one_file_problem_validates(tmp_path):
 def test_solve_emits_new_artifact_set(tmp_path):
     result = solve_file(_example(tmp_path), tmp_path)
     assert result["status"] == "analytically_feasible"
+    assert result["artifact_profile"] == "standard"
     assert 3.8 < result["total_delta_v_km_s"] < 4.0
-    for name in ["target_problem.canonical.json", "targeting_formulation.json", "initial_candidate.json", "targeting_result.json", "candidate_mission_spec.json", "acceptance_result.json", "provenance.json"]:
+    for name in ["target_problem.canonical.json", "maneuver_plan.json", "targeting_result.json", "candidate_mission_spec.json"]:
         assert (tmp_path/name).exists()
+    for name in ["targeting_formulation.json", "initial_candidate.json", "acceptance_result.json", "provenance.json"]:
+        assert not (tmp_path/name).exists()
+    maneuver_plan = read_json(tmp_path/"maneuver_plan.json")
+    assert maneuver_plan["status"] == "analytically_feasible"
     target_result = read_json(tmp_path/"targeting_result.json")
     assert target_result["targeting_status"] == "not_run"
     assert target_result["simulation_status"] == "not_run"
-    solved = canonicalize(read_json(tmp_path/"candidate_mission_spec.json"))
-    failures = [x for x in validate_schema(solved) + validate_bounds(solved) if x.get("status") != "passed"]
+    solved = read_json(tmp_path/"candidate_mission_spec.json")
+    backend_ir = canonicalize(to_backend_spec(solved))
+    failures = [x for x in validate_schema(solved) + validate_bounds(backend_ir) if x.get("status") != "passed"]
     assert failures == []
+
+
+def test_solve_debug_profile_writes_diagnostic_artifacts(tmp_path):
+    result = solve_file(_example(tmp_path), tmp_path, artifact_profile="debug")
+
+    assert result["artifact_profile"] == "debug"
+    for name in [
+        "target_problem.canonical.json",
+        "targeting_formulation.json",
+        "maneuver_plan.json",
+        "initial_candidate.json",
+        "targeting_result.json",
+        "candidate_mission_spec.json",
+        "acceptance_result.json",
+        "provenance.json",
+    ]:
+        assert (tmp_path/name).exists()
 
 
 def test_target_argument_of_latitude_is_optional_constraint():

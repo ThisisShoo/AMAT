@@ -138,9 +138,12 @@ Then run the targeting-first LEO-to-GEO example from the project root:
 
 ```bash
 python -m targeter solve examples/LEO_to_GEO/target_problem.json --out generated/LEO_to_GEO/targeting
+type generated/LEO_to_GEO/targeting/maneuver_plan.json
 python -m compiler validate generated/LEO_to_GEO/targeting/candidate_mission_spec.json
 python -m compiler compile generated/LEO_to_GEO/targeting/candidate_mission_spec.json --backend gmat --out generated/LEO_to_GEO/simulation
 ```
+
+Use `--artifact-profile debug` with `targeter solve` or `compiler compile` when you want expanded audit and diagnostic files.
 
 At this point AMAT is installed and can generate mission artifacts. To confirm a complete backend run, acceptance evaluation, and render path:
 

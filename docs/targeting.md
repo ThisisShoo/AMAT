@@ -452,13 +452,12 @@ For custom central bodies in `conic-chain-seed`, also provide `--central-mu-km3-
 ```text
 generated/<mission_id>/targeting/
   target_problem.canonical.json
-  targeting_formulation.json
-  initial_candidate.json
+  maneuver_plan.json
   targeting_result.json
   candidate_mission_spec.json
-  acceptance_result.json
-  provenance.json
 ```
+
+Use `--artifact-profile debug` to also write `targeting_formulation.json`, `initial_candidate.json`, `phase_strategy_decision.json`, `acceptance_result.json`, and `provenance.json`.
 
 `evaluate` consumes completed simulation outputs and writes:
 

@@ -6,6 +6,7 @@ import math
 import pytest
 
 from compiler.ir.canonicalize import canonicalize
+from compiler.ir.backend_spec import to_backend_spec
 from compiler.io import read_json
 from compiler.validation.validate_bounds import validate_bounds
 from compiler.validation.validate_schema import validate_schema
@@ -14,6 +15,14 @@ from targeter.initial_guess import generate_hohmann_candidate
 from targeter.materialization import materialize_mission_spec
 from targeter.phase import apply_phase_strategy, select_phase_strategy
 from targeter.service import solve_file
+
+
+def _backend_spec(problem: dict, candidate: dict) -> dict:
+    return canonicalize(to_backend_spec(materialize_mission_spec(problem, candidate)))
+
+
+def _public_spec(problem: dict, candidate: dict) -> dict:
+    return materialize_mission_spec(problem, candidate)
 
 
 BASE_PROBLEM = {
@@ -177,9 +186,10 @@ def test_in_plane_drift_augments_candidate_with_in_plane_restore_burns():
 def test_phase_drift_materializes_as_burn_coast_burn_sequence():
     problem = _in_plane_problem()
     candidate = apply_phase_strategy(problem, generate_hohmann_candidate(problem))
-    spec = canonicalize(materialize_mission_spec(problem, candidate))
+    public_spec = _public_spec(problem, candidate)
+    spec = canonicalize(to_backend_spec(public_spec))
 
-    failures = [item for item in validate_schema(spec) + validate_bounds(spec) if item.get("status") != "passed"]
+    failures = [item for item in validate_schema(public_spec) + validate_bounds(spec) if item.get("status") != "passed"]
     assert failures == []
     burn_ids = [burn["id"] for burn in spec["burns"]]
     assert "enter_phase_drift" in burn_ids
@@ -211,7 +221,7 @@ def test_solve_writes_phase_strategy_decision_artifact(tmp_path):
 
     path.write_text(json.dumps(BASE_PROBLEM), encoding="utf-8")
 
-    result = solve_file(path, tmp_path / "targeting")
+    result = solve_file(path, tmp_path / "targeting", artifact_profile="debug")
     decision = read_json(tmp_path / "targeting" / "phase_strategy_decision.json")
 
     assert result["status"] == "analytically_feasible"
@@ -222,7 +232,7 @@ def test_solve_writes_phase_strategy_decision_artifact(tmp_path):
 def test_coast_to_phase_materializes_before_final_fixed_coast():
     problem = _problem()
     candidate = apply_phase_strategy(problem, generate_hohmann_candidate(problem))
-    spec = canonicalize(materialize_mission_spec(problem, candidate))
+    spec = _backend_spec(problem, candidate)
 
     steps = [step for phase in spec["mission_sequence"] for step in phase["steps"]]
     phase_coast_index = next(i for i, step in enumerate(steps) if step.get("step_id") == "coast_to_phase")
@@ -245,7 +255,7 @@ def test_same_orbit_phasing_omits_zero_transfer_placeholder_burns():
     raw["execution"]["post_insertion_coast_s"] = 86400.0
     problem = canonicalize_target_problem(raw)
     candidate = apply_phase_strategy(problem, generate_hohmann_candidate(problem))
-    spec = canonicalize(materialize_mission_spec(problem, candidate))
+    spec = _backend_spec(problem, candidate)
 
     burn_ids = [burn["id"] for burn in spec["burns"]]
 

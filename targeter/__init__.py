@@ -45,6 +45,7 @@ from .stm_correction import StmCorrectionResult, solve_stm_target_state_correcti
 from .targeting_policy import TargetingPolicyResult, execute_targeting_policy
 from .evaluation import build_acceptance_result, evaluate_simulation
 from .execution import execute_closed_loop, execute_closed_loop_file
+from .maneuver_planner import ManeuverPlanner, ManeuverPlanRequest, ManeuverPlanResult, plan_target_problem
 from .service import solve_file, validate_file, canonicalize_file
 __all__ = [
     "LambertSolution",
@@ -77,6 +78,10 @@ __all__ = [
     "evaluate_simulation",
     "execute_closed_loop",
     "execute_closed_loop_file",
+    "ManeuverPlanner",
+    "ManeuverPlanRequest",
+    "ManeuverPlanResult",
+    "plan_target_problem",
     "solve_file",
     "validate_file",
     "canonicalize_file",

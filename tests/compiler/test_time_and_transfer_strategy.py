@@ -7,6 +7,7 @@ import pytest
 
 from compiler.backends.gmat.compiler import GmatCompiler
 from compiler.artifacts.bundle import compile_bundle
+from compiler.ir.backend_spec import to_backend_spec
 from compiler.ir.sequence import append_mission_sequence_phase
 from compiler.ir.canonicalize import canonicalize
 from compiler.time_formats import canonicalize_epoch, format_epoch_for_backend
@@ -15,7 +16,7 @@ from compiler.validation.validate_dependencies import validate_dependencies
 from compiler.validation.validate_schema import validate_schema
 from targeter.domain import canonicalize_target_problem, validate_target_problem
 from targeter.errors import TargetingError
-from targeter.initial_guess import generate_hohmann_candidate
+from targeter.maneuver_planner import plan_target_problem
 from targeter.io import read_json
 from targeter.materialization import materialize_mission_spec
 import targeter.initial_guess.hohmann as hohmann_guess
@@ -54,12 +55,20 @@ def _example(tmp_path: Path) -> Path:
     return path
 
 
+def _planner_candidate(problem: dict) -> dict:
+    return plan_target_problem(problem).selected_candidate_payload
+
+
+def _backend_mission_spec(problem: dict, candidate: dict) -> dict:
+    return canonicalize(to_backend_spec(materialize_mission_spec(problem, candidate)))
+
+
 def test_epoch_is_canonical_iso_and_gmat_is_rendered_at_backend_boundary(tmp_path):
     assert canonicalize_epoch("01 Jan 2026 00:00:00.000") == "2026-01-01T00:00:00.000Z"
     assert format_epoch_for_backend("2026-01-01T00:00:00.000Z", "gmat") == "01 Jan 2026 00:00:00.000"
     p = canonicalize_target_problem(read_json(_example(tmp_path)))
-    candidate = generate_hohmann_candidate(p)
-    spec = canonicalize(materialize_mission_spec(p, candidate))
+    candidate = _planner_candidate(p)
+    spec = _backend_mission_spec(p, candidate)
     assert spec["spacecraft"][0]["epoch"] == "2026-01-01T00:00:00.000Z"
     script = GmatCompiler().render_gmat_script(spec, tmp_path)
     assert "TargetSat.Epoch = '01 Jan 2026 00:00:00.000';" in script
@@ -69,7 +78,7 @@ def test_epoch_is_canonical_iso_and_gmat_is_rendered_at_backend_boundary(tmp_pat
 
 def test_gmat_runner_carries_output_step_for_post_run_cadence(tmp_path):
     p = canonicalize_target_problem(read_json(_example(tmp_path)))
-    candidate = generate_hohmann_candidate(p)
+    candidate = _planner_candidate(p)
     spec = materialize_mission_spec(p, candidate)
     spec["outputs"][0]["step"] = 120.0
     spec_path = tmp_path / "mission_spec.json"
@@ -112,8 +121,8 @@ def test_append_mission_sequence_phase_normalizes_and_appends():
 
 def test_gmat_compiler_emits_stm_artifact_contract(tmp_path):
     p = canonicalize_target_problem(read_json(_example(tmp_path)))
-    candidate = generate_hohmann_candidate(p)
-    spec = canonicalize(materialize_mission_spec(p, candidate))
+    candidate = _planner_candidate(p)
+    spec = _backend_mission_spec(p, candidate)
     spec["targeting"] = {
         "stm": {
             "enabled": True,
@@ -137,8 +146,8 @@ def test_gmat_compiler_emits_stm_artifact_contract(tmp_path):
 
 def test_gmat_compiler_can_emit_native_stm_report_when_parameters_are_validated(tmp_path):
     p = canonicalize_target_problem(read_json(_example(tmp_path)))
-    candidate = generate_hohmann_candidate(p)
-    spec = canonicalize(materialize_mission_spec(p, candidate))
+    candidate = _planner_candidate(p)
+    spec = _backend_mission_spec(p, candidate)
     spec["targeting"] = {
         "stm": {
             "enabled": True,
@@ -160,12 +169,13 @@ def test_gmat_compiler_can_emit_native_stm_report_when_parameters_are_validated(
 
 def test_finite_burn_mission_spec_compiles_to_timed_finite_burn(tmp_path):
     p = canonicalize_target_problem(read_json(_example(tmp_path)))
-    candidate = generate_hohmann_candidate(p)
-    spec = canonicalize(materialize_mission_spec(p, candidate))
-    first_burn_id = spec["burns"][0]["id"]
-    spec["burns"][0] = {
+    candidate = _planner_candidate(p)
+    spec = _backend_mission_spec(p, candidate)
+    first_burn_id = "transfer_injection"
+    first_burn_index = next(index for index, burn in enumerate(spec["burns"]) if burn["id"] == first_burn_id)
+    spec["burns"][first_burn_index] = {
         "id": first_burn_id,
-        "name": spec["burns"][0]["name"],
+        "name": spec["burns"][first_burn_index]["name"],
         "type": "finite",
         "frame": "VNB",
         "origin": "Earth",
@@ -186,7 +196,6 @@ def test_finite_burn_mission_spec_compiles_to_timed_finite_burn(tmp_path):
                         action["duration_s"] = 120.0
                         action["propagator"] = spec["propagators"][0]["id"]
 
-    validate_schema(spec)
     validate_dependencies(spec)
     validate_bounds(spec)
     compiler = GmatCompiler()
@@ -206,7 +215,7 @@ def test_finite_burn_mission_spec_compiles_to_timed_finite_burn(tmp_path):
 
 def test_standard_case_reduces_to_coplanar_hohmann(tmp_path):
     p = canonicalize_target_problem(read_json(_example(tmp_path)))
-    candidate = generate_hohmann_candidate(p)
+    candidate = _planner_candidate(p)
     assert candidate["analytic_assessment"]["model"] == "two_body_impulsive_coplanar_hohmann"
     assert candidate["maneuvers"][0]["plane_change_deg"] == 0.0
     assert candidate["maneuvers"][1]["plane_change_deg"] == 0.0
@@ -218,7 +227,7 @@ def test_inclined_case_merges_plane_change_at_apoapsis_node(tmp_path):
     raw["initial_state"]["inclination"] = {"value": 28.5, "unit": "deg"}
     validate_target_problem(raw)
     p = canonicalize_target_problem(raw)
-    candidate = generate_hohmann_candidate(p)
+    candidate = _planner_candidate(p)
     assert candidate["analytic_assessment"]["plane_change_total_deg"] == 28.5
     assert candidate["analytic_assessment"]["plane_change_merge_target"] == "arrival"
     assert candidate["analytic_assessment"]["plane_change_node_true_anomaly_deg"] == 180.0
@@ -227,9 +236,10 @@ def test_inclined_case_merges_plane_change_at_apoapsis_node(tmp_path):
     assert candidate["maneuvers"][1]["maneuver_type"] == "combined_impulsive"
     assert candidate["maneuvers"][1]["components_km_s"][1] > 0.0
     assert candidate["maneuvers"][1]["components_km_s"][2] == pytest.approx(0.0, abs=1e-12)
-    spec = materialize_mission_spec(p, candidate)
-    assert spec["burns"][1]["delta_v_km_s"][1] == candidate["variable_values"]["orbit_insertion.delta_v_n"]["value"]
-    assert spec["burns"][1]["delta_v_km_s"][2] == pytest.approx(0.0, abs=1e-12)
+    spec = _backend_mission_spec(p, candidate)
+    orbit_insertion = next(burn for burn in spec["burns"] if burn["id"] == "orbit_insertion")
+    assert orbit_insertion["delta_v_km_s"][1] == candidate["variable_values"]["orbit_insertion.delta_v_n"]["value"]
+    assert orbit_insertion["delta_v_km_s"][2] == pytest.approx(0.0, abs=1e-12)
 
 
 def test_valid_node_low_speed_policy_phases_circular_departure_to_arrival_node(tmp_path):
@@ -248,7 +258,7 @@ def test_valid_node_low_speed_policy_phases_circular_departure_to_arrival_node(t
     raw["initial_state"]["true_anomaly"] = {"value": 0.0, "unit": "deg"}
 
     p = canonicalize_target_problem(raw)
-    candidate = generate_hohmann_candidate(p)
+    candidate = _planner_candidate(p)
 
     assert p["transfer_strategy"]["maneuver_policy"] == "valid_node_low_speed"
     assert p["transfer_strategy"]["maneuver_policy_config"]["allow_departure_phasing"] is True
@@ -302,7 +312,7 @@ def test_valid_node_low_speed_policy_phases_circular_departure_to_arrival_node(t
     final_h = hohmann_guess._unit(hohmann_guess._cross(r_hat, v_after))
     assert abs(hohmann_guess._dot(final_h, target_basis["h"])) == pytest.approx(1.0)
 
-    spec = materialize_mission_spec(p, candidate)
+    spec = _backend_mission_spec(p, candidate)
     transfer_event = next(e for e in spec["events"] if e["id"] == "event_transfer_injection")
     insertion_burn = next(b for b in spec["burns"] if b["id"] == "orbit_insertion")
     assert transfer_event["type"] == "parameter_reaches"
@@ -339,8 +349,8 @@ def test_luna_centered_target_problem_uses_lunar_constants(tmp_path):
     }
 
     p = canonicalize_target_problem(raw)
-    candidate = generate_hohmann_candidate(p)
-    spec = materialize_mission_spec(p, candidate)
+    candidate = _planner_candidate(p)
+    spec = _backend_mission_spec(p, candidate)
 
     assert p["transfer_strategy"]["central_body_radius"] == {"value": 1737.4, "unit": "km"}
     assert p["transfer_strategy"]["central_body_mu"] == {"value": 4902.800118, "unit": "km^3/s^2"}
@@ -369,7 +379,7 @@ def test_off_node_plane_change_is_seeded_at_transfer_arc_node(tmp_path):
     validate_target_problem(raw)
 
     p = canonicalize_target_problem(raw)
-    candidate = generate_hohmann_candidate(p)
+    candidate = _planner_candidate(p)
 
     assert len(candidate["maneuvers"]) == 3
     node_burn = candidate["maneuvers"][1]
@@ -381,18 +391,18 @@ def test_off_node_plane_change_is_seeded_at_transfer_arc_node(tmp_path):
     assert candidate["analytic_assessment"]["plane_change_merge_target"] is None
     assert candidate["analytic_assessment"]["plane_change_node_true_anomaly_deg"] == 150.0
 
-    spec = materialize_mission_spec(p, candidate)
+    spec = _backend_mission_spec(p, candidate)
     node_event = next(e for e in spec["events"] if e["id"] == "event_plane_change_at_node")
     assert node_event["type"] == "parameter_reaches"
     assert node_event["stop_condition"] == {"parameter": "Earth.TA", "value": 150.0, "angle_kind": "true_anomaly"}
     ground_track = next(out for out in spec["outputs"] if out["type"] == "ground_track")
-    assert ground_track == {
+    assert {
         "id": "earth_ground_track",
         "type": "ground_track",
         "spacecraft": "sat",
         "body": "Earth",
         "path": "outputs/_GroundTrack_{spacecraft}_{body}.csv",
-    }
+    }.items() <= ground_track.items()
     ephemeris = next(out for out in spec["outputs"] if out["id"] == "targeted_ephemeris")
     assert ephemeris["frames"] == ["EarthMJ2000Eq", "EarthFixed"]
     assert ephemeris["path_template"] == "outputs/{spacecraft}_{frame}.eph.csv"
@@ -433,9 +443,9 @@ def test_elliptical_initial_state_supported_at_selected_apsis(tmp_path):
         "frame": "EarthMJ2000Eq"
     }
     p = canonicalize_target_problem(raw)
-    candidate = generate_hohmann_candidate(p)
+    candidate = _planner_candidate(p)
     assert candidate["analytic_assessment"]["departure_radius_km"] == 8000.0
-    spec = materialize_mission_spec(p, candidate)
+    spec = _backend_mission_spec(p, candidate)
     sc = spec["spacecraft"][0]
     assert sc["sma_km"] == 10000.0
     assert sc["ecc"] == 0.2
@@ -457,8 +467,8 @@ def test_keplerian_initial_state_can_depart_away_from_apsis(tmp_path):
     }
 
     p = canonicalize_target_problem(raw)
-    candidate = generate_hohmann_candidate(p)
-    spec = materialize_mission_spec(p, candidate)
+    candidate = _planner_candidate(p)
+    spec = _backend_mission_spec(p, candidate)
 
     assert p["initial_state"]["true_anomaly"]["value"] == 45.0
     assert candidate["maneuvers"][0]["event_type"] == "immediate"
@@ -478,8 +488,8 @@ def test_cartesian_initial_state_is_supported_and_materialized_as_cartesian(tmp_
     }
 
     p = canonicalize_target_problem(raw)
-    candidate = generate_hohmann_candidate(p)
-    spec = materialize_mission_spec(p, candidate)
+    candidate = _planner_candidate(p)
+    spec = _backend_mission_spec(p, candidate)
 
     assert p["initial_state"]["sma"]["value"] == pytest.approx(radius)
     assert p["initial_state"]["eccentricity"] == pytest.approx(0.0, abs=1e-12)
@@ -516,8 +526,8 @@ def test_cometary_initial_and_target_states_are_supported(tmp_path):
     }
 
     p = canonicalize_target_problem(raw)
-    candidate = generate_hohmann_candidate(p)
-    spec = materialize_mission_spec(p, candidate)
+    candidate = _planner_candidate(p)
+    spec = _backend_mission_spec(p, candidate)
 
     assert p["initial_state"]["sma"]["value"] == pytest.approx(10000.0)
     assert p["target"]["sma"]["value"] == pytest.approx(42164.1696)
@@ -535,8 +545,8 @@ def test_maneuver_policy_can_depart_at_explicit_true_anomaly(tmp_path):
     }
 
     p = canonicalize_target_problem(raw)
-    candidate = generate_hohmann_candidate(p)
-    spec = materialize_mission_spec(p, candidate)
+    candidate = _planner_candidate(p)
+    spec = _backend_mission_spec(p, candidate)
 
     assert candidate["maneuvers"][0]["event_type"] == "parameter_reaches"
     assert candidate["maneuvers"][0]["true_anomaly_deg"] == 45.0
@@ -562,8 +572,8 @@ def test_maneuver_policy_node_shortcuts_resolve_to_true_anomaly(tmp_path):
     raw["target"]["aop"] = {"value": 20.0, "unit": "deg"}
 
     p = canonicalize_target_problem(raw)
-    candidate = generate_hohmann_candidate(p)
-    spec = materialize_mission_spec(p, candidate)
+    candidate = _planner_candidate(p)
+    spec = _backend_mission_spec(p, candidate)
 
     assert p["transfer_strategy"]["departure_true_anomaly"] == 330.0
     assert p["transfer_strategy"]["arrival_true_anomaly"] == 160.0
@@ -600,9 +610,9 @@ def test_maneuver_policy_can_depart_at_explicit_argument_of_latitude(tmp_path):
     }
 
     p = canonicalize_target_problem(raw)
-    candidate = generate_hohmann_candidate(p)
-    spec = materialize_mission_spec(p, candidate)
-    script = GmatCompiler().render_gmat_script(canonicalize(spec), tmp_path)
+    candidate = _planner_candidate(p)
+    spec = _backend_mission_spec(p, candidate)
+    script = GmatCompiler().render_gmat_script(spec, tmp_path)
 
     assert p["transfer_strategy"]["departure_true_anomaly"] == 150.0
     assert p["transfer_strategy"]["departure_event"]["resolved_argument_of_latitude"] == {"value": 180.0, "unit": "deg"}

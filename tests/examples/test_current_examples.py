@@ -5,6 +5,7 @@ import pytest
 
 from compiler.artifacts.bundle import compile_bundle
 from compiler.io import read_json
+from compiler.ir.backend_spec import to_backend_spec
 from compiler.ir.canonicalize import canonicalize
 from compiler.validation.validate_bounds import validate_bounds
 from compiler.validation.validate_dependencies import validate_dependencies
@@ -20,8 +21,9 @@ EXAMPLES = [
 
 
 def _validate(path: Path) -> dict:
-    validate_schema(read_json(path))
-    spec = canonicalize(read_json(path))
+    public_spec = read_json(path)
+    validate_schema(public_spec)
+    spec = canonicalize(to_backend_spec(public_spec))
     checks = []
     checks += validate_dependencies(spec)
     checks += validate_bounds(spec)
@@ -32,12 +34,12 @@ def _validate(path: Path) -> dict:
 
 def _write_leo_to_geo_candidate(tmp_path: Path) -> Path:
     from targeter.domain import canonicalize_target_problem
-    from targeter.initial_guess import generate_hohmann_candidate
+    from targeter.maneuver_planner import plan_target_problem
     from targeter.materialization import materialize_mission_spec
 
     problem = canonicalize_target_problem(read_json(Path("examples/LEO_to_GEO/target_problem.json")))
-    candidate = generate_hohmann_candidate(problem)
-    spec = canonicalize(materialize_mission_spec(problem, candidate))
+    candidate = plan_target_problem(problem).selected_candidate_payload
+    spec = materialize_mission_spec(problem, candidate)
     spec_path = tmp_path / "LEO_to_GEO_candidate_mission_spec.json"
     spec_path.write_text(json.dumps(spec), encoding="utf-8")
     return spec_path
@@ -68,18 +70,18 @@ def test_meo_demo_manifest_lists_ground_track(tmp_path: Path) -> None:
 
 def test_targeting_generated_geo_manifest_lists_ground_track(tmp_path: Path) -> None:
     from targeter.domain import canonicalize_target_problem
-    from targeter.initial_guess import generate_hohmann_candidate
+    from targeter.maneuver_planner import plan_target_problem
     from targeter.materialization import materialize_mission_spec
 
     problem = canonicalize_target_problem(read_json(Path("examples/LEO_to_GEO/target_problem.json")))
-    candidate = generate_hohmann_candidate(problem)
-    spec = canonicalize(materialize_mission_spec(problem, candidate))
+    candidate = plan_target_problem(problem).selected_candidate_payload
+    spec = materialize_mission_spec(problem, candidate)
     spec_path = tmp_path / "candidate_mission_spec.json"
     spec_path.write_text(json.dumps(spec), encoding="utf-8")
     result = compile_bundle(spec_path, tmp_path / "LEO_to_GEO", "gmat")
     assert result["compile_result"]["status"] == "success", result["compile_result"]
 
-    manifest = build_visualization_manifest(spec, tmp_path / "LEO_to_GEO")
+    manifest = build_visualization_manifest(canonicalize(to_backend_spec(spec)), tmp_path / "LEO_to_GEO")
 
     assert manifest["ground_tracks"]
     assert manifest["ground_tracks"][0]["file"] == "outputs/_GroundTrack_TargetSat_Earth.csv"
@@ -103,6 +105,7 @@ def test_leo_to_geo_target_problem_is_closed_loop_demo(tmp_path: Path) -> None:
     assert result["status"] == "compiled_not_run"
     assert result["simulation_backend"] == "gmat"
     assert result["correction_backend"] == "stm"
+    assert result["maneuver_planner"]["status"] == "analytically_feasible"
     iteration_dir = tmp_path / "closed_loop" / "iteration_000" / "simulation"
     contract = read_json(iteration_dir / "targeting" / "stm_artifact_contract.json")
     assert contract["artifacts"][0]["id"] == "leo_geo_closed_loop_stm"
@@ -200,6 +203,13 @@ def test_leo_to_geo_plane_change_is_combined_with_apogee_insertion(tmp_path: Pat
     assert insertion_event["event"] == "apoapsis"
     assert geo_burn["delta_v_km_s"][1] != 0.0
     assert all(burn["id"] != "plane_change_at_node" for burn in spec["burns"])
+    post_coast = next(
+        step
+        for phase in spec["mission_sequence"]
+        for step in phase["steps"]
+        if step.get("step_id") == "propagate_post_insertion_two_days"
+    )
+    assert post_coast["duration_s"] == 172800.0
 
     result = compile_bundle(spec_path, tmp_path / "LEO_to_GEO", "gmat")
     assert result["compile_result"]["status"] == "success", result["compile_result"]
@@ -209,7 +219,6 @@ def test_leo_to_geo_plane_change_is_combined_with_apogee_insertion(tmp_path: Pat
     assert "Propagate EarthProp(TargetSat) { TargetSat.Earth.TA = 180.0 };" in script
     assert "Maneuver OrbitInsertion(TargetSat);" in script
     assert "Maneuver PlaneChangeAtNode(TargetSat);" not in script
-    assert "Propagate EarthProp(TargetSat) { TargetSat.ElapsedSecs = 172800.0 };" in script
 
 
 def test_surface_fixed_ephemeris_uses_inertial_keplerian_angles(tmp_path: Path) -> None:

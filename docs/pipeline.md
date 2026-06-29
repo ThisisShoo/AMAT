@@ -17,20 +17,14 @@ Use one mission folder under `generated/<mission_id>/`:
 generated/<mission_id>/
   targeting/
     target_problem.canonical.json
-    targeting_formulation.json
-    initial_candidate.json
-    targeting_result.json
+    maneuver_plan.json
     candidate_mission_spec.json
-    acceptance_result.json
-    provenance.json
+    targeting_result.json
   simulation/
-    mission_spec.canonical.json  # public MissionSpec, schema_version 2.0.0
     mission_spec.backend_ir.json  # lowered backend input, schema_version 1.0.0
     generated_mission.py
     generated_mission.script    # GMAT backend only
     compile_result.json
-    validation_report.json
-    artifact_manifest.json
     visualization_manifest.json
     outputs/
     visualization/
@@ -66,7 +60,7 @@ python -m targeter solve examples/LEO_to_GEO/target_problem.json \
   --out generated/LEO_to_GEO/targeting
 ```
 
-This writes the targeting artifacts and `candidate_mission_spec.json`.
+This writes the standard targeting artifacts, including `maneuver_plan.json` and `candidate_mission_spec.json`. Add `--artifact-profile debug` to also write diagnostic files such as `initial_candidate.json`, `targeting_formulation.json`, and `provenance.json`.
 
 For impulsive non-coplanar transfers, the initial guess is node-aware: AMAT computes the intersection between the initial and target orbital planes, chooses the node closest to apoapsis on the transfer arc, and emits a separate plane-change maneuver unless that node is close enough to merge with an apsidal energy maneuver.
 
@@ -85,7 +79,8 @@ python -m compiler compile generated/LEO_to_GEO/targeting/candidate_mission_spec
   --out generated/LEO_to_GEO/simulation
 ```
 
-Compilation writes the canonical MissionSpec, generated Python runner, manifests, expected output declarations, and visualization manifest. GMAT compilation also writes a GMAT-native script for audit and replay.
+Compilation writes the backend IR, generated Python runner, compact compile result, expected output declarations, and visualization manifest. GMAT compilation also writes a GMAT-native script for audit and replay.
+The standard compile profile writes only replay-critical artifacts and compact status. Add `--artifact-profile debug` to also write `mission_spec.canonical.json`, `validation_report.json`, and `artifact_manifest.json`.
 
 To compile with Orekit instead of GMAT, pass the backend explicitly:
 
@@ -95,7 +90,7 @@ python -m compiler compile generated/LEO_to_GEO/targeting/candidate_mission_spec
   --out generated/LEO_to_GEO/simulation
 ```
 
-Orekit compilation writes a generated Python runner and normal AMAT manifests. It does not write a GMAT-native script.
+Orekit compilation writes a generated Python runner and visualization manifest. It does not write a GMAT-native script.
 
 ### 5. Run The Simulation Backend
 
@@ -205,20 +200,34 @@ Use this after changing visualization code, body textures, frame declarations, o
 Targeting artifacts:
 
 - `target_problem.canonical.json`: normalized public request.
-- `targeting_formulation.json`: constraints, decision variables, and solver contract.
-- `initial_candidate.json`: analytic seed with maneuver list and delta-v estimates.
+- `maneuver_plan.json`: maneuver-planner result, selected candidate metadata, timing selectors, and objective breakdown.
 - `candidate_mission_spec.json`: handoff into the simulation layer.
 - `targeting_result.json`: targeting-layer summary.
-- `acceptance_result.json`: not-run after `solve`, updated after `evaluate`.
+- `simulation_evaluation.json`: written by `targeter evaluate`.
+- `acceptance_result.json`: written by `targeter evaluate`.
+
+Debug targeting artifacts:
+
+- `targeting_formulation.json`: constraints, decision variables, and solver contract.
+- `initial_candidate.json`: analytic seed with maneuver list and delta-v estimates.
+- `provenance.json`: hashes and environment summary for audit.
 
 Simulation artifacts:
 
 - `generated_mission.script`: GMAT-native script for audit and replay. Orekit runs do not emit this file.
 - `generated_mission.py`: Python runner.
+- `compile_result.json`: compact compile status, schema versions, backend id, warnings, and generated-artifact summary.
+- `mission_spec.backend_ir.json`: lowered backend input, kept in standard mode for replay and backend debugging.
 - `outputs/*.csv`: backend runtime outputs. GMAT writes ReportFile-derived CSVs and normalizes ephemeris-style files to requested `outputs[].step` cadence when possible; Orekit writes spacecraft ephemeris, checkpoint, final-state, supported body-ephemeris, and ground-track CSVs on the requested output cadence for supported or validated fallback frames.
 - `dependencies/spice_requests.json`: optional SPICE request contract generated when the MissionSpec declares SPICE ephemeris dependencies, including Orekit body-ephemeris fallback prerequisites.
 - `outputs/stm_assessment.json`: optional targeter correction artifact. Orekit can synthesize it from finite-difference perturbation runs during closed-loop targeting.
 - `visualization_manifest.json`: viewer-facing description of traces, frames, checkpoints, bodies, finite maneuvers, and ground tracks.
+
+Debug compiler artifacts:
+
+- `mission_spec.canonical.json`: public MissionSpec snapshot.
+- `validation_report.json`: expanded validation checks.
+- `artifact_manifest.json`: audit manifest for compiler artifacts.
 
 Visualization artifacts:
 
@@ -240,7 +249,8 @@ MissionSpec separates propagation control from output cadence:
 After targeting:
 
 ```bash
-type generated/<mission_id>/targeting/initial_candidate.json
+type generated/<mission_id>/targeting/maneuver_plan.json
+type generated/<mission_id>/targeting/targeting_result.json
 ```
 
 Confirm the maneuver plan has the expected maneuver count, event detectors, and plane-change placement.

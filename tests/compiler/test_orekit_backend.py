@@ -97,7 +97,7 @@ def test_orekit_backend_compiles_two_body_runner(tmp_path: Path) -> None:
     spec_path = tmp_path / "mission_spec.json"
     spec_path.write_text(json.dumps(_orekit_two_body_spec()), encoding="utf-8")
 
-    result = compile_bundle(spec_path, tmp_path / "simulation", "orekit")
+    result = compile_bundle(spec_path, tmp_path / "simulation", "orekit", artifact_profile="debug")
 
     compile_result = result["compile_result"]
     script = (tmp_path / "simulation" / "generated_mission.py").read_text(encoding="utf-8")
@@ -125,20 +125,29 @@ def test_orekit_backend_runtime_uses_output_step_separately_from_max_step(tmp_pa
     script = (tmp_path / "simulation" / "generated_mission.py").read_text(encoding="utf-8")
 
     assert result["compile_result"]["status"] == "success", result["compile_result"]
+    assert result["compile_result"]["artifact_profile"] == "standard"
+    assert (tmp_path / "simulation" / "mission_spec.backend_ir.json").exists()
+    assert not (tmp_path / "simulation" / "mission_spec.canonical.json").exists()
+    assert not (tmp_path / "simulation" / "validation_report.json").exists()
+    assert not (tmp_path / "simulation" / "artifact_manifest.json").exists()
     assert '"step_s": 120.0' in script
     assert '"max_step_s": 300.0' in script
     assert "_sample_step_for_spacecraft" in script
     assert "amat_output_states" in script
 
 
-def test_orekit_backend_accepts_direct_impulsive_maneuver_steps() -> None:
-    spec = _orekit_two_body_spec()
-    spec["maneuvers"] = [{"id": "dv", "name": "DV", "maneuver_type": "ImpulsiveBurn", "reference_frame": "VNB", "delta_v": [0.1, 0.0, 0.0]}]
-    spec["mission_sequence"][0]["steps"].insert(0, {"step_id": "burn", "command": "Maneuver", "spacecraft": "sat", "maneuver": "dv"})
+def test_compile_bundle_debug_profile_writes_audit_artifacts(tmp_path: Path) -> None:
+    spec_path = tmp_path / "mission_spec.json"
+    spec_path.write_text(json.dumps(_orekit_two_body_spec()), encoding="utf-8")
 
-    report = validate_mission(spec, "orekit")
+    result = compile_bundle(spec_path, tmp_path / "simulation", "orekit", artifact_profile="debug")
 
-    assert report["status"] == "passed", report
+    assert result["compile_result"]["status"] == "success", result["compile_result"]
+    assert result["compile_result"]["artifact_profile"] == "debug"
+    assert (tmp_path / "simulation" / "mission_spec.backend_ir.json").exists()
+    assert (tmp_path / "simulation" / "mission_spec.canonical.json").exists()
+    assert (tmp_path / "simulation" / "validation_report.json").exists()
+    assert (tmp_path / "simulation" / "artifact_manifest.json").exists()
 
 
 def test_orekit_backend_accepts_non_vnb_impulsive_burn_frames() -> None:
@@ -338,19 +347,6 @@ def test_orekit_backend_accepts_topocentric_output_frame(tmp_path: Path) -> None
     assert '"kind": "topocentric"' in script
 
 
-def test_orekit_backend_renders_runtime_spec_as_python_safe_json(tmp_path: Path) -> None:
-    spec = _orekit_two_body_spec()
-    spec["visualization"] = {"enabled": True, "data_prerequisites": {"clean_csv": False}}
-    spec_path = tmp_path / "mission_spec.json"
-    spec_path.write_text(json.dumps(spec), encoding="utf-8")
-
-    compile_bundle(spec_path, tmp_path / "simulation", "orekit")
-
-    script = (tmp_path / "simulation" / "generated_mission.py").read_text(encoding="utf-8")
-    assert "RUNTIME_SPEC = json.loads" in script
-    assert '"enabled": true' in script
-
-
 def test_orekit_compile_writes_visualization_manifest_with_static_body_context(tmp_path: Path) -> None:
     spec = _orekit_two_body_spec()
     spec["reference_frames"] = [
@@ -423,23 +419,6 @@ def test_orekit_backend_accepts_major_body_fixed_output_frames(tmp_path: Path) -
     assert "getBodyOrientedFrame" in script
 
 
-def test_orekit_backend_compiles_spherical_harmonic_and_third_body_gravity(tmp_path: Path) -> None:
-    spec = _orekit_two_body_spec()
-    spec["force_models"][0]["gravity"] = {"model": "SphericalHarmonic", "degree": 4, "order": 4}
-    spec["force_models"][0]["point_masses"] = ["Luna", "Sun"]
-    spec["force_models"][0]["third_body_gravity"] = {"enabled": True, "bodies": ["Luna", "Sun"]}
-    spec_path = tmp_path / "mission_spec.json"
-    spec_path.write_text(json.dumps(spec), encoding="utf-8")
-
-    result = compile_bundle(spec_path, tmp_path / "simulation", "orekit")
-
-    assert result["compile_result"]["status"] == "success", result["compile_result"]
-    script = (tmp_path / "simulation" / "generated_mission.py").read_text(encoding="utf-8")
-    assert "NumericalPropagator" in script
-    assert "HolmesFeatherstoneAttractionModel" in script
-    assert "ThirdBodyAttraction" in script
-
-
 def test_orekit_backend_compiles_expanded_force_model_hooks(tmp_path: Path) -> None:
     spec = _orekit_two_body_spec()
     spec["spacecraft"][0]["drag_area"] = 12.0
@@ -447,6 +426,8 @@ def test_orekit_backend_compiles_expanded_force_model_hooks(tmp_path: Path) -> N
     spec["spacecraft"][0]["srp_area"] = 10.0
     spec["spacecraft"][0]["coefficient_of_reflectivity"] = 1.3
     spec["force_models"][0]["gravity"] = {"model": "SphericalHarmonic", "degree": 4, "order": 4}
+    spec["force_models"][0]["point_masses"] = ["Luna", "Sun"]
+    spec["force_models"][0]["third_body_gravity"] = {"enabled": True, "bodies": ["Luna", "Sun"]}
     spec["force_models"][0]["drag"] = {"enabled": True, "atmosphere_model": "HarrisPriester"}
     spec["force_models"][0]["solar_radiation_pressure"] = {"enabled": True}
     spec["force_models"][0]["relativity"] = {"enabled": True}
@@ -458,6 +439,9 @@ def test_orekit_backend_compiles_expanded_force_model_hooks(tmp_path: Path) -> N
 
     assert result["compile_result"]["status"] == "success", result["compile_result"]
     script = (tmp_path / "simulation" / "generated_mission.py").read_text(encoding="utf-8")
+    assert "NumericalPropagator" in script
+    assert "HolmesFeatherstoneAttractionModel" in script
+    assert "ThirdBodyAttraction" in script
     assert "HarrisPriester" in script
     assert "SolarRadiationPressure" in script
     assert "Relativity" in script

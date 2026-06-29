@@ -3,17 +3,31 @@ import argparse, json
 from targeter.errors import TargetingError
 from targeter.evaluation import build_acceptance_result, evaluate_simulation
 from targeter.io import read_json, write_json
-from targeter.service import canonicalize_file, solve_file, validate_file
-from targeter.conic_chain import load_body_ephemeris_csv, solve_single_leg_ephemeris_lambert_seed
+from targeter.conic_chain import load_body_ephemeris_csv
 from targeter.constants import get_body_constants
 from targeter.execution import execute_closed_loop_file
+from targeter.maneuver_planner.operations.body_transfer import plan_conic_chain_seed
+from targeter.service import canonicalize_file, solve_file, validate_file
+
+def _cli_result(result: dict) -> dict:
+    hidden = {
+        "target_problem",
+        "targeting_formulation",
+        "maneuver_plan",
+        "candidate",
+        "candidate_mission_spec",
+        "targeting_result",
+        "acceptance_result",
+        "provenance",
+    }
+    return {key: value for key, value in result.items() if key not in hidden}
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m targeter")
     sub = parser.add_subparsers(dest="cmd", required=True)
     v = sub.add_parser("validate"); v.add_argument("target_problem")
     c = sub.add_parser("canonicalize"); c.add_argument("target_problem"); c.add_argument("--out", required=True)
-    s = sub.add_parser("solve"); s.add_argument("target_problem"); s.add_argument("--out", default="generated/targeting")
+    s = sub.add_parser("solve"); s.add_argument("target_problem"); s.add_argument("--out", default="generated/targeting"); s.add_argument("--artifact-profile", choices=["standard", "debug"], default="standard")
     e = sub.add_parser("evaluate"); e.add_argument("target_problem"); e.add_argument("--simulation-dir", required=True); e.add_argument("--out", default=None)
     cl = sub.add_parser("closed-loop", help="Run the modular targeting closed loop")
     cl.add_argument("target_problem")
@@ -43,7 +57,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.cmd == "canonicalize":
             result = canonicalize_file(args.target_problem, args.out)
         elif args.cmd == "solve":
-            result = solve_file(args.target_problem, args.out)
+            result = solve_file(args.target_problem, args.out, artifact_profile=args.artifact_profile)
         elif args.cmd == "evaluate":
             problem = read_json(args.target_problem)
             evaluation = evaluate_simulation(problem, args.simulation_dir)
@@ -79,7 +93,7 @@ def main(argv: list[str] | None = None) -> int:
             if central_mu is None or central_radius is None:
                 raise ValueError("custom central body conic-chain seeds require --central-mu-km3-s2 and --central-radius-km")
             samples = load_body_ephemeris_csv(args.body_ephemeris, body=args.body, frame=args.frame)
-            seed = solve_single_leg_ephemeris_lambert_seed(
+            seed = plan_conic_chain_seed(
                 samples,
                 departure_body=args.departure_body,
                 target_body=args.target_body or args.body,
@@ -104,5 +118,5 @@ def main(argv: list[str] | None = None) -> int:
             }
     except (TargetingError, OSError, ValueError, RuntimeError) as exc:
         print(json.dumps({"ok": False, "status": "invalid_problem", "error": str(exc)}, indent=2, sort_keys=True)); return 1
-    print(json.dumps(result, indent=2, sort_keys=True)); return 0 if result.get("ok", True) else 1
+    print(json.dumps(_cli_result(result), indent=2, sort_keys=True)); return 0 if result.get("ok", True) else 1
 

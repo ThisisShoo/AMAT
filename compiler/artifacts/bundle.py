@@ -15,6 +15,20 @@ from compiler.validation.validate_units import validate_units
 
 
 COMPILE_RESULT_SCHEMA_VERSION = "2.0.0"
+ARTIFACT_PROFILES = {"standard", "debug"}
+
+
+def _artifact_profile(value: str) -> str:
+    if value not in ARTIFACT_PROFILES:
+        raise ValueError(f"artifact_profile must be one of {sorted(ARTIFACT_PROFILES)}")
+    return value
+
+
+def _remove_stale_artifacts(out_dir: Path, names: list[str]) -> None:
+    for name in names:
+        path = out_dir / name
+        if path.exists() and path.is_file():
+            path.unlink()
 
 
 def _failed_compile_result(
@@ -83,15 +97,20 @@ def validate_mission(spec: dict, backend_id: str = "gmat") -> dict:
     }
 
 
-def compile_bundle(spec_path: str | Path, out_dir: str | Path, backend_id: str = "gmat") -> dict:
+def compile_bundle(spec_path: str | Path, out_dir: str | Path, backend_id: str = "gmat", *, artifact_profile: str = "standard") -> dict:
+    artifact_profile = _artifact_profile(artifact_profile)
     spec = read_json(spec_path)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    if artifact_profile == "standard":
+        _remove_stale_artifacts(out_dir, ["mission_spec.canonical.json", "validation_report.json", "artifact_manifest.json"])
 
     validation_report = validate_mission(spec, backend_id)
-    write_json(out_dir / "validation_report.json", validation_report)
+    if artifact_profile == "debug":
+        write_json(out_dir / "validation_report.json", validation_report)
     if validation_report["status"] == "failed":
-        write_json(out_dir / "mission_spec.canonical.json", spec)
+        if artifact_profile == "debug":
+            write_json(out_dir / "mission_spec.canonical.json", spec)
         compile_result = _failed_compile_result(
             mission_id=spec.get("mission_id", "UNKNOWN"),
             backend_id=backend_id,
@@ -100,16 +119,19 @@ def compile_bundle(spec_path: str | Path, out_dir: str | Path, backend_id: str =
         )
     else:
         backend_ir = canonicalize(to_backend_spec(spec))
-        write_json(out_dir / "mission_spec.canonical.json", spec)
         write_json(out_dir / "mission_spec.backend_ir.json", backend_ir)
+        if artifact_profile == "debug":
+            write_json(out_dir / "mission_spec.canonical.json", spec)
         compile_result = _normalize_compile_result(
             get_backend(backend_id).compile(backend_ir, out_dir),
             public_spec=spec,
             backend_ir=backend_ir,
         )
+    compile_result["artifact_profile"] = artifact_profile
     write_json(out_dir / "compile_result.json", compile_result)
 
     manifest = build_manifest(spec.get("mission_id", "UNKNOWN"), out_dir)
-    write_json(out_dir / "artifact_manifest.json", manifest)
+    if artifact_profile == "debug":
+        write_json(out_dir / "artifact_manifest.json", manifest)
     return {"validation_report": validation_report, "compile_result": compile_result, "artifact_manifest": manifest}
 

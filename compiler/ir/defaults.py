@@ -38,9 +38,11 @@ def apply_defaults(spec: dict) -> dict:
     are portable MissionSpec intent; the GMAT backend maps them to PointMasses.
     """
     spec = deepcopy(spec)
+    is_public_v2 = spec.get("schema_version") == "2.0.0"
     spec.setdefault("bodies", [])
     spec.setdefault("external_dependencies", [])
-    spec.setdefault("frames", [])
+    if not is_public_v2:
+        spec.setdefault("frames", [])
     spec.setdefault("reference_frames", [])
     spec.setdefault("reference_frame_sets", [])
     resolved_frames = normalize_reference_frame_declarations(spec)
@@ -51,16 +53,29 @@ def apply_defaults(spec: dict) -> dict:
     spec.setdefault("execution", {"mode": "auto"})
     spec["execution"].setdefault("mode", "auto")
     spec.setdefault("checkpoints", [])
-    spec.setdefault("burns", [])
-    spec.setdefault("events", [])
+    if not is_public_v2:
+        spec.setdefault("burns", [])
+        spec.setdefault("events", [])
     for sc in spec.get("spacecraft", []):
         if sc.get("epoch"):
             sc["epoch"] = canonicalize_epoch(sc["epoch"])
-        sc.setdefault("drag_area_m2", 15.0)
-        sc.setdefault("srp_area_m2", 1.0)
-        sc.setdefault("cd", 2.2)
-        sc.setdefault("cr", 1.8)
-        sc["frame"] = gmat_frame(sc["frame"], declared_frames)
+        frame = sc.get("reference_frame", sc.get("frame"))
+        if frame:
+            normalized_frame = gmat_frame(frame, declared_frames)
+            if is_public_v2:
+                sc["reference_frame"] = normalized_frame
+            else:
+                sc["frame"] = normalized_frame
+        if is_public_v2:
+            sc.setdefault("drag_area", 15.0)
+            sc.setdefault("srp_area", 1.0)
+            sc.setdefault("drag_coefficient", 2.2)
+            sc.setdefault("coefficient_of_reflectivity", 1.8)
+        else:
+            sc.setdefault("drag_area_m2", 15.0)
+            sc.setdefault("srp_area_m2", 1.0)
+            sc.setdefault("cd", 2.2)
+            sc.setdefault("cr", 1.8)
 
     body_name_map = {}
     for body in spec.get("bodies", []):
@@ -74,6 +89,11 @@ def apply_defaults(spec: dict) -> dict:
         burn["origin"] = body_name_map.get(burn["origin"], burn["origin"])
         if burn.get("frame"):
             burn["frame"] = gmat_frame(burn["frame"], declared_frames)
+    for maneuver in spec.get("maneuvers", []):
+        maneuver.setdefault("origin", "Earth")
+        maneuver["origin"] = body_name_map.get(maneuver["origin"], maneuver["origin"])
+        if maneuver.get("reference_frame"):
+            maneuver["reference_frame"] = gmat_frame(maneuver["reference_frame"], declared_frames)
     for fm in spec.get("force_models", []):
         fm.setdefault("central_body", "Earth")
         fm["central_body"] = body_name_map.get(fm["central_body"], fm["central_body"])
@@ -94,24 +114,28 @@ def apply_defaults(spec: dict) -> dict:
             tbg["bodies"] = []
             fm["point_masses"] = []
 
-        gtype = fm["gravity"]["type"]
+        gravity = fm.setdefault("gravity", {})
+        gtype = gravity.get("type") or gravity.get("model")
+        if gtype is None:
+            gravity["model" if is_public_v2 else "type"] = "PointMass" if is_public_v2 else "point_mass"
+            gtype = gravity["model" if is_public_v2 else "type"]
         if gtype == "basic_earth_gravity":
             # Backward-compatible alias for spherical harmonic Earth gravity.
-            fm["gravity"]["type"] = "spherical_harmonic"
+            gravity["type"] = "spherical_harmonic"
             gtype = "spherical_harmonic"
-        fm["gravity"].setdefault("body", central)
-        if gtype == "spherical_harmonic":
-            fm["gravity"].setdefault("degree", 4)
-            fm["gravity"].setdefault("order", 4)
+        gravity.setdefault("body", central)
+        if str(gtype) in {"spherical_harmonic", "SphericalHarmonic", "HolmesFeatherstone", "EGM96", "EGM2008"}:
+            gravity.setdefault("degree", 4)
+            gravity.setdefault("order", 4)
             if central == "Earth":
-                fm["gravity"].setdefault("potential_file", "JGM2.cof")
+                gravity.setdefault("potential_file", "JGM2.cof")
         else:
-            fm["gravity"].setdefault("degree", 0)
-            fm["gravity"].setdefault("order", 0)
+            gravity.setdefault("degree", 0)
+            gravity.setdefault("order", 0)
         fm.setdefault("backend_overrides", {})
         fm["backend_overrides"].setdefault("gmat", {})
-        if "potential_file" not in fm["backend_overrides"]["gmat"] and fm["gravity"].get("potential_file"):
-            fm["backend_overrides"]["gmat"]["potential_file"] = fm["gravity"].get("potential_file")
+        if "potential_file" not in fm["backend_overrides"]["gmat"] and gravity.get("potential_file"):
+            fm["backend_overrides"]["gmat"]["potential_file"] = gravity.get("potential_file")
         fm["backend_overrides"]["gmat"].setdefault("tide_model", "None")
         fm["backend_overrides"]["gmat"].setdefault("stm_limit", 100)
         fm["backend_overrides"]["gmat"].setdefault("error_control", "RSSStep")
@@ -120,26 +144,29 @@ def apply_defaults(spec: dict) -> dict:
     for out in spec.get("outputs", []):
         out.setdefault("enabled", True)
         out.setdefault("include_header", True)
-        if out["type"] == "state_history":
+        otype = out["type"]
+        sc = spacecraft_by_id.get(out.get("spacecraft"), {})
+        sc_frame = sc.get("reference_frame", sc.get("frame", "EarthMJ2000Eq"))
+        if otype in {"state_history", "StateHistory"}:
             out.setdefault("path", f"outputs/{spec['mission_id']}_state_history.csv")
-            out.setdefault("step_s", 60.0)
-            sc = spacecraft_by_id.get(out["spacecraft"], {})
-            out.setdefault("frames", [sc.get("frame", "EarthMJ2000Eq")])
+            out.setdefault("step" if is_public_v2 else "step_s", 60.0)
+            out.setdefault("frames", [sc_frame])
             out["frames"] = [gmat_frame(f, declared_frames) for f in out.get("frames", [])]
-            out.setdefault("state_groups", ["cartesian", "elapsed_time"])
+            out.setdefault("state_groups", ["Cartesian", "ElapsedTime"] if is_public_v2 else ["cartesian", "elapsed_time"])
             out.setdefault("parameters", [])
             out.setdefault("fields", [])
-        elif out["type"] in {"spacecraft_ephemeris", "full_ephemeris"}:
-            sc = spacecraft_by_id.get(out["spacecraft"], {})
-            out.setdefault("frames", [sc.get("frame", "EarthMJ2000Eq")])
+        elif otype in {"spacecraft_ephemeris", "full_ephemeris", "EphemerisFile", "ReportFile"}:
+            out.setdefault("frames", [sc_frame])
             out["frames"] = [gmat_frame(f, declared_frames) for f in out.get("frames", [])]
-            out.setdefault("state_groups", [] if out["type"] == "full_ephemeris" else ["cartesian", "elapsed_time"])
+            full_type = otype in {"full_ephemeris", "ReportFile"}
+            default_groups = [] if full_type else (["Cartesian", "ElapsedTime"] if is_public_v2 else ["cartesian", "elapsed_time"])
+            out.setdefault("state_groups", default_groups)
             out.setdefault("parameters", [])
             out.setdefault("fields", [])
             out.setdefault("path_template", "outputs/{spacecraft}_{frame}.eph.csv")
-        elif out["type"] == "ground_track":
+        elif otype in {"ground_track", "GroundTrack"}:
             out.setdefault("body", "Earth")
-            out.setdefault("step_s", 60.0)
+            out.setdefault("step" if is_public_v2 else "step_s", 60.0)
             out.setdefault("parameters", [])
             out.setdefault("fields", [])
             out.setdefault("path", "outputs/_GroundTrack_{spacecraft}_{body}.csv")
@@ -147,9 +174,11 @@ def apply_defaults(spec: dict) -> dict:
         cp.setdefault("enabled", True)
         cp.setdefault("include_header", True)
         sc = spacecraft_by_id.get(cp.get("spacecraft"), {})
-        cp.setdefault("frame", sc.get("frame", "EarthMJ2000Eq"))
-        cp["frame"] = gmat_frame(cp["frame"], declared_frames)
-        cp.setdefault("state_groups", [])
+        sc_frame = sc.get("reference_frame", sc.get("frame", "EarthMJ2000Eq"))
+        frame_key = "reference_frame" if is_public_v2 else "frame"
+        cp.setdefault(frame_key, sc_frame)
+        cp[frame_key] = gmat_frame(cp[frame_key], declared_frames)
+        cp.setdefault("state_groups", [] if not is_public_v2 else [])
         cp.setdefault("fields", [])
         cp.setdefault("path", "outputs/{checkpoint_id}.csv")
     return spec

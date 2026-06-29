@@ -98,7 +98,7 @@
     "initial_coast_s": 10800.0,
     "closed_loop": {
       "simulation_backend": "orekit",
-      "correction_backend": "stm",
+      "correction_backend": "orekit_fd",
       "max_iterations": 3,
       "correction": {
         "tolerance": 1e-8,

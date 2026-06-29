@@ -35,6 +35,7 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("mission_spec")
     c.add_argument("--backend", default="gmat")
     c.add_argument("--out", default="generated/mission")
+    c.add_argument("--artifact-profile", choices=["standard", "debug"], default="standard")
 
     r = sub.add_parser("run-python", help="Run a generated gmatpyplus Python mission directly, without loading a .script")
     r.add_argument("script_path")
@@ -62,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if report["status"] != "failed" else 1
 
     if args.cmd == "compile":
-        result = compile_bundle(args.mission_spec, Path(args.out), args.backend)
+        result = compile_bundle(args.mission_spec, Path(args.out), args.backend, artifact_profile=args.artifact_profile)
         print(json.dumps(result["compile_result"], indent=2, sort_keys=True))
         return 0 if result["compile_result"]["status"] != "failed" else 1
 

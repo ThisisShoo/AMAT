@@ -5,10 +5,9 @@ from typing import Any
 
 from targeter.backends import get_correction_backend, get_simulation_backend
 from targeter.domain import canonicalize_target_problem, validate_target_problem
-from targeter.initial_guess import generate_hohmann_candidate
 from targeter.io import read_json, write_json
+from targeter.maneuver_planner import plan_target_problem
 from targeter.materialization import materialize_mission_spec
-from targeter.phase import apply_phase_strategy
 
 
 def execute_closed_loop_file(
@@ -56,7 +55,8 @@ def execute_closed_loop(
     out_dir.mkdir(parents=True, exist_ok=True)
     write_json(out_dir / "target_problem.canonical.json", problem)
 
-    candidate = apply_phase_strategy(problem, generate_hohmann_candidate(problem))
+    maneuver_plan = plan_target_problem(problem)
+    candidate = maneuver_plan.selected_candidate_payload
     iterations: list[dict[str, Any]] = []
     status = "max_iterations"
     termination_reason = "maximum_iterations_reached"
@@ -107,6 +107,7 @@ def execute_closed_loop(
         "termination_reason": termination_reason,
         "simulation_backend": sim_backend_id,
         "correction_backend": corr_backend_id,
+        "maneuver_planner": maneuver_plan.to_dict(),
         "run": run,
         "max_iterations": max_iter,
         "iterations": iterations,
